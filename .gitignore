@@ -1,0 +1,74 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+
+# Virtual Environment
+.venv/
+venv/
+env/
+.venv-*/
+
+# =========================
+# IDE
+# =========================
+.idea/
+*.iml
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+*.key
+*.pem
+
+# =========================
+# Python tools
+# =========================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# =========================
+# Build / Package
+# =========================
+build/
+dist/
+*.egg-info/
+
+# =========================
+# OS
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs / Temp
+# =========================
+*.log
+tmp/
+temp/
+
+# =========================
+# Audio / Dataset
+# =========================
+*.mp3
+*.wav
+*.flac
+
+data/
+datasets/
+
+# =========================
+# ML Models / Checkpoints
+# =========================
+*.pt
+*.pth
+*.ckpt
+*.bin
+models/
+checkpoints/
