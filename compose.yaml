@@ -1,0 +1,23 @@
+services:
+  ai:
+    build: .
+    ports:
+      - "127.0.0.1:${AI_PORT:-8000}:8000"
+    environment:
+      DB_HOST: ${DB_HOST:-host.docker.internal}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-capstone_db}
+      DB_USER: ${DB_USER:-capstone}
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env to the existing PostgreSQL password}
+      DB_CONNECT_TIMEOUT: ${DB_CONNECT_TIMEOUT:-3}
+    volumes:
+      - ./app:/workspace/app
+      - ./scripts:/workspace/scripts
+      - ./tests:/workspace/tests
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
