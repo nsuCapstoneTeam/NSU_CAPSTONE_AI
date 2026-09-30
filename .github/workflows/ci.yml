@@ -1,0 +1,44 @@
+name: AI CI # PR에서는 Docker 빌드 없이 테스트만 실행합니다.
+
+on:
+  pull_request: # main을 대상으로 한 PR 생성·업데이트 시 실행합니다.
+    branches: [main]
+  workflow_call: # main 게시 작업에서도 같은 테스트를 재사용합니다.
+
+permissions:
+  contents: read # 소스 읽기만 허용하며, packages 등 나머지 권한은 none입니다.
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-tests # 같은 PR의 중복 실행을 묶습니다.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }} # PR의 오래된 테스트만 취소합니다.
+
+jobs:
+  test:
+    name: Python unit tests # main 보호 규칙에서 사용할 테스트 이름입니다.
+    runs-on: ubuntu-latest # 표준 Linux runner를 사용합니다.
+    timeout-minutes: 15 # 설치·테스트가 무한 실행되지 않도록 제한합니다.
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4; 검증한 커밋으로 고정합니다.
+        with:
+          persist-credentials: false # 이후 명령에 Git 쓰기 인증을 남기지 않습니다.
+
+      - name: Set up Python
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.11' # README의 Python 버전과 맞춥니다.
+          cache: pip # 다음 실행에서 의존성 다운로드를 재사용합니다.
+          cache-dependency-path: |
+            requirements.txt
+            requirements-ci.txt
+
+      - name: Install CPU-only test dependencies
+        run: |
+          python -m pip install 'torch>=2.1,<3' --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements-ci.txt
+
+      - name: Check Python syntax
+        run: python -m compileall -q app scripts tests # 모델을 실행하지 않고 문법을 검사합니다.
+
+      - name: Run unit tests
+        run: python -m pytest -q tests # 수동 모델 실행 스크립트의 자동 수집을 피합니다.

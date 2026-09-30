@@ -74,8 +74,9 @@ clap-audio-analysis-service/
 - [API 문서](docs/api/README.md): Python–Spring Boot 책임 경계와 계약 정의 항목
 - [ADR 안내](docs/adr/README.md): 비동기·계산 위치·저장소 결정 대기 목록
 
-리뷰 담당자가 확정되지 않은 `CODEOWNERS`, 빈 서비스 모듈, 배포·CI 설정은 추가하지 않았습니다.
-실제 구현과 운영 결정에 맞춰 필요한 파일을 추가합니다.
+리뷰 담당자가 확정되지 않은 `CODEOWNERS`와 빈 서비스 모듈은 추가하지 않았습니다.
+[CI/CD 안내](docs/ci-cd.md)에 PR 테스트와 main → GHCR 게시 권한·실행 조건을 정리했습니다.
+현재 Dockerfile이 없어 이미지 게시에는 후속 Docker 구성이 필요합니다.
 
 ## 설치 및 실행
 
