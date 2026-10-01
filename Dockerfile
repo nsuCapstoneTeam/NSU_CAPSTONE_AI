@@ -10,7 +10,18 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt requirements-dev.txt ./
-RUN pip install --no-cache-dir -r requirements-dev.txt
+# Install the matching CPU wheels before resolving MSCLAP dependencies.
+RUN pip install --no-cache-dir \
+    torch==2.1.2+cpu \
+    torchaudio==2.1.2+cpu \
+    torchvision==0.16.2+cpu \
+    --index-url https://download.pytorch.org/whl/cpu
+
+RUN pip install --no-cache-dir -r requirements-dev.txt \
+    && pip check
+
+# Catch binary/API incompatibilities without downloading model weights.
+RUN python -c "import torch, torchaudio, torchvision; from msclap import CLAP; assert torch.version.cuda is None; print('MSCLAP CPU dependencies OK')"
 
 COPY app ./app
 COPY scripts ./scripts

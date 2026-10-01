@@ -1,8 +1,10 @@
-# Direct dependencies for the Microsoft CLAP backend (Python 3.11).
-# msclap installs its own audio, text, and scientific-computing dependencies.
+# Verified Microsoft CLAP CPU inference dependencies (Python 3.11).
+# Dockerfile installs the +cpu packages from the PyTorch CPU index first.
 msclap==1.3.3
-# AudioClassifier imports torch directly.
-torch>=2.1,<3
+torch==2.1.2+cpu
+torchaudio==2.1.2+cpu
+torchvision==0.16.2+cpu
+transformers==4.35.2
 # Phase 1 HTTP server and PostgreSQL connection.
 fastapi>=0.115,<1
 uvicorn>=0.30,<1
