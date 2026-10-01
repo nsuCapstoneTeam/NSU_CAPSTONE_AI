@@ -15,6 +15,10 @@
 ### Embedding
 - MVP에서는 Audio/Text Embedding을 **등록·수정 시 동기 생성**한다.
 - 비동기 처리는 MVP 이후 개선 사항으로 고려한다.
+- 사용자 음악 요청은 한국어로 받고, 의미를 유지한 영어 설명으로 변환한 뒤
+  MSCLAP Text Embedding을 생성한다. 입력 정책은
+  [ADR 0004](adr/0004-korean-input-english-msclap.md)를 따른다.
+  번역 방식 및 자동 번역 경로의 검증은 후속 구현 작업이다.
 
 ### Similarity
 - Similarity 계산은 `NSU_CAPSTONE_AI` Python AI/Matching Server 내부 책임으로 한다.

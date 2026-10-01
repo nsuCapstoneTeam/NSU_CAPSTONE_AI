@@ -10,7 +10,7 @@ class ClapModel:
 
     def encode_audio(self, audio_path: str):
         return self.model.get_audio_embeddings(
-            audio_path
+            [audio_path]
         )
 
     def encode_text(self, text: list[str]):

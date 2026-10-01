@@ -1,0 +1,7 @@
+services:
+  ai:
+    environment:
+      HF_HOME: /workspace/datasets/fma/huggingface
+    volumes:
+      - ./datasets:/workspace/datasets
+      - ./docs:/workspace/docs:ro
