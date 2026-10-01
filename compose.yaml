@@ -1,6 +1,6 @@
 services:
   ai:
-    build: .
+    image: ghcr.io/nsucapstoneteam/nsu-capstone-ai:phase1
     ports:
       - "127.0.0.1:${AI_PORT:-8000}:8000"
     environment:

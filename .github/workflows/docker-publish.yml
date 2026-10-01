@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - main
+    paths:
+      - "Dockerfile"
+      - "requirements.txt"
+      - "requirements-dev.txt"
+      - ".github/workflows/docker-publish.yml"
 
 permissions:
   contents: read
