@@ -1,0 +1,154 @@
+{
+  "model": "MSCLAP 2023",
+  "device": "cpu",
+  "seed_per_track": "43 + track_id",
+  "split": "validation",
+  "tracks": 24,
+  "embedding_shape": [
+    24,
+    1024
+  ],
+  "self_pairs_excluded": true,
+  "unique_pairs": 276,
+  "all_pairs": {
+    "count": 276,
+    "min": 0.04977477341890335,
+    "median": 0.5306751132011414,
+    "p90": 0.7536072432994843,
+    "max": 0.9393669366836548,
+    "mean": 0.5163828734902368,
+    "at_or_above_0_4": 215
+  },
+  "same_genre": {
+    "count": 24,
+    "min": 0.21182112395763397,
+    "median": 0.6823577880859375,
+    "p90": 0.8581867098808288,
+    "max": 0.9393669366836548,
+    "mean": 0.6516374368220568,
+    "at_or_above_0_4": 21
+  },
+  "different_genre": {
+    "count": 252,
+    "min": 0.04977477341890335,
+    "median": 0.5218881964683533,
+    "p90": 0.7312542319297791,
+    "max": 0.8599022626876831,
+    "mean": 0.5035014865062539,
+    "at_or_above_0_4": 194
+  },
+  "packages": {
+    "msclap": "1.3.3",
+    "torch": "2.1.2+cpu",
+    "torchaudio": "2.1.2+cpu",
+    "transformers": "4.35.2"
+  },
+  "checkpoint_snapshots": [
+    "c47d441165daa21986ead0850660917636a81775"
+  ],
+  "audio_hashes": [
+    {
+      "track_id": 15770,
+      "sha256": "ea04527da0a76d32a6d33d97da31bec0e5ec3f7d1d5a8bd74cb4b6d78476459b"
+    },
+    {
+      "track_id": 67638,
+      "sha256": "93695f196a36faf066c37b1b51f8453d0770cb5b8f78b7dd127ebb6ba2dcabdc"
+    },
+    {
+      "track_id": 125161,
+      "sha256": "f6b47fb752ba057256a2b35792c7590418f4ab09aec6464203bac2d6ad1c207e"
+    },
+    {
+      "track_id": 146988,
+      "sha256": "b12bfa2deac01e64c3ff3e166f79caf2856342fe3e55d6c53a3ebb492fb67284"
+    },
+    {
+      "track_id": 38886,
+      "sha256": "28cea4196b56305bffc58ad9f6f89acf34d7e8720bfb4351582606a2949c272c"
+    },
+    {
+      "track_id": 86081,
+      "sha256": "b6aff37cfedeca22fb9b0d916ebf015e025f87742da88e471198a7a358a8bc34"
+    },
+    {
+      "track_id": 87966,
+      "sha256": "0422de05ee875983f4ad2864e22e1167344215295695bcc18b1d9c94522ffc35"
+    },
+    {
+      "track_id": 148190,
+      "sha256": "e43b8d46f255d29b825fa78c18184659af754f9daee16138f60436445b279635"
+    },
+    {
+      "track_id": 148212,
+      "sha256": "1d9da39c15cdab25fe85a5aa46428186f5b88a5f9a3eb4a984ad618fc6b2ce17"
+    },
+    {
+      "track_id": 64517,
+      "sha256": "4e9adb8b0025cc5db9cfc14733b0b7bfb2ecfc4e1b4b9a9ec212c7b367701d98"
+    },
+    {
+      "track_id": 75418,
+      "sha256": "aae6506b1d9404236637a8db9b4ffe349704313ccddc9936fadb7bd17686932a"
+    },
+    {
+      "track_id": 86679,
+      "sha256": "19b3a25e47b0b3f3e59b32f551ce4fd8c3a6702cc8e72cf9d59657aa2e48df66"
+    },
+    {
+      "track_id": 133453,
+      "sha256": "ebb45fdf5dcb0a3f443b9c127f180637dd11f72f5072798c5201ca907c762736"
+    },
+    {
+      "track_id": 136276,
+      "sha256": "0b320987327f6a8e6bdd94b610b845455ed54ad547f384450b432f379f3286cc"
+    },
+    {
+      "track_id": 40656,
+      "sha256": "7b008c1105d174c469e92523ae2ab098577985922e9e50e5619624eb0d282582"
+    },
+    {
+      "track_id": 98667,
+      "sha256": "0e2b9bab2b92bf9a1a0fa94313e38d9c401c1676cf48c3fe4582495836f78719"
+    },
+    {
+      "track_id": 96738,
+      "sha256": "39cd02c498dd38bd461200552be804e9cf1d77d8e6b839527f67841ca36a2d6e"
+    },
+    {
+      "track_id": 108866,
+      "sha256": "5f5e518c2bce2677c6ee4a2ccdde52a6ff30f7f2eaff381ad4ad830708bb61d6"
+    },
+    {
+      "track_id": 64079,
+      "sha256": "1be8829bc1b0c5b720bd7eb22edcc210336267a5ffdd38eac7dca3ee3e94b1d9"
+    },
+    {
+      "track_id": 109976,
+      "sha256": "f932e282711ead245a5ca376699fd5f4b7c79b7097a153d48199966d5a9f4d59"
+    },
+    {
+      "track_id": 109958,
+      "sha256": "a9c83535da87ffb36a73bf6375f9be411e366588baed42ca0fcbee9c77610e8b"
+    },
+    {
+      "track_id": 142948,
+      "sha256": "34a5abb78c9d33cbbc095dadc7e16aa40872c97e0092b85c14b6582ea7b321b1"
+    },
+    {
+      "track_id": 96560,
+      "sha256": "f212178ebc298aeb1e4ae4cc2f5adbe49c60f5f31c96d9b20c7c036badf27d76"
+    },
+    {
+      "track_id": 93950,
+      "sha256": "61f62c3e65c270e07d7bab3071b70b0864f6b1e611f105f420953f0831ca2a83"
+    }
+  ],
+  "manifest_sha256": "beba727823ff1983f182f36736cfacb8c61f83c707cae263d3670cde6cf47d61",
+  "limitations": [
+    "Same genre is a diagnostic proxy, not human-rated audio similarity.",
+    "276 pairs share 24 tracks and are not independent observations.",
+    "Audio-text normalization bounds are applied only to diagnose clipping, not validated for audio-audio.",
+    "FMA excerpts and model crop do not validate full-length audio uploads."
+  ]
+}

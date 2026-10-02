@@ -28,6 +28,10 @@
 - PostgreSQL + `pgvector` 사용
 
 ### Score Normalization
+- 현재 Phase 2 개발용 함수는 음악↔텍스트 0~0.4, 음악↔음악 0~1의 임시 기준을 사용한다.
+  [실험 근거](experiments/audio-search-phase2/README.md) 및
+  [ADR 0005](adr/0005-audio-similarity-display-score.md)를 참고한다.
+  최종 기준 확정이나 사용자용 종합 점수 구현 완료를 뜻하지 않는다.
 - 우선 고정 수식 기반의 0~100 정규화를 구현·검증한다.
 - 단, 아래 값은 실제 MSCLAP 결과를 측정한 후 최종 결정한다.
   - similarity 유효 범위
@@ -126,6 +130,10 @@ NSU_CAPSTONE_AI/
 ---
 
 ## Phase 2 — MSCLAP 단독 검증
+
+현재 진행: 임시 정규화 함수와 음악 파일 검색 CLI를 구현하고 새 음악 24곡의 쌍별
+유사도·청취 평가를 수행했다. 이는 곡 단위 검증이며 Phase 6 아티스트 TOP 5 또는
+Phase 9 HTTP API 완료가 아니다. 한국어→영어 자동 변환 구현은 미정으로 보류한다.
 
 관련 Issue:
 - `NSUAI-1` CLAP 기반 음악 의미 유사도 계산

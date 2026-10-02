@@ -14,6 +14,7 @@ Python AI/Matching Server 및 AI Matching 시스템에 영향을 주는
 | [ADR-0002](./0002-ai-matching-server-architecture.md) | NSUAI-18, NSUAI-22 | Spring Boot ↔ Python AI Server 통신 및 Matching 처리 구조 | 승인 |
 | [ADR-0003](./0003-embedding-and-scoring-policy.md) | NSUAI-17, NSUAI-20, NSUAI-21, NSUAI-2, NSUAI-12 | MSCLAP, Embedding 생성·저장 및 Matching Score 처리 방향 | 부분 승인 |
 | [ADR-0004](./0004-korean-input-english-msclap.md) | NSUAI-1, NSUAI-2 | 한국어 음악 요청을 영어로 변환한 뒤 MSCLAP 입력 | 입력 정책 승인, 번역 방식 미정 |
+| [ADR-0005](./0005-audio-similarity-display-score.md) | NSUAI-1, NSUAI-2 | 음악 파일 검색과 음악·텍스트별 임시 표시 점수 분리 | 개발용 기준 채택, 최종 점수 미정 |
 
 ## 현재 확정된 상위 구조
 

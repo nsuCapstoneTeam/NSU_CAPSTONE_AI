@@ -1,0 +1,47 @@
+{
+  "date_kst": "2026-10-02",
+  "source_files": [
+    {
+      "path": "datasets/fma/results/audio-audio-validation/similarities.csv",
+      "sha256": "c65e7567bdf2a7b306b4056fc7d3ac92783f0cf01b47378af50d85f75c2d97ad"
+    },
+    {
+      "path": "datasets/fma/results/audio-audio-validation/report.json",
+      "sha256": "36e0d42a996163a37e2fd38c20ac4448bfddb65eac71c2655d1dd217f673f194"
+    },
+    {
+      "path": "datasets/fma/evaluations/fma-audio-audio-evaluation.json",
+      "sha256": "8686cf3f08acd0f66e6171b8a1510f9b82b1651cfe320986523d1755ead9d097"
+    },
+    {
+      "path": "datasets/fma/results/search-reference.json",
+      "sha256": "01ab9bbfcf532e6983a67c2676780c6bd15857208b8bce9d4795492544c2ab6b"
+    }
+  ],
+  "published_files": [
+    {
+      "name": "listening-evaluation.json",
+      "sha256": "a52e5e1b50a8d36fac6b9699589a96ec451f3e0af04715cd45d0b1691c03614a"
+    },
+    {
+      "name": "manifest24.json",
+      "sha256": "c4820f7ed1087d6eda2d98fd77177410e499705fe24986e68901199cced2a922"
+    },
+    {
+      "name": "measurement-report.json",
+      "sha256": "36e0d42a996163a37e2fd38c20ac4448bfddb65eac71c2655d1dd217f673f194"
+    },
+    {
+      "name": "search-example.json",
+      "sha256": "a614e7af23d7bfa0b7a23a1141f045978c29339c9c18d503166a3236cf0e2418"
+    },
+    {
+      "name": "similarities.csv",
+      "sha256": "85e34970da1a3cdabfcac0e640b793e68b645d95bbb1885fb9c323b70619991a"
+    },
+    {
+      "name": "text-normalization-comparison.json",
+      "sha256": "093414c12d0bd9c6c8e57f4839c22fa0183190e783c5d12d546efaf74b71408f"
+    }
+  ]
+}

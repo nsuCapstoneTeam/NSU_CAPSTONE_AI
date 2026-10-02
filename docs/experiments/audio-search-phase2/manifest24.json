@@ -1,0 +1,260 @@
+{
+  "source": "https://github.com/mdeff/fma",
+  "subset": "small",
+  "split": "validation",
+  "seed": 43,
+  "comparison": "audio-audio",
+  "purpose": "New-track pilot; audio-text score bounds are not validated for this modality.",
+  "tracks": [
+    {
+      "track_id": 15770,
+      "genre": "Electronic",
+      "title": "The Boss",
+      "license": "Attribution 3.0 United States",
+      "audio_path": "datasets/fma/fma_small/015/015770.mp3"
+    },
+    {
+      "track_id": 67638,
+      "genre": "Electronic",
+      "title": "Wake Up",
+      "license": "Attribution-NonCommercial-NoDerivatives (aka Music Sharing) 3.0 International",
+      "audio_path": "datasets/fma/fma_small/067/067638.mp3"
+    },
+    {
+      "track_id": 125161,
+      "genre": "Electronic",
+      "title": "Love Is All",
+      "license": "Attribution-NonCommercial-ShareAlike 3.0 International",
+      "audio_path": "datasets/fma/fma_small/125/125161.mp3"
+    },
+    {
+      "track_id": 146988,
+      "genre": "Experimental",
+      "title": "Fake Cats Project Robs Rachmaninoff",
+      "license": "Attribution-NonCommercial-ShareAlike",
+      "audio_path": "datasets/fma/fma_small/146/146988.mp3"
+    },
+    {
+      "track_id": 38886,
+      "genre": "Experimental",
+      "title": "magic",
+      "license": "Public Domain",
+      "audio_path": "datasets/fma/fma_small/038/038886.mp3"
+    },
+    {
+      "track_id": 86081,
+      "genre": "Experimental",
+      "title": "One Thousand And Two",
+      "license": "Attribution-NonCommercial-NoDerivatives (aka Music Sharing) 3.0 International",
+      "audio_path": "datasets/fma/fma_small/086/086081.mp3"
+    },
+    {
+      "track_id": 87966,
+      "genre": "Folk",
+      "title": "Mary Had A Baby",
+      "license": "Attribution-Noncommercial-Share Alike 3.0 United States",
+      "audio_path": "datasets/fma/fma_small/087/087966.mp3"
+    },
+    {
+      "track_id": 148190,
+      "genre": "Folk",
+      "title": "So F#&k'n Happy",
+      "license": "Attribution",
+      "audio_path": "datasets/fma/fma_small/148/148190.mp3"
+    },
+    {
+      "track_id": 148212,
+      "genre": "Folk",
+      "title": "Like A Dog",
+      "license": "Attribution",
+      "audio_path": "datasets/fma/fma_small/148/148212.mp3"
+    },
+    {
+      "track_id": 64517,
+      "genre": "Hip-Hop",
+      "title": "Rap Ambassadors feat Cappo, Sonnyjim & Chrome",
+      "license": "Attribution-ShareAlike 3.0 International",
+      "audio_path": "datasets/fma/fma_small/064/064517.mp3"
+    },
+    {
+      "track_id": 75418,
+      "genre": "Hip-Hop",
+      "title": "Don't Stop",
+      "license": "Creative Commons Attribution",
+      "audio_path": "datasets/fma/fma_small/075/075418.mp3"
+    },
+    {
+      "track_id": 86679,
+      "genre": "Hip-Hop",
+      "title": "Welcome To Warp Street",
+      "license": "Attribution-Noncommercial-Share Alike 3.0 United States",
+      "audio_path": "datasets/fma/fma_small/086/086679.mp3"
+    },
+    {
+      "track_id": 133453,
+      "genre": "Instrumental",
+      "title": "Ride with the moon",
+      "license": "CC0 1.0 Universal",
+      "audio_path": "datasets/fma/fma_small/133/133453.mp3"
+    },
+    {
+      "track_id": 136276,
+      "genre": "Instrumental",
+      "title": "Night Without Sleep (Instrumental)",
+      "license": "Attribution",
+      "audio_path": "datasets/fma/fma_small/136/136276.mp3"
+    },
+    {
+      "track_id": 40656,
+      "genre": "Instrumental",
+      "title": "Into The Sewers",
+      "license": "Attribution-NonCommercial-ShareAlike 3.0 International",
+      "audio_path": "datasets/fma/fma_small/040/040656.mp3"
+    },
+    {
+      "track_id": 98667,
+      "genre": "International",
+      "title": "Istemem Babajim",
+      "license": "Attribution-Noncommercial-No Derivative Works 3.0 United States",
+      "audio_path": "datasets/fma/fma_small/098/098667.mp3"
+    },
+    {
+      "track_id": 96738,
+      "genre": "International",
+      "title": "Mori Dobro Vecher",
+      "license": "Attribution-Noncommercial-No Derivative Works 3.0 United States",
+      "audio_path": "datasets/fma/fma_small/096/096738.mp3"
+    },
+    {
+      "track_id": 108866,
+      "genre": "International",
+      "title": "Ibish Aga",
+      "license": "Attribution-Noncommercial-No Derivative Works 3.0 United States",
+      "audio_path": "datasets/fma/fma_small/108/108866.mp3"
+    },
+    {
+      "track_id": 64079,
+      "genre": "Pop",
+      "title": "DREAM",
+      "license": "Attribution-NonCommercial-NoDerivatives (aka Music Sharing) 3.0 International",
+      "audio_path": "datasets/fma/fma_small/064/064079.mp3"
+    },
+    {
+      "track_id": 109976,
+      "genre": "Pop",
+      "title": "1/1/2013",
+      "license": "Attribution-Noncommercial-Share Alike 3.0 United States",
+      "audio_path": "datasets/fma/fma_small/109/109976.mp3"
+    },
+    {
+      "track_id": 109958,
+      "genre": "Pop",
+      "title": "au retarde , ferox",
+      "license": "Attribution-Noncommercial-Share Alike 3.0 United States",
+      "audio_path": "datasets/fma/fma_small/109/109958.mp3"
+    },
+    {
+      "track_id": 142948,
+      "genre": "Rock",
+      "title": "Forgiveness",
+      "license": "Creative Commons Attribution-NonCommercial-NoDerivatives 4.0",
+      "audio_path": "datasets/fma/fma_small/142/142948.mp3"
+    },
+    {
+      "track_id": 96560,
+      "genre": "Rock",
+      "title": "In the Christmas Time",
+      "license": "Attribution-NonCommercial-NoDerivatives (aka Music Sharing) 3.0 International",
+      "audio_path": "datasets/fma/fma_small/096/096560.mp3"
+    },
+    {
+      "track_id": 93950,
+      "genre": "Rock",
+      "title": "Chuck Norris",
+      "license": "Attribution-NonCommercial-ShareAlike 3.0 International",
+      "audio_path": "datasets/fma/fma_small/093/093950.mp3"
+    }
+  ],
+  "excluded_previous_track_ids": [
+    709,
+    1075,
+    1249,
+    7378,
+    10382,
+    10684,
+    11059,
+    11204,
+    12484,
+    13328,
+    13709,
+    14602,
+    14737,
+    14739,
+    16338,
+    20296,
+    26905,
+    26906,
+    30316,
+    35549,
+    35569,
+    36965,
+    38776,
+    38825,
+    38829,
+    40234,
+    40236,
+    40242,
+    42373,
+    42376,
+    43765,
+    44777,
+    47471,
+    48293,
+    50754,
+    54703,
+    59562,
+    60537,
+    63149,
+    63251,
+    66717,
+    71371,
+    74374,
+    76129,
+    84057,
+    90616,
+    90617,
+    90618,
+    94093,
+    98299,
+    98301,
+    108460,
+    108846,
+    108847,
+    110206,
+    110775,
+    111153,
+    111937,
+    115294,
+    116175,
+    116176,
+    116389,
+    116527,
+    121595,
+    124392,
+    127181,
+    127182,
+    127186,
+    128441,
+    128879,
+    134793,
+    139936,
+    140934,
+    142534,
+    145067,
+    145747,
+    145777,
+    148607,
+    149623,
+    154307
+  ]
+}
