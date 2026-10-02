@@ -1,0 +1,47 @@
+{
+  "model": "MSCLAP 2023",
+  "comparison": "audio-audio",
+  "seed": 43,
+  "preprocessing": "resample=True; MSCLAP crop/pad seeded by file SHA-256",
+  "candidate_count": 24,
+  "embedding_dimension": 1024,
+  "score_bounds": {
+    "lower": 0,
+    "upper": 1,
+    "status": "provisional"
+  },
+  "results": [
+    {
+      "track_id": 136276,
+      "cosine_similarity": 0.6427063941955566,
+      "audio_similarity_score": 64.27063941955566,
+      "rank": 1
+    },
+    {
+      "track_id": 148212,
+      "cosine_similarity": 0.593442976474762,
+      "audio_similarity_score": 59.344297647476196,
+      "rank": 2
+    },
+    {
+      "track_id": 86679,
+      "cosine_similarity": 0.5777325630187988,
+      "audio_similarity_score": 57.77325630187988,
+      "rank": 3
+    },
+    {
+      "track_id": 64079,
+      "cosine_similarity": 0.5750888586044312,
+      "audio_similarity_score": 57.508885860443115,
+      "rank": 4
+    },
+    {
+      "track_id": 125161,
+      "cosine_similarity": 0.5637730956077576,
+      "audio_similarity_score": 56.37730956077576,
+      "rank": 5
+    }
+  ],
+  "listening_feedback": "User considered the first result somewhat similar but ambiguous; informal feedback, not an additional labeled trial.",
+  "reproducibility": "Private reference audio excluded; these results cannot be reproduced without the original file."
+}
