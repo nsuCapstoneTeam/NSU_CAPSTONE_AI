@@ -10,7 +10,7 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt requirements-dev.txt ./
-# Install the matching CPU wheels before resolving MSCLAP dependencies.
+# MSCLAP 의존성 해결 전에 호환되는 CPU 휠을 고정해 CUDA 패키지·바이너리 불일치를 피한다.
 RUN pip install --no-cache-dir \
     torch==2.1.2+cpu \
     torchaudio==2.1.2+cpu \
@@ -20,7 +20,7 @@ RUN pip install --no-cache-dir \
 RUN pip install --no-cache-dir -r requirements-dev.txt \
     && pip check
 
-# Catch binary/API incompatibilities without downloading model weights.
+# 큰 모델 가중치 다운로드 없이도 바이너리·API 호환성 문제를 빌드 단계에서 발견한다.
 RUN python -c "import torch, torchaudio, torchvision; from msclap import CLAP; assert torch.version.cuda is None; print('MSCLAP CPU dependencies OK')"
 
 COPY app ./app

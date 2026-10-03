@@ -1,3 +1,5 @@
+"""샘플·모델이 필요한 수동 PoC이며 데이터 없는 tests/ 자동 테스트와 구분한다."""
+
 from app.inference.clap_model import ClapModel
 from app.classification.classifier import AudioClassifier
 from app.classification.labels import (
@@ -10,12 +12,10 @@ clap_model = ClapModel()
 
 classifier = AudioClassifier(clap_model)
 
-# 오디오 임베딩 생성
 audio_embeddings = clap_model.encode_audio(
     "samples/sample.wav"
 )
 
-# 장르 분석
 results = classifier.classify(
     audio_embeddings,
     labels=GENRE_LABELS,

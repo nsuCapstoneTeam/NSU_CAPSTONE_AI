@@ -13,8 +13,10 @@
 - 실제 model/checkpoint, Embedding dimension, similarity 분포는 구현 초기에 검증한다.
 
 ### Embedding
-- MVP에서는 Audio/Text Embedding을 **등록·수정 시 동기 생성**한다.
-- 비동기 처리는 MVP 이후 개선 사항으로 고려한다.
+- 음악 파일 입력 후 전처리·Audio Embedding 처리에는 **동기 방식**을 사용한다.
+  [ADR 0006](adr/0006-asynchronous-audio-processing.md)을 따른다.
+  현재 생성·저장·검색 함수는 동기 실행이며 업무 HTTP API는 후속 구현이다.
+- AI에서 연동 계약을 먼저 작성하고 백엔드 검토 후 확정한다.
 - 사용자 음악 요청은 한국어로 받고, 의미를 유지한 영어 설명으로 변환한 뒤
   MSCLAP Text Embedding을 생성한다. 입력 정책은
   [ADR 0004](adr/0004-korean-input-english-msclap.md)를 따른다.
@@ -61,7 +63,7 @@
 
 완료 기준:
 - Similarity → Python AI Server
-- Embedding → MVP 동기 처리
+- Audio 입력 처리 → 동기 방식, 처리 완료 후 결과 반환
 - Vector DB → PostgreSQL + pgvector
 
 ---
@@ -179,6 +181,20 @@ Cosine Similarity
 ---
 
 ## Phase 3 — Audio/Text Embedding 생성 및 저장
+
+현재 Audio 공통 생성·테이블·동기 저장·DB 후보 검색 CLI를 구현했습니다.
+음악 입력은 동기로 처리하며 AI에서 연동 계약 초안을 먼저 작성합니다.
+[저장 안내](EMBEDDING_STORAGE.md), [DB 검색 검증](DATABASE_AUDIO_SEARCH.md)을 참고합니다.
+Text 생성·번역, 백엔드 ID/FK·수정/삭제 계약, 오류 기록·자동 재처리는 미완료입니다.
+Phase 3 전체 완료를 의미하지 않습니다.
+
+남은 작업:
+- [ ] 백엔드 연동 계약 확정: 음악 ID·파일 전달·버전·오류·타임아웃
+- [ ] 음악 수정·삭제 처리와 오래된 요청의 덮어쓰기·재등록 방지
+- [ ] Text 임베딩 생성·저장 연동: 한국어→영어 변환 방식은 미정
+- [ ] 동기 업무 HTTP API 구현: 등록·검색·수정·삭제
+- [ ] 실패 기록·재시도·중복 요청·시간 초과 후 재요청 정책
+- [ ] 실제 백엔드 음악 ID를 사용한 등록→검색→수정→삭제 통합 검증
 
 관련 Issue:
 - `NSUAI-25` Audio/Text Embedding 생성 및 저장 구현

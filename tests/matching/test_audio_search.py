@@ -4,7 +4,7 @@ import pytest
 import torch
 
 from app.matching.audio_search import audio_cosine_similarities, rank_audio_candidates
-from scripts.search_audio import load_candidates
+from scripts.matching.search_audio import load_candidates
 
 
 def test_rank_uses_raw_cosine_even_when_display_scores_tie():

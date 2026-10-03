@@ -2,10 +2,10 @@ from pathlib import Path
 
 
 def main():
-    project_root = Path(__file__).resolve().parents[1]
+    project_root = Path(__file__).resolve().parents[2]
     audio_path = project_root / "samples" / "sample.wav"
 
-    # Check the input before importing or loading the model.
+    # 파일이 없는 경우 큰 모델의 로딩·다운로드 비용을 먼저 지불하지 않도록 검사한다.
     if not audio_path.is_file():
         raise FileNotFoundError(f"음원 파일이 없습니다: {audio_path}")
 

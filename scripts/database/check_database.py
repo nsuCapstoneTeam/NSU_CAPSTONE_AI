@@ -1,4 +1,4 @@
-"""Read-only database and pgvector check: python -m scripts.check_database."""
+"""서버와 동일한 준비 상태 기준을 쓰는 읽기 전용 검사: python -m scripts.database.check_database."""
 
 import json
 

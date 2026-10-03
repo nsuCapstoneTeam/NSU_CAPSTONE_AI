@@ -58,7 +58,7 @@ FMA small의 공식 validation split에서 seed 43으로 장르별 3곡, 총 24�
 
 ## 검색 실행 검증
 
-`scripts.search_audio`는 SHA-256 기반 seed로 crop을 고정하고 매번 후보 임베딩을
+`scripts.matching.search_audio`는 SHA-256 기반 seed로 crop을 고정하고 매번 후보 임베딩을
 생성합니다. 입력과 같은 바이트의 파일은 제외하며 원본 코사인 내림차순으로 정렬합니다.
 점수가 같으면 정수 track ID 오름차순으로 순위를 안정화합니다.
 
@@ -76,9 +76,9 @@ FMA 데이터 다운로드, Docker 및 `.env` 준비는 [기본 검증 안내](.
 프로젝트 루트에서 실행하고 기존 결과를 덮어쓰지 않는 새 output 이름을 사용합니다.
 
 ```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.validate_audio_similarity --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/audio-audio-reproduction --seed 43
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.validate_audio_similarity --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/audio-audio-reproduction --seed 43
 
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.search_audio --audio datasets/fma/fma_small/015/015770.mp3 --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/search-public-example.json
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio datasets/fma/fma_small/015/015770.mp3 --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/search-public-example.json
 ```
 
 전체 재측정 CSV는 현재 음악 간 점수 열을 추가하므로 이전 원본과 바이트 단위로

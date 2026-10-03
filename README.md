@@ -3,10 +3,11 @@
 아티스트–행사 매칭 플랫폼의 Python AI 서버입니다. Microsoft MSCLAP 기반 음악·텍스트와
 음악·음악 유사도, 파일 검색 CLI, FastAPI Health Check, PostgreSQL + pgvector 준비 상태 검사를 다룹니다.
 
-현재는 **Phase 2 모델 단독 검증** 단계입니다. FMA 실험 결과를 근거로
+현재는 **Phase 2 검증 이후 Phase 3 Audio 임베딩 저장**을 개발하고 있습니다. FMA 실험 결과를 근거로
 **한국어 요청 → 영어 변환 → MSCLAP** 입력 정책을 확정했습니다.
 번역 방식·구현은 미정으로 보류합니다. 임시 점수 변환과 곡 단위 검색 CLI까지 구현했고,
-서비스용 Embedding 저장, BPM·리듬 분석, 최종 종합 점수와 매칭 API는 후속 작업입니다.
+Audio 임베딩 테이블·동기 저장 CLI와 DB 후보 검색 CLI를 연결했습니다.
+백엔드 계약·수정/삭제 연동, BPM·리듬 분석, 최종 종합 점수와 매칭 API는 후속 작업입니다.
 
 ## 구현 상태
 
@@ -17,8 +18,11 @@
 | FMA 다운로드·체크섬·표본 선정·측정 보고서 | 구현 |
 | 긴 문장의 토큰 제한과 실제 입력 기록 | 검증 스크립트에 구현 |
 | 한국어 → 영어 변환 | 입력 정책 확정, 번역 기능 구현 전 |
-| Embedding 동기 생성·pgvector 저장 | 후속 구현 |
+| Embedding 동기 생성·pgvector 저장 | Audio 테이블·동기 저장 CLI 구현, 임시 ID 계약, Text·백엔드 연동 전 |
+| 음악 입력 후 동기 처리 | AI 선설계·동기 방향 확정, 업무 API 구현 전 |
+| 공통 Audio 임베딩 생성 | 파일 해시 기반 전처리·벡터 검증·메타데이터 반환, 검색 CLI 연결 |
 | 음악 파일로 후보 곡 검색 | CLI 구현, 원본 코사인 순위·음악 간 임시 0~100점 반환 |
+| DB 저장 임베딩으로 후보 곡 검색 | 호환 조건 필터·동일 파일 제외·pgvector 정확 검색 CLI 구현 |
 | 임시 유사도 표시 점수 | 음악↔텍스트 0~0.4 / 음악↔음악 0~1, 최종 기준 검증 필요 |
 | 종합 매칭 점수·아티스트 TOP 5·추천 이유 | 후속 구현 |
 | 분석·매칭 HTTP API·Spring Boot 연동 | 후속 구현 |
@@ -28,24 +32,29 @@ MSCLAP의 배율 적용 유사도와 순수 cosine도 구분합니다.
 
 음악 파일 검색 실행 방법은 [음악 검색 안내](docs/AUDIO_SEARCH.md),
 임시 점수 기준은 [정규화 안내](docs/SEMANTIC_SCORE_NORMALIZATION.md)를 참고하세요.
+공통 생성 함수와 반환 정보는 [Audio 임베딩 안내](docs/AUDIO_EMBEDDING.md)를 참고하세요.
+테이블 생성·음악 파일 저장·처리 이유는 [임베딩 저장 안내](docs/EMBEDDING_STORAGE.md)를 참고하세요.
+저장된 후보 벡터로 검색하는 방법은 [DB 음악 검색](docs/DATABASE_AUDIO_SEARCH.md)을 참고하세요.
+음악 입력 처리의 동기 방향과 AI 선설계 결정은 [ADR 0006](docs/adr/0006-asynchronous-audio-processing.md)에 기록했습니다.
 현재 검색은 곡 단위이며 아티스트 TOP 5나 최종 종합 매칭 API는 아닙니다.
 
 ## 최신 main 대비 추가·수정
 
-비교 기준: 2026-10-02 확인한 main
-[`e24a120`](https://github.com/nsuCapstoneTeam/NSU_CAPSTONE_AI/commit/e24a120784fb4e5e4208f2eecc8310fbfbf92cd7).
-기존 FMA 다운로드·음악/텍스트 검증 도구와 영어 입력 정책은 이미 main에 포함되어 있습니다.
+비교 기준: 로컬 main
+[`a86be58`](https://github.com/nsuCapstoneTeam/NSU_CAPSTONE_AI/commit/a86be58d9db19dcf2d767f117cf083c63ecc48aa) (PR #28 병합).
+FMA 검증 도구·영어 입력 정책·음악 파일 검색·임시 점수 변환은 이미 main에 포함되어 있습니다.
 
 | 영역 | main | 이번 변경 |
 | --- | --- | --- |
-| 점수 변환 | 최종 방식 미구현 | 음악·텍스트 비교 방식에 따른 임시 상한 분리 |
-| 음악 파일 검색 | 없음 | 동일 파일 제외·코사인 정렬·TOP 5 JSON CLI |
-| 음악 간 검증 | 없음 | 새 validation 24곡·276쌍 재현 도구 |
-| 실험 근거 | 기존 음악·텍스트 실험 | 정규화 후보 비교·음악 간 측정·청취 평가 24개 |
-| 번역 | 입력 정책만 확정 | 공급자·구현은 미정으로 보류 |
+| Audio 생성 | 검색 도구 내부 처리 | 저장·검색 공통 생성기, 파일 해시 기반 전처리·벡터 검증 |
+| 임베딩 저장 | 없음 | pgvector 테이블·체크섬 마이그레이션·동기 저장·중복/충돌 검사 |
+| DB 후보 검색 | 파일 목록 기반 검색 | 저장 벡터의 호환 조건 필터·동일 원본 제외·Top5 정확 검색 |
+| 파일 구조 | scripts·tests 루트 중심 | 기능별 하위 폴더, 명령·import·문서 경로 갱신 |
+| 연동 계약 | 미구현 | AI 선설계·동기 계약 초안, 백엔드 검토 전 |
+| 검증 근거 | Phase 2 음악 검색 실험 | DB 통합 테스트·실제 6곡 후보의 Torch/pgvector 결과 비교 |
 
-최신 main의 Dockerfile·CPU 패키지 고정·모델 로딩 검사 코드는 유지했습니다.
-긴 입력 수정은 `scripts/validate_fma.py`에 적용되며 서비스용
+기준 main의 Dockerfile·CPU 패키지 고정·모델 로딩 검사 동작은 유지하고 주석을 보완했습니다.
+긴 입력 수정은 `scripts/fma/validate_fma.py`에 적용되며 서비스용
 `ClapModel.encode_text`에 번역·축약 처리를 연결한 것은 아닙니다.
 
 ## 음악 파일 검색 사용법
@@ -55,7 +64,7 @@ FMA 데이터를 별도로 준비하고 `samples/reference.mp3`에 검색할 음
 검색은 DB에 접속하지 않고 공유한 검증용 후보 24곡을 사용합니다.
 
 ```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.search_audio --audio samples/reference.mp3 --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/search-reference-new.json
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio samples/reference.mp3 --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/search-reference-new.json
 ```
 
 결과 JSON은 곡 ID·원본 코사인·표시 점수·순위를 반환합니다. 출력은 덮어쓰지 않으므로
@@ -151,7 +160,7 @@ docker compose up -d --force-recreate
 ```powershell
 Invoke-RestMethod http://localhost:8000/health/live
 Invoke-RestMethod http://localhost:8000/health/ready
-docker compose exec -T ai python -m scripts.check_database
+docker compose exec -T ai python -m scripts.database.check_database
 ```
 
 `live`는 서버 응답, `ready`는 DB 연결·vector 확장을 확인합니다.
@@ -165,15 +174,15 @@ API 문서는 `http://localhost:8000/docs`에서 확인합니다.
 Compose 설정 평가를 위해 `.env`의 `DB_PASSWORD` 값은 필요합니다.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/download_fma.ps1
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.validate_fma prepare --metadata datasets/fma/fma_metadata/tracks.csv --audio-root datasets/fma/fma_small --per-genre 10 --seed 42 --manifest datasets/fma/manifests/manifest80-new.json
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.validate_fma run --manifest datasets/fma/manifests/manifest80-new.json --output datasets/fma/results/genre80-new
+powershell -ExecutionPolicy Bypass -File scripts/fma/download_fma.ps1
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.fma.validate_fma prepare --metadata datasets/fma/fma_metadata/tracks.csv --audio-root datasets/fma/fma_small --per-genre 10 --seed 42 --manifest datasets/fma/manifests/manifest80-new.json
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.fma.validate_fma run --manifest datasets/fma/manifests/manifest80-new.json --output datasets/fma/results/genre80-new
 ```
 
 manifest와 output은 새로운 이름을 사용합니다. 기존 결과를 덮어쓰지 않습니다.
 0–100 기준 조정에는 validation split을 사용하고, test 결과에 맞춰 조정하지 않습니다.
 샘플만 확인하려면 `samples/sample.wav`를 준비하고
-`python -m scripts.check_audio_embedding`을 실행합니다.
+`python -m scripts.embedding.check_audio_embedding`을 실행합니다.
 
 ## 자동 테스트
 
@@ -183,7 +192,9 @@ docker compose run --rm --no-deps ai python -m pytest tests -q
 
 설정·Health Check·FMA 표본 선정·검증 입력 처리를 검사합니다.
 모델 가중치·음원·실DB는 필요하지 않으며 실제 추론 실험과 구분합니다.
-음악 검색·임시 정규화까지 포함한 **46개 통과**, Starlette TestClient deprecation 경고 1개를 확인했습니다.
+공통 Audio 생성·음악 검색·임시 정규화·저장과 실제 DB 검사까지 포함해
+`RUN_EMBEDDING_DB_TESTS=1`로 **98개 통과**, Starlette TestClient deprecation 경고 1개를 확인했습니다.
+기본 실행에서는 실제 DB 테스트 16개를 건너뜁니다.
 
 로컬 Python 3.11을 쓰려면 CPU 패키지를 먼저 설치합니다.
 
@@ -197,17 +208,27 @@ py -3.11 -m venv .venv
 
 ## 파일 구성
 
+서비스 코드는 `app/`의 책임별 계층을 유지하고, 실행 도구와 테스트는 기능별 폴더로 나눴습니다.
+전체 파일 역할은 [개발 도구 목록](scripts/README.md), [테스트 목록](tests/README.md),
+[문서 목록](docs/README.md)에서 확인할 수 있습니다.
+실행 도구 이동에 따라 `python -m scripts.<기능>.<모듈>` 형식으로 명령을 변경했습니다.
+
 | 경로 | 용도 |
 | --- | --- |
 | app/ | FastAPI, DB 준비 상태, MSCLAP wrapper·분류 |
-| scripts/check_database.py | DB/pgvector 읽기 전용 검사 |
-| scripts/check_msclap.py | main의 모델 로딩 검사 |
-| scripts/check_audio_embedding.py | 샘플 오디오 Embedding 검사 |
-| scripts/download_fma.ps1 | ZIP 다운로드·SHA-1·압축 해제 |
-| scripts/validate_fma.py | 표본 선정·임베딩·유사도 측정 |
+| scripts/database/check_database.py | DB/pgvector 읽기 전용 검사 |
+| scripts/embedding/check_msclap.py | main의 모델 로딩 검사 |
+| scripts/embedding/check_audio_embedding.py | 샘플 오디오 Embedding 검사 |
+| scripts/fma/download_fma.ps1 | ZIP 다운로드·SHA-1·압축 해제 |
+| scripts/fma/validate_fma.py | 표본 선정·임베딩·유사도 측정 |
 | app/matching/ | 임시 점수 변환·음악 간 코사인·순위 계산 |
-| scripts/search_audio.py | 음악 파일을 입력받는 후보 곡 검색 CLI |
-| scripts/validate_audio_similarity.py | 음악 간 쌍별 유사도 재측정 |
+| app/repository/ | Audio 임베딩 저장·버전 관리 SQL |
+| app/embedding/storage.py | 공통 생성과 DB 트랜잭션 연결 |
+| scripts/database/migrate_embeddings.py | AI 스키마·테이블의 명시적 생성 |
+| scripts/embedding/store_audio_embedding.py | 외부 음악 ID·파일 경로로 동기 저장 |
+| scripts/matching/search_audio.py | 음악 파일을 입력받는 후보 곡 검색 CLI |
+| scripts/matching/search_database_audio.py | DB에 저장된 후보 벡터로 검색하는 CLI |
+| scripts/matching/validate_audio_similarity.py | 음악 간 쌍별 유사도 재측정 |
 | tests/ | 데이터 없는 자동 테스트 |
 | docs/experiments/fma-phase2/ | 공유용 실험 근거, 음원 제외 |
 | docs/experiments/audio-search-phase2/ | 정규화·음악 검색의 공유용 근거, 음원 제외 |
@@ -222,6 +243,6 @@ py -3.11 -m venv .venv
 - [API 책임 경계](docs/api/README.md)
 - [협업 가이드](docs/협업-가이드/README.md)
 
-다음은 Phase 3 서비스용 Embedding 생성·pgvector 저장입니다. 이후 BPM·리듬 분석,
+다음은 Phase 3의 백엔드 ID·수정/삭제 계약 확정과 Text 생성 연결입니다. 이후 BPM·리듬 분석,
 항목별 점수 통합, 아티스트 TOP 5·설명, API 연결 순서로 진행합니다.
 최종 점수와 더 큰 후보 집합의 검색 품질은 추가 검증이 필요하며 번역 구현은 보류합니다.
