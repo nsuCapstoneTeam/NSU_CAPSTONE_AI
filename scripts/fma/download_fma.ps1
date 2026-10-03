@@ -1,6 +1,6 @@
 param([switch]$ExtractOnly)
 $ErrorActionPreference = 'Stop'
-$fmaRoot = Join-Path (Split-Path $PSScriptRoot -Parent) 'datasets/fma'
+$fmaRoot = Join-Path (Split-Path (Split-Path $PSScriptRoot -Parent) -Parent) 'datasets/fma'
 New-Item -ItemType Directory -Force $fmaRoot | Out-Null
 $fmaArchiveRoot = Join-Path $fmaRoot 'archives'
 New-Item -ItemType Directory -Force $fmaArchiveRoot | Out-Null
@@ -15,11 +15,12 @@ foreach ($archive in $archives) {
         if ($LASTEXITCODE -ne 0) { throw "Download failed: $($archive.Name). Run this script again to resume." }
     }
     Write-Host "Checking SHA1: $($archive.Name)"
+    # 중단 후 재개한 다운로드도 공식 체크섬이 맞아야 압축을 풀어 불완전한 음원 사용을 막는다.
     if ((Get-FileHash -LiteralPath $zipPath -Algorithm SHA1).Hash.ToLowerInvariant() -ne $archive.SHA1) {
         throw "SHA1 mismatch: $zipPath. Do not use this archive."
     }
-    # FMA metadata uses ZIP bzip2; Expand-Archive does not support it.
-    # Extract only into this workspace's ignored dataset directory.
+    # FMA metadata ZIP의 bzip2 압축은 Expand-Archive가 지원하지 않아 tar를 사용한다.
+    # 원본 데이터가 Git에 포함되지 않도록 작업 공간의 제외된 데이터 폴더에만 압축을 푼다.
     if ($archive.Name -eq 'fma_metadata') {
         & tar.exe -xf $zipPath -C $fmaRoot 'fma_metadata/tracks.csv'
     } else {

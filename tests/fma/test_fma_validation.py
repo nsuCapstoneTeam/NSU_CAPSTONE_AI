@@ -1,4 +1,4 @@
-"""Dataset selection tests use synthetic metadata, never download audio or weights."""
+"""표본·입력 처리는 가짜 메타데이터와 모델로 검사해 음원·가중치 다운로드를 피한다."""
 import csv
 import tempfile
 import unittest
@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 from pathlib import Path
 
-from scripts.validate_fma import GENRES, bounded_text_embeddings, check_embedding, select_tracks
+from scripts.fma.validate_fma import GENRES, bounded_text_embeddings, check_embedding, select_tracks
 
 
 class FmaSelectionTests(unittest.TestCase):
@@ -64,7 +64,7 @@ class FmaEmbeddingTests(unittest.TestCase):
                 self.tokenizer = Tokenizer()
 
             def get_text_embeddings(self, texts):
-                # Reproduce MSCLAP's padding-only batching failure without weights.
+                # 가중치 없이도 MSCLAP의 길이 제한 없는 패딩 배치 실패를 재현한다.
                 encoded = [self.tokenizer.encode_plus(text=text, max_length=77)["input_ids"]
                            .reshape(-1) for text in texts]
                 return torch.stack(encoded)

@@ -1,4 +1,4 @@
-"""Measure unique audio/audio pairs from a local manifest on CPU."""
+"""음악 간 분포를 재측정하며 음악·텍스트 상한을 재사용할 때의 포화를 진단한다."""
 
 import argparse
 import hashlib
@@ -7,10 +7,11 @@ import json
 import random
 from pathlib import Path
 
-from scripts.validate_fma import check_embedding, write_csv
+from scripts.fma.validate_fma import check_embedding, write_csv
 from app.matching.normalization import normalize_semantic_score, normalize_audio_similarity_score
 
 def measure(manifest_path, output, seed):
+    """동일 곡·중복 쌍을 제외한 측정값과 생성 조건을 새 결과 디렉터리에 기록한다."""
     tracks = json.loads(manifest_path.read_text(encoding='utf-8-sig'))['tracks']
     if len(tracks) < 2 or len({t['track_id'] for t in tracks}) != len(tracks):
         raise ValueError('Need at least two tracks with unique IDs.')
@@ -24,6 +25,7 @@ def measure(manifest_path, output, seed):
     vectors, hashes = [], []
     with torch.inference_mode():
         for track in tracks:
+            # 과거 쌍별 실험 재현을 위해 검색의 파일 해시 seed 대신 곡 ID seed를 유지한다.
             track_seed = seed + track['track_id']
             random.seed(track_seed)
             torch.manual_seed(track_seed)
@@ -38,6 +40,7 @@ def measure(manifest_path, output, seed):
         similarities = (normalized @ normalized.T).cpu()
     rows = []
     for i, first in enumerate(tracks):
+        # 자기 비교는 거의 1이므로 제외하고 대칭인 A-B/B-A도 한 번만 집계한다.
         for j in range(i + 1, len(tracks)):
             second = tracks[j]
             value = max(-1.0, min(1.0, float(similarities[i, j])))
@@ -45,6 +48,7 @@ def measure(manifest_path, output, seed):
                          'genre_a': first['genre'], 'genre_b': second['genre'],
                          'same_genre': first['genre'] == second['genre'],
                          'cosine_similarity': value,
+                         # 이 열은 기존 상한의 포화 진단용이며 음악 간 실제 표시 기준이 아니다.
                          'provisional_audio_text_score': normalize_semantic_score(value),
                          'audio_similarity_score': normalize_audio_similarity_score(value)})
     write_csv(output / 'similarities.csv', rows)
@@ -53,6 +57,7 @@ def measure(manifest_path, output, seed):
             return {'count': 0}
         values = sorted(values)
         def quantile(p):
+            # 작은 표본에서도 백분위를 일관되게 비교하도록 인접 관측값을 선형 보간한다.
             k = (len(values)-1)*p
             lo = int(k)
             hi = min(lo+1, len(values)-1)

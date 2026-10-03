@@ -43,7 +43,7 @@ datasets/fma/
 Windows에서 다운로드 재개, 공식 SHA-1 검사, 압축 해제를 한 번에 실행하려면:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/download_fma.ps1
+powershell -ExecutionPolicy Bypass -File scripts/fma/download_fma.ps1
 ```
 
 ZIP 파일을 이미 다운로드했다면 `-ExtractOnly`를 추가한다. 메타데이터 ZIP은
@@ -56,8 +56,8 @@ Hugging Face 모델 캐시도 `datasets/fma/huggingface`에 보존된다.
 공유 실험 입력을 사용하도록 `docs/`도 컨테이너에 읽기 전용으로 연결한다.
 
 ```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.validate_fma prepare --metadata datasets/fma/fma_metadata/tracks.csv --audio-root datasets/fma/fma_small --per-genre 2 --seed 42 --manifest datasets/fma/manifests/manifest16-docker.json
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.validate_fma run --manifest datasets/fma/manifests/manifest16-docker.json --output datasets/fma/results/genre16
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.fma.validate_fma prepare --metadata datasets/fma/fma_metadata/tracks.csv --audio-root datasets/fma/fma_small --per-genre 2 --seed 42 --manifest datasets/fma/manifests/manifest16-docker.json
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.fma.validate_fma run --manifest datasets/fma/manifests/manifest16-docker.json --output datasets/fma/results/genre16
 ```
 
 16곡 측정 결과를 검토한 뒤 `--per-genre 10`과 새로운 manifest/output 경로로
@@ -67,7 +67,7 @@ docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python 
 프로젝트 루트에서 Python으로 실행한다.
 
 ```powershell
-python -m scripts.validate_fma prepare --metadata datasets/fma/fma_metadata/tracks.csv --audio-root datasets/fma/fma_small --per-genre 2 --seed 42 --manifest datasets/fma/manifest16.json
+python -m scripts.fma.validate_fma prepare --metadata datasets/fma/fma_metadata/tracks.csv --audio-root datasets/fma/fma_small --per-genre 2 --seed 42 --manifest datasets/fma/manifest16.json
 ```
 
 기본값은 공식 test split에서 장르별 2곡(총 16곡)이다. 동일 seed와 파일 집합이면
@@ -82,7 +82,7 @@ Python 3.11의 MSCLAP 실행 환경에서 저장소 requirements를 설치한다
 CPU 패키지 호환성은 기존 모델 로딩 환경에 맞추며, 첫 로딩은 모델 다운로드가 필요할 수 있다.
 
 ```powershell
-python -m scripts.validate_fma run --manifest datasets/fma/manifest16.json --output datasets/fma/results16
+python -m scripts.fma.validate_fma run --manifest datasets/fma/manifest16.json --output datasets/fma/results16
 ```
 
 Docker 사용 시 기존 ai 컨테이너에 `datasets`를 별도로 연결해야 한다. 예를 들어
@@ -133,5 +133,5 @@ Phase 2 완료, 최종 모델 적합성, 실제 embedding dimension 또는 정�
 
 ```powershell
 python -m unittest tests.test_fma_validation -v
-python -m scripts.validate_fma --help
+python -m scripts.fma.validate_fma --help
 ```

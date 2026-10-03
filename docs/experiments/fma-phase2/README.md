@@ -90,8 +90,8 @@ MSCLAP 1.3.3의 전처리는 max_length padding을 사용하지만 truncation을
 프로젝트 루트에서 FMA 다운로드·추출을 먼저 수행한다.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/download_fma.ps1
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.validate_fma run --manifest docs/experiments/fma-phase2/manifest16-descriptions.json --output datasets/fma/results/listening-reproduced
+powershell -ExecutionPolicy Bypass -File scripts/fma/download_fma.ps1
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.fma.validate_fma run --manifest docs/experiments/fma-phase2/manifest16-descriptions.json --output datasets/fma/results/listening-reproduced
 ```
 
 report.json의 SHA-256은 해당 로컬 실행 원본을 식별한다. report에는 절대 경로 등이

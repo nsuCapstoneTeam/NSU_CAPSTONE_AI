@@ -8,11 +8,13 @@ class DatabaseSettings:
     port: int
     name: str
     user: str
+    # 설정 객체가 로그에 출력되더라도 DB 비밀번호는 노출하지 않는다.
     password: str = field(repr=False)
     connect_timeout: int
 
     @classmethod
     def from_environment(cls):
+        """비밀번호 기본값을 두지 않고 잘못된 접속 설정을 연결 전에 거부한다."""
         password = os.environ["DB_PASSWORD"]
         port = int(os.environ.get("DB_PORT", "5432"))
         timeout = int(os.environ.get("DB_CONNECT_TIMEOUT", "3"))

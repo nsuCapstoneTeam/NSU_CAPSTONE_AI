@@ -57,6 +57,9 @@ AI Matching 과정에서 사용한다.
 
 ## 3. Embedding 생성 방식
 
+2026-10-03 확인: 사용자 후속 결정에 따라 동기 생성 원칙을 유지한다.
+AI 선설계 진행 방식과 결정 이력은 [ADR 0006](0006-asynchronous-audio-processing.md)을 참고한다.
+
 ### MVP 확정
 
 MVP에서는 Audio/Text Embedding을

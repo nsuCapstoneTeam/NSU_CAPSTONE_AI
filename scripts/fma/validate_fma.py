@@ -1,4 +1,4 @@
-"""Phase 2: deterministic FMA sampling and MSCLAP measurement (no score calibration)."""
+"""Phase 2의 재현 가능한 FMA 표본·유사도 측정이며 최종 적합도 보정과 구분한다."""
 import argparse
 import csv
 import hashlib
@@ -17,12 +17,16 @@ GENRES = {
 
 
 def select_tracks(metadata, audio_root, per_genre, seed, split):
-    """Read the official three-row, two-level tracks.csv header without pandas."""
+    """공식 다중 헤더를 직접 읽어 추가 라이브러리 없이 장르별 표본을 재현한다.
+
+    로컬에 있는 파일만 표본에 포함하고 seed와 ID 정렬로 선택 결과를 고정한다.
+    요청한 split을 유지해 학습·검증·테스트 표본이 섞이지 않도록 한다.
+    """
     groups = {genre: [] for genre in GENRES}
     with Path(metadata).open(encoding="utf-8-sig", newline="") as source:
         reader = csv.reader(source)
         columns = list(zip(next(reader), next(reader)))
-        next(reader)  # index name row (track_id)
+        next(reader)  # 공식 CSV의 세 번째 행은 데이터가 아닌 인덱스 이름이다.
         required = [("set", "subset"), ("set", "split"), ("track", "genre_top"),
                     ("track", "title"), ("track", "license")]
         indices = {key: columns.index(key) for key in required}
@@ -56,6 +60,7 @@ def prompts():
 
 
 def check_embedding(tensor, rows, dimension=None):
+    """차원 불일치나 0벡터로 잘못된 유사도가 계산되지 않도록 출력을 검사한다."""
     import torch
     if tensor.ndim != 2 or tensor.shape[0] != rows or tensor.shape[1] == 0:
         raise ValueError(f"Invalid embedding shape: {tuple(tensor.shape)}")
@@ -66,6 +71,7 @@ def check_embedding(tensor, rows, dimension=None):
 
 
 def write_csv(path, rows):
+    # 로컬 Excel 등에서도 한국어가 깨지지 않도록 UTF-8 BOM을 포함한다.
     with path.open("w", encoding="utf-8-sig", newline="") as target:
         writer = csv.DictWriter(target, fieldnames=list(rows[0]))
         writer.writeheader()
@@ -73,10 +79,10 @@ def write_csv(path, rows):
 
 
 def bounded_text_embeddings(model, texts):
-    """Use MSCLAP's public embedding API with explicit tokenizer truncation.
+    """MSCLAP 1.3.3의 길이 제한 미적용으로 배치 생성이 실패하는 것을 방지한다.
 
-    MSCLAP 1.3.3 pads to text_len but does not truncate longer queries.
-    Preserve its special-token handling and record exactly what was retained.
+    공개 임베딩 API의 특수 토큰 처리를 유지하고 실제 남은 입력·잘림 여부를 기록한다.
+    검증용 제한 처리이며 서비스에서 원문 의미를 보존한 축약을 대신하지 않는다.
     """
     tokenizer = model.tokenizer
     audit = []
@@ -100,12 +106,13 @@ def bounded_text_embeddings(model, texts):
     try:
         embeddings = model.get_text_embeddings(texts)
     finally:
+        # 실패한 경우에도 다음 호출에 임시 토크나이저가 남지 않도록 원복한다.
         model.tokenizer = tokenizer
     return embeddings, {"max_tokens": model.args.text_len, "truncation": True, "prompts": audit}
 
 
 def measure(manifest, output):
-    # Fail before loading/downloading the model if inputs are missing.
+    # 누락된 파일 때문에 큰 가중치를 불필요하게 로딩·다운로드하지 않도록 먼저 검사한다.
     payload = json.loads(manifest.read_text(encoding="utf-8"))
     tracks = payload["tracks"]
     if not tracks:
@@ -131,12 +138,13 @@ def measure(manifest, output):
         for track in tracks:
             print(f"Measuring {track['track_id']} ({track['genre']})", flush=True)
             try:
-                # Track-specific seed keeps crop selection stable even if a previous file fails.
+                # 앞 곡이 실패해도 이후 곡의 선택 구간이 달라지지 않도록 곡별 seed를 사용한다.
                 random.seed(seed + track["track_id"])
                 torch.manual_seed(seed + track["track_id"])
                 audio = model.get_audio_embeddings([track["audio_path"]], resample=True)
                 check_embedding(audio, 1, text.shape[1])
                 cosine = functional.normalize(audio, dim=1) @ functional.normalize(text, dim=1).T
+                # 원본 코사인과 모델의 배율 적용 값을 함께 기록해 점수 기준을 혼동하지 않는다.
                 scaled = model.compute_similarity(audio, text)
                 if scaled.shape != cosine.shape or not torch.isfinite(scaled).all():
                     raise ValueError("Invalid MSCLAP similarity output")
@@ -150,6 +158,7 @@ def measure(manifest, output):
                         "cosine_similarity": float(cosine[0, index]),
                         "msclap_similarity": float(scaled[0, index])})
             except Exception as error:
+                # 표본 검증은 나머지 곡도 측정하되 실패를 보고서와 종료 코드에서 숨기지 않는다.
                 errors.append({"track_id": track["track_id"], "error": f"{type(error).__name__}: {error}"})
     output.mkdir(parents=True, exist_ok=False)
     if results:

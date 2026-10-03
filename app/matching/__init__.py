@@ -1,1 +1,1 @@
-"""Matching score calculations."""
+"""유사도 순위와 개발용 표시 점수 계산 모듈."""
