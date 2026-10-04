@@ -184,7 +184,7 @@ Cosine Similarity
 
 현재 Audio 공통 생성·테이블·동기 저장·DB 후보 검색 CLI를 구현했습니다.
 음악 입력은 동기로 처리하며 AI에서 연동 계약 초안을 먼저 작성합니다.
-[저장 안내](EMBEDDING_STORAGE.md), [DB 검색 검증](DATABASE_AUDIO_SEARCH.md)을 참고합니다.
+[저장 안내](guides/EMBEDDING_STORAGE.md), [DB 검색 검증](guides/DATABASE_AUDIO_SEARCH.md)을 참고합니다.
 Text 생성·번역, 백엔드 ID/FK·수정/삭제 계약, 오류 기록·자동 재처리는 미완료입니다.
 Phase 3 전체 완료를 의미하지 않습니다.
 

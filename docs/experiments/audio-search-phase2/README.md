@@ -71,7 +71,7 @@ FMA small의 공식 validation split에서 seed 43으로 장르별 3곡, 총 24�
 
 ## 재현 방법
 
-FMA 데이터 다운로드, Docker 및 `.env` 준비는 [기본 검증 안내](../../FMA_VALIDATION.md)를
+FMA 데이터 다운로드, Docker 및 `.env` 준비는 [기본 검증 안내](../../guides/FMA_VALIDATION.md)를
 따릅니다. 모델 추론은 DB 연결을 사용하지 않지만 Compose는 `DB_PASSWORD` 설정이 필요합니다.
 프로젝트 루트에서 실행하고 기존 결과를 덮어쓰지 않는 새 output 이름을 사용합니다.
 

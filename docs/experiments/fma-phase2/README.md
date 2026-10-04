@@ -100,7 +100,7 @@ report.json의 SHA-256은 해당 로컬 실행 원본을 식별한다. report에
 similarities를 prompt_genre·language별로 묶고 cosine으로 내림차순 정렬해 원곡 순위와
 상위 3곡을 추출했다. `same_genre`와 장르별 distributions는 사용자 설명 평가 지표로 쓰지 않는다.
 
-80곡 장르 검증 재현은 [FMA 실행 가이드](../../FMA_VALIDATION.md)의 prepare에서
+80곡 장르 검증 재현은 [FMA 실행 가이드](../../guides/FMA_VALIDATION.md)의 prepare에서
 `--per-genre 10`을 사용한다. 다운로드한 데이터와 로컬 페이지·개인 평가는 datasets/에
 보관되어 Git에서 제외된다.
 

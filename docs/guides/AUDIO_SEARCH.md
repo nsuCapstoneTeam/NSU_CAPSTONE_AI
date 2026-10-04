@@ -33,7 +33,7 @@ docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python 
 
 위 예시는 동일 곡을 제외한 23곡 중 상위 5곡을 반환합니다.
 검색 결과의 정확성은 청취 평가가 필요하며, 현재 점수는 사용자용 최종 적합도 기준이 아닙니다.
-[실험 근거와 한계](experiments/audio-search-phase2/README.md)를 함께 참고하세요.
+[실험 근거와 한계](../experiments/audio-search-phase2/README.md)를 함께 참고하세요.
 
 사용자 후보 목록도 아래 형식으로 만들 수 있습니다. 상대 경로는 실행 디렉터리
 기준이고, Docker에서 접근 가능한 경로를 사용해야 합니다.

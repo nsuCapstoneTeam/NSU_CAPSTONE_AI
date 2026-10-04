@@ -113,7 +113,7 @@ MSCLAP 1.3.3의 기본 전처리는 padding만 적용하여 긴 문장과 짧은
 
 사용자 결정으로 MVP의 음악 요청은 한국어로 받되 영어로 변환한 뒤 MSCLAP에
 입력한다. 근거·처리 조건·남은 번역 방식 결정은
-[ADR 0004](adr/0004-korean-input-english-msclap.md)에 기록했다.
+[ADR 0004](../adr/0004-korean-input-english-msclap.md)에 기록했다.
 현재 영어 설명 비교는 자동 번역 경로를 검증한 결과가 아니므로 번역 연결 후
 원문 의미와 추천 결과를 다시 확인한다.
 

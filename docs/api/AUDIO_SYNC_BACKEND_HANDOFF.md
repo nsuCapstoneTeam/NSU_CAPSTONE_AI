@@ -4,6 +4,9 @@
 기존 벡터 단일 교체안은 revision별 보관·ACTIVE 전환 확인 후 정리 방식으로 대체한다.
 아래 처리 원칙과 미정인 API 세부 제안을 구분한다. 현재 CLI가 이 계약을 구현한 것은 아니다.
 
+결정 배경·이유·서버별 책임은 [Server Agreements ADR](../adr/server-agreements/readme.md)에서
+주제별로 관리한다. 이 문서는 상세 인터페이스 제안과 연동 흐름을 정리한다.
+
 ## 1. 책임과 식별자
 
 백엔드는 음악 Sample ID·아티스트 소유 관계·권한·원본 파일·ACTIVE revision을 관리한다.

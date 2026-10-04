@@ -62,6 +62,6 @@ A는 세 후보 중 제한된 극단 점수에 몰리는 개수가 가장 적어
 최종 기준은 새 설명·새 음악과 별도 평가로 검증해야 합니다.
 자동 한국어→영어 번역 경로는 아직 검증되지 않았습니다.
 
-공유한 [탐색 자료](experiments/audio-search-phase2/text-normalization-comparison.json)와
-[음악 간 측정·평가](experiments/audio-search-phase2/README.md)에 근거와 해시를 기록했습니다.
+공유한 [탐색 자료](../experiments/audio-search-phase2/text-normalization-comparison.json)와
+[음악 간 측정·평가](../experiments/audio-search-phase2/README.md)에 근거와 해시를 기록했습니다.
 음악 파일 검색 CLI에 음악↔음악 변환을 연결했으며 API·임베딩 저장·LLM 설명은 후속 작업입니다.
