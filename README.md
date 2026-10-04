@@ -30,11 +30,11 @@ Audio 임베딩 테이블·동기 저장 CLI와 DB 후보 검색 CLI를 연결�
 분류 코드의 softmax는 라벨 사이의 상대점수이며 행사 적합도 백분율이 아닙니다.
 MSCLAP의 배율 적용 유사도와 순수 cosine도 구분합니다.
 
-음악 파일 검색 실행 방법은 [음악 검색 안내](docs/AUDIO_SEARCH.md),
-임시 점수 기준은 [정규화 안내](docs/SEMANTIC_SCORE_NORMALIZATION.md)를 참고하세요.
-공통 생성 함수와 반환 정보는 [Audio 임베딩 안내](docs/AUDIO_EMBEDDING.md)를 참고하세요.
-테이블 생성·음악 파일 저장·처리 이유는 [임베딩 저장 안내](docs/EMBEDDING_STORAGE.md)를 참고하세요.
-저장된 후보 벡터로 검색하는 방법은 [DB 음악 검색](docs/DATABASE_AUDIO_SEARCH.md)을 참고하세요.
+음악 파일 검색 실행 방법은 [음악 검색 안내](docs/guides/AUDIO_SEARCH.md),
+임시 점수 기준은 [정규화 안내](docs/guides/SEMANTIC_SCORE_NORMALIZATION.md)를 참고하세요.
+공통 생성 함수와 반환 정보는 [Audio 임베딩 안내](docs/guides/AUDIO_EMBEDDING.md)를 참고하세요.
+테이블 생성·음악 파일 저장·처리 이유는 [임베딩 저장 안내](docs/guides/EMBEDDING_STORAGE.md)를 참고하세요.
+저장된 후보 벡터로 검색하는 방법은 [DB 음악 검색](docs/guides/DATABASE_AUDIO_SEARCH.md)을 참고하세요.
 음악 입력 처리의 동기 방향과 AI 선설계 결정은 [ADR 0006](docs/adr/0006-asynchronous-audio-processing.md)에 기록했습니다.
 현재 검색은 곡 단위이며 아티스트 TOP 5나 최종 종합 매칭 API는 아닙니다.
 
@@ -75,7 +75,7 @@ docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python 
 결과 JSON은 곡 ID·원본 코사인·표시 점수·순위를 반환합니다. 출력은 덮어쓰지 않으므로
 반복 실행 시 새 이름을 사용하세요. 동일 파일은 SHA-256으로 제외합니다.
 현재 점수는 내부 검증용 지표이고, 사용자에게 보여줄 최종 적합도는 미확정입니다.
-자체 후보 목록과 공개 FMA 음원 예시는 [사용 안내](docs/AUDIO_SEARCH.md)에 있습니다.
+자체 후보 목록과 공개 FMA 음원 예시는 [사용 안내](docs/guides/AUDIO_SEARCH.md)에 있습니다.
 
 ## 이번 음악 검색·점수 실험
 
@@ -174,7 +174,7 @@ API 문서는 `http://localhost:8000/docs`에서 확인합니다.
 
 ## FMA 검증 실행
 
-전체 절차는 [FMA 검증 가이드](docs/FMA_VALIDATION.md)에 있습니다.
+전체 절차는 [FMA 검증 가이드](docs/guides/FMA_VALIDATION.md)에 있습니다.
 데이터·모델 캐시는 Git에서 제외됩니다. 모델 검증은 DB에 접속하지 않지만
 Compose 설정 평가를 위해 `.env`의 `DB_PASSWORD` 값은 필요합니다.
 

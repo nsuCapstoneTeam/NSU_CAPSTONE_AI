@@ -23,4 +23,4 @@ DB 저장과 API·LLM 설명 연결은 후속 작업이다.
 ## 검증 근거
 
 [음악 검색 실험](../experiments/audio-search-phase2/README.md),
-[점수 수식](../SEMANTIC_SCORE_NORMALIZATION.md), [사용법](../AUDIO_SEARCH.md).
+[점수 수식](../guides/SEMANTIC_SCORE_NORMALIZATION.md), [사용법](../guides/AUDIO_SEARCH.md).

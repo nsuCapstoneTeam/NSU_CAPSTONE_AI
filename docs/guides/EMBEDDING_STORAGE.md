@@ -2,7 +2,7 @@
 
 이 문서는 **현재 구현**(음악 ID당 한 벡터·최초 저장/동일 결과 재사용)을 설명한다.
 후속 설계는 revision별 기존·신규 벡터 보관과 Backend ACTIVE 커밋 확인 후 이전 벡터 정리다.
-처리 상태·stale 복구·삭제 기록을 포함한 [연동 계약](api/AUDIO_SYNC_BACKEND_HANDOFF.md)은 미구현이며
+처리 상태·stale 복구·삭제 기록을 포함한 [연동 계약](../api/AUDIO_SYNC_BACKEND_HANDOFF.md)은 미구현이며
 아래 테이블·CLI가 이미 보장하는 기능과 구분한다.
 
 Phase 3의 테이블 생성과 저장 기능을 구현했습니다. 백엔드 계약이 미정인 상태에서

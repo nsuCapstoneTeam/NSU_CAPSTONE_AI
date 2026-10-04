@@ -1,5 +1,21 @@
 # Server Agreements
 
+## 현재 결정 목록
+
+| ADR | 주제 | Status |
+| --- | --- | --- |
+| [001](001-audio-revision-and-generation-version.md) | Audio revision·모델/전처리 버전 분리 | Accepted |
+| [002](002-audio-revision-activation-and-cleanup.md) | revision별 벡터 보관·ACTIVE 전환 후 정리 | Accepted |
+| [003](003-audio-processing-status.md) | AI 처리 상태·Backend 활성 상태 분리 | Accepted |
+| [004](004-timeout-and-stale-retry.md) | timeout 상태 확인·stale 재처리 | Accepted |
+| [005](005-audio-retrieval-responsibilities.md) | ACTIVE 후보 검색·최종 추천 역할 분담 | Accepted |
+
+Accepted는 합의된 처리 원칙을 의미하며 구현 완료를 뜻하지 않습니다.
+각 문서에 미정인 세부 규칙을 구분했습니다. 근거는 2026-10-04 사용자가 전달한 백엔드 확인과 후속 결정입니다.
+상세 인터페이스 제안은 [Audio API 계약](../../api/AUDIO_SYNC_BACKEND_HANDOFF.md)에 유지합니다.
+
+## 관리 범위
+
 이 디렉터리는 서비스 간 통신 및 역할 분담 과정에서 합의된 아키텍처 결정사항을 기록하기 위한 공간입니다.
 
 현재 프로젝트는 Spring Boot 기반의 메인 서버와 ai-recommend-server 등 여러 서비스가 독립적으로 동작할 수 있기 때문에, 서버 간 책임과 통신 규칙을 명확하게 정의해야 합니다.
