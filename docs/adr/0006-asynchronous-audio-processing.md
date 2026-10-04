@@ -19,7 +19,13 @@ HTTP 타임아웃·동시 요청 제한·재요청 정합성은 업무 API 구�
 
 ## 후속 작업
 
+2026-10-04 후속 결정: 기존·신규 revision 벡터를 함께 보관하고,
+Backend ACTIVE 전환 커밋을 AI가 확인한 뒤 이전 벡터를 정리한다.
+AI ready는 Backend ACTIVE와 다르며 생성 성공만으로 기존 벡터를 지우지 않는다.
+처리 상태 조회·stale 재처리와 ACTIVE revision 쌍 후보 제한은 구현 전이다.
+세부 계약은 [백엔드 전달용 문서](../api/AUDIO_SYNC_BACKEND_HANDOFF.md)를 따른다.
+
 [연동 계약 초안](../api/AUDIO_JOB_CONTRACT.md)을 백엔드와 검토한다.
 원본 ID·파일 참조·버전·수정/삭제·오류 계약은 제안 단계이며 업무 API는 구현 전이다.
 Text 번역 방식은 이번 결정에 포함하지 않는다.
-외부 Linear·GitHub 이슈는 이번 작업에서 변경하지 않았다.
+2026-10-04 관련 Linear·GitHub 이슈에 결정과 미완료 검증 기준을 반영했다.

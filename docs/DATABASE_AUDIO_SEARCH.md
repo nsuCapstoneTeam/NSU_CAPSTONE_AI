@@ -1,5 +1,10 @@
 # DB에 저장된 음악으로 Top5 검색
 
+아래는 현재 CLI와 검증 결과다. 후속 서비스 계약은 ACTIVE (music_id, audioRevision) 쌍으로
+후보를 제한하고 AI retrieval 50~100개를 Backend Ranker에 전달해 최종 Top10을 선정한다.
+revision 후보 제한·결과 revision 반환은 아직 미구현이다.
+현재 기본 Top5·실험 수치는 변경하지 않는다. [연동 계약](api/AUDIO_SYNC_BACKEND_HANDOFF.md)을 참고한다.
+
 음악 파일을 입력으로 받아 PostgreSQL에 저장된 Audio 임베딩 후보와 비교합니다.
 검색 입력은 공통 생성기로 한 번 임베딩하고, 후보 파일은 다시 읽거나 추론하지 않습니다.
 현재는 곡 단위 CLI이며 백엔드 API·아티스트 집계·행사 종합 적합도는 포함하지 않습니다.

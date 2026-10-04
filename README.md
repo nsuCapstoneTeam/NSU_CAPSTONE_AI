@@ -38,6 +38,11 @@ MSCLAP의 배율 적용 유사도와 순수 cosine도 구분합니다.
 음악 입력 처리의 동기 방향과 AI 선설계 결정은 [ADR 0006](docs/adr/0006-asynchronous-audio-processing.md)에 기록했습니다.
 현재 검색은 곡 단위이며 아티스트 TOP 5나 최종 종합 매칭 API는 아닙니다.
 
+2026-10-04 [백엔드 연동 결정](docs/api/AUDIO_SYNC_BACKEND_HANDOFF.md): revision별 v1·v2 벡터를
+함께 보관하고 Backend ACTIVE 전환 커밋 확인 후 이전 벡터를 정리합니다.
+AI 상태 조회·stale 재처리·ACTIVE revision 쌍 검색은 구현 전입니다.
+최종 추천은 AI 후보 50~100개 → Backend Ranker Top10이며 Reliability·Risk Signal은 별도 표시합니다.
+
 ## 최신 main 대비 추가·수정
 
 비교 기준: 로컬 main
@@ -244,5 +249,5 @@ py -3.11 -m venv .venv
 - [협업 가이드](docs/협업-가이드/README.md)
 
 다음은 Phase 3의 백엔드 ID·수정/삭제 계약 확정과 Text 생성 연결입니다. 이후 BPM·리듬 분석,
-항목별 점수 통합, 아티스트 TOP 5·설명, API 연결 순서로 진행합니다.
+항목별 점수 통합, AI 후보 retrieval·Backend Top10·설명, API 연결 순서로 진행합니다.
 최종 점수와 더 큰 후보 집합의 검색 품질은 추가 검증이 필요하며 번역 구현은 보류합니다.

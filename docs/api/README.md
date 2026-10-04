@@ -10,6 +10,12 @@ FastAPI 서버와 health API는 구현되어 있다.
 파일 직접 전달(multipart), 등록·교체 통합 PUT, 버전·삭제 기록과 상태 조회를 권장한다.
 새 권장안의 경로와 규칙을 우선 검토하며 업무 API 구현은 다음 단계다.
 
+백엔드 피드백으로 audioRevision·모델 버전 분리와 PROCESSING→ACTIVE 전환,
+최종 추천용 50~100개 retrieval 후보 방향을 반영했다.
+processing/ready/failed/deleted 조회, revision별 벡터 보관, ACTIVE revision 쌍 후보 제한을 반영했다.
+v1·v2를 함께 보관하고 Backend v2 ACTIVE 커밋 확인 후 v1을 정리한다. 모두 구현 전이다.
+활성 확인·정리 API, 정리 유예기간, stale 기준 및 세부 DTO는 추가 설계가 필요하다.
+
 ## 책임 경계
 
 Spring Boot는 음악 ID·아티스트 소유 관계·인증/인가·서비스 화면 연결을 담당한다.
@@ -20,11 +26,11 @@ Python AI 서버는 전처리·임베딩·pgvector 저장·유사도 검색을 �
 | 항목 | 관련 이슈 | 상태 |
 | --- | --- | --- |
 | 동기 처리 방향 | NSUAI-17 | 사용자 동기 결정 반영 |
-| 원본 ID·파일 전달·수정/삭제 | NSUAI-25 | AI 초안, 백엔드 검토 필요 |
+| Audio revision·수정/삭제·전환 후 정리 | NSUAI-25 / NSUAI-26 | 결정 반영, 구현 전 |
 | 요청·응답·오류·타임아웃 | NSUAI-27 / NSU-63 | 초안 검토·업무 API 구현 필요 |
 
 저장 책임은 [ADR 0001](../adr/0001-pgvector-adoption.md),
 처리 방식은 [ADR 0006](../adr/0006-asynchronous-audio-processing.md)을 참고한다.
-외부 이슈는 이번 작업에서 변경하지 않았다.
+2026-10-04 Linear NSUAI-25·26·27, NSU-63과 연결 GitHub 이슈에 결정·미완료 기준을 반영했다.
 음악 검색 표시 점수는 임시 유사도 지표이며 종합 적합도나 신뢰 확률이 아니다.
 `AudioClassifier.classify()`의 `probability`는 비교 라벨 집합의 softmax 상대점수다.
