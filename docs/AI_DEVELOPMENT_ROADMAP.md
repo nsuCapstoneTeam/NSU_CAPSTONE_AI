@@ -189,6 +189,9 @@ Text 생성·번역, 백엔드 ID/FK·수정/삭제 계약, 오류 기록·자�
 Phase 3 전체 완료를 의미하지 않습니다.
 
 남은 작업:
+- [ ] revision별 벡터 보관·처리 상태·attempt 소유권·삭제 기록 추가
+- [ ] Backend ACTIVE 전환 커밋 확인 후 이전 revision 정리와 실패 복구
+- [ ] ACTIVE (music_id, audioRevision) 후보 쌍 필터와 검색 결과 revision 반환
 - [ ] 백엔드 연동 계약 확정: 음악 ID·파일 전달·버전·오류·타임아웃
 - [ ] 음악 수정·삭제 처리와 오래된 요청의 덮어쓰기·재등록 방지
 - [ ] Text 임베딩 생성·저장 연동: 한국어→영어 변환 방식은 미정
@@ -318,6 +321,12 @@ Soft Score
 ---
 
 ## Phase 6 — TOP 5 Ranking
+
+2026-10-04 Audio 연동 후속 결정: 기존 Top5는 검증용이며 실제 추천 경로는
+AI retrieval 50~100개 → Backend Ranker 최종 Top10이다.
+Reliability·Risk Signal은 별도 표시하고 순위 점수에 합산하지 않는다.
+아래 Top5 단계와 기존 이슈명은 이전 계획 이력이다. 관련 NSUAI-27·NSU-63 이슈에 최신 방향을 반영했다.
+revision 전환·검색 계약은 [현재 계약](api/AUDIO_SYNC_BACKEND_HANDOFF.md)을 따른다.
 
 관련 Issue:
 - `NSUAI-15` 아티스트 TOP 5 추천 결과 구현

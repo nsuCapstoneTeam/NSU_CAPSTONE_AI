@@ -1,11 +1,17 @@
 # 음악 임베딩·검색 동기 연동 계약 초안
 
-상태: **AI 측 초안, 백엔드 검토 전, 업무 HTTP API 구현 전**.
+상태: **초기 제안 이력, 현재 계약은 백엔드 전달용 문서를 따름, 업무 HTTP API 구현 전**.
 2026-10-03 사용자 결정: ① AI에서 먼저 설계하고 동기 방식으로 처리한다.
 기존 파일 경로는 링크 호환을 위해 유지한다. 아래 계약은 검토용 제안이다.
 
 2026-10-04 구체화한 [백엔드 전달용 권장안](AUDIO_SYNC_BACKEND_HANDOFF.md)을 우선 검토한다.
 파일 직접 전달과 등록·교체 통합 PUT을 권장하므로 아래 source_ref·POST 분리는 초기 제안 이력이다.
+
+후속 결정: revision별 v1·v2 벡터 보관 → Backend ACTIVE 전환 커밋 확인 → 이전 벡터 정리.
+processing/ready/failed/deleted 상태 조회와 stale 재처리를 지원하는 방향이다.
+아래 상태 조회 제외·원자 교체·Top5 설명은 초기 이력이며 현재 구현 목표로 사용하지 않는다.
+최종 추천 경로는 ACTIVE revision 쌍 후보로 AI retrieval 50~100개를 받고 Backend에서 Top10을 선정한다.
+현재 상세 규칙은 [연동 계약](AUDIO_SYNC_BACKEND_HANDOFF.md)을 따른다.
 
 ## 책임과 데이터 연결
 
