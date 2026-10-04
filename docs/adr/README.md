@@ -17,44 +17,10 @@ Python AI/Matching Server 및 AI Matching 시스템에 영향을 주는
 | [ADR-0005](./0005-audio-similarity-display-score.md) | NSUAI-1, NSUAI-2 | 음악 파일 검색과 음악·텍스트별 임시 표시 점수 분리 | 개발용 기준 채택, 최종 점수 미정 |
 | [ADR-0006](./0006-asynchronous-audio-processing.md) | NSUAI-17 관련, 외부 이슈 변경 전 | 음악 입력 동기 처리·AI 선설계 | 사용자 결정 반영, 업무 API 구현 전 |
 
-## 현재 확정된 상위 구조
+## 서버 간 협의사항
 
-운영 환경은 다음과 같이 구성한다.
+서버별 책임·통신·장애 처리 결정의 관리 범위와 ADR 작성 양식은
+[Server Agreements](server-agreements/readme.md)에서 관리한다.
+API 상세 필드·요청/응답 명세는 [API 문서](../api/README.md)를 참고한다.
 
-- EC2 #1: Spring Boot Server
-- EC2 #2: Python AI/Matching Server
-- RDS: PostgreSQL + pgvector
-
-Spring Boot와 Python AI/Matching Server는 동일한 RDS PostgreSQL에 접근한다.
-
-AI Matching 요청은 Spring Boot에서 Python AI/Matching Server로
-HTTP를 통해 전달한다.
-
-Python AI/Matching Server는 MSCLAP 기반 Embedding,
-Vector Similarity Search, Matching Score 및 추천 Ranking 처리를 담당한다.
-
-## ADR 작성 원칙
-
-새로운 아키텍처 결정이 필요한 경우 `NNNN-주제.md` 형식으로 추가한다.
-
-```markdown
-# NNNN. 결정 제목
-
-## 상태
-
-제안 / 승인 / 부분 승인 / 대체됨
-
-## 관련 근거
-
-- Linear Issue:
-- 사람의 확정 결정:
-
-## 배경
-
-## 결정 및 근거
-
-## 미확정 사항
-
-## 영향
-
-## 검증
+기존 ADR의 실제 결정 내용과 변경 이력은 위 목록에서 계속 확인할 수 있다.
