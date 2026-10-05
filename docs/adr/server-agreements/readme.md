@@ -9,10 +9,14 @@
 | [003](003-audio-processing-status.md) | AI 처리 상태·Backend 활성 상태 분리 | Accepted |
 | [004](004-timeout-and-stale-retry.md) | timeout 상태 확인·stale 재처리 | Accepted |
 | [005](005-audio-retrieval-responsibilities.md) | ACTIVE 후보 검색·최종 추천 역할 분담 | Accepted |
+| [007](007-recommendation-scoring-and-explanation-responsibilities.md) | AI 항목 점수·설명 / Spring 종합 점수·Top10 | Accepted |
+| [008](008-music-score-items-and-performance-format.md) | 의미·BPM·리듬 / 공연 형태 필터 분리 | Proposed |
 
 Accepted는 합의된 처리 원칙을 의미하며 구현 완료를 뜻하지 않습니다.
 각 문서에 미정인 세부 규칙을 구분했습니다. 근거는 2026-10-04 사용자가 전달한 백엔드 확인과 후속 결정입니다.
 상세 인터페이스 제안은 [Audio API 계약](../../api/AUDIO_SYNC_BACKEND_HANDOFF.md)에 유지합니다.
+007은 2026-10-05 AI 협의 2/9와 메인 SSOT v1.6.1에 따른 보완입니다.
+006 신규 아티스트 후보 검색 계약은 별도 협의 중이며 이번에 확정하지 않았습니다.
 
 ## 관리 범위
 

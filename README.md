@@ -1,5 +1,8 @@
 # NSU_CAPSTONE_AI
 
+> 2026-10-05 현재 AI 측 방향: [CLAP 중심 곡 추천](docs/api/CLAP_RECOMMENDATION_DIRECTION.md)을 우선 참고합니다. 아래 항목 평균·Spring Ranker·아티스트 집계·후보 비교 설명은 이전 계획이며, 이번 변경안은 팀 전체 합의 전입니다. BPM·리듬은 초기 순위에서 보류하고 추천 이유는 검증 가능한 근거로 유지합니다.
+
+
 아티스트–행사 매칭 플랫폼의 Python AI 서버입니다. Microsoft MSCLAP 기반 음악·텍스트와
 음악·음악 유사도, 파일 검색 CLI, FastAPI Health Check, PostgreSQL + pgvector 준비 상태 검사를 다룹니다.
 
@@ -7,7 +10,8 @@
 **한국어 요청 → 영어 변환 → MSCLAP** 입력 정책을 확정했습니다.
 번역 방식·구현은 미정으로 보류합니다. 임시 점수 변환과 곡 단위 검색 CLI까지 구현했고,
 Audio 임베딩 테이블·동기 저장 CLI와 DB 후보 검색 CLI를 연결했습니다.
-백엔드 계약·수정/삭제 연동, BPM·리듬 분석, 최종 종합 점수와 매칭 API는 후속 작업입니다.
+백엔드 계약·수정/삭제 연동, BPM·리듬 분석, 설명 생성과 분석 API는 후속 작업입니다.
+곡→아티스트 집계·종합 Matching Score 계산·최종 Top10 선정은 Spring Backend Ranker 책임입니다.
 
 ## 구현 상태
 
@@ -24,7 +28,8 @@ Audio 임베딩 테이블·동기 저장 CLI와 DB 후보 검색 CLI를 연결�
 | 음악 파일로 후보 곡 검색 | CLI 구현, 원본 코사인 순위·음악 간 임시 0~100점 반환 |
 | DB 저장 임베딩으로 후보 곡 검색 | 호환 조건 필터·동일 파일 제외·pgvector 정확 검색 CLI 구현 |
 | 임시 유사도 표시 점수 | 음악↔텍스트 0~0.4 / 음악↔음악 0~1, 최종 기준 검증 필요 |
-| 종합 매칭 점수·아티스트 TOP 5·추천 이유 | 후속 구현 |
+| 의미·BPM·리듬 항목 점수·추천 이유·후보 비교 설명 | Audio 임시 의미 점수 외 후속 구현 |
+| 곡→아티스트 집계·종합 매칭 점수·최종 Top10 | Spring Backend Ranker 책임 |
 | 분석·매칭 HTTP API·Spring Boot 연동 | 후속 구현 |
 
 분류 코드의 softmax는 라벨 사이의 상대점수이며 행사 적합도 백분율이 아닙니다.
@@ -36,7 +41,7 @@ MSCLAP의 배율 적용 유사도와 순수 cosine도 구분합니다.
 테이블 생성·음악 파일 저장·처리 이유는 [임베딩 저장 안내](docs/guides/EMBEDDING_STORAGE.md)를 참고하세요.
 저장된 후보 벡터로 검색하는 방법은 [DB 음악 검색](docs/guides/DATABASE_AUDIO_SEARCH.md)을 참고하세요.
 음악 입력 처리의 동기 방향과 AI 선설계 결정은 [ADR 0006](docs/adr/0006-asynchronous-audio-processing.md)에 기록했습니다.
-현재 검색은 곡 단위이며 아티스트 TOP 5나 최종 종합 매칭 API는 아닙니다.
+현재 검색은 곡 단위이며 최종 아티스트 Top10 선정은 Spring에서 수행합니다.
 
 2026-10-04 [백엔드 연동 결정](docs/api/AUDIO_SYNC_BACKEND_HANDOFF.md): revision별 v1·v2 벡터를
 함께 보관하고 Backend ACTIVE 전환 커밋 확인 후 이전 벡터를 정리합니다.

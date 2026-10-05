@@ -28,6 +28,7 @@
 | 기술 결정 | [ADR](adr/README.md) |
 | 서버 간 주제별 합의·결정 이유 | [Server Agreements](adr/server-agreements/readme.md) |
 | API 책임 경계 | [API](api/README.md) |
+| 현재 AI 측 변경 제안 | [CLAP 중심 곡 추천](api/CLAP_RECOMMENDATION_DIRECTION.md) |
 | AI 선설계·동기 연동 | [현재 계약](api/AUDIO_SYNC_BACKEND_HANDOFF.md) |
 | 팀 협업 | [협업 가이드](협업-가이드/README.md) |
 

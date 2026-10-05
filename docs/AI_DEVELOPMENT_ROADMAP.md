@@ -1,5 +1,8 @@
 # AI Development Roadmap
 
+> 2026-10-05 현재 AI 측 방향: [CLAP 중심 곡 추천](api/CLAP_RECOMMENDATION_DIRECTION.md)을 우선 참고합니다. 아래 항목 평균·Spring Ranker·아티스트 집계·후보 비교 설명은 이전 계획이며, 이번 변경안은 팀 전체 합의 전입니다. BPM·리듬은 초기 순위에서 보류하고 추천 이유는 검증 가능한 근거로 유지합니다.
+
+
 > Repository: `nsuCapstoneTeam/NSU_CAPSTONE_AI`  
 > 기준: Linear `NSU_AI` + GitHub `NSU_CAPSTONE_AI Issues`  
 > 목적: AI Matching 기능을 의존성 순서대로 구현하기 위한 개발 기준 문서
@@ -43,8 +46,15 @@
   - 최종 변환 수식
 
 ### Final Matching Score
+- 2026-10-05 AI 측 기준: 의미·BPM·리듬 3개 항목을 제공하며 음악 분위기·스타일은 의미 점수에 포함한다.
+- 별도 공연 스타일 점수는 중복 산출하지 않는다. 공연 형태는 Spring이 프로필과 요청을 비교하고 필수 조건이면 필터로 처리한다.
+- [ADR 008](adr/server-agreements/008-music-score-items-and-performance-format.md)은 AI 측 선택이며 메인 SSOT·백엔드 반영은 별도 확인한다. 누락 점수 정책은 미정이다.
+- 곡→아티스트 집계·종합 Matching Score·최종 Top10은 Spring Backend Ranker 책임이다.
+- AI는 의미·BPM·리듬 항목 점수와 retrieval 후보 50~100곡, 추천 이유·후보 비교 설명을 제공한다.
 - PASS/FAIL Hard Filter는 종합 점수 평균 계산에서 제외한다.
-- 정규화된 Soft Score 항목들의 평균으로 종합 매칭 점수를 산출한다.
+- 정규화된 Soft Score 항목들의 평균으로 Spring이 종합 매칭 점수를 산출한다.
+- 설명용 최종 선정 결과·점수·근거 전달 필드와 호출 순서는 미정이다.
+  AI는 설명을 위해 최종 점수나 순위를 재계산하지 않는다.
 
 ---
 
@@ -102,8 +112,7 @@ NSU_CAPSTONE_AI/
 │   ├── matching/
 │   │   ├── similarity.py
 │   │   ├── normalization.py
-│   │   ├── scoring.py
-│   │   ├── ranking.py
+│   │   ├── retrieval.py
 │   │   └── explanation.py
 │   │
 │   ├── repository/
@@ -134,7 +143,7 @@ NSU_CAPSTONE_AI/
 ## Phase 2 — MSCLAP 단독 검증
 
 현재 진행: 임시 정규화 함수와 음악 파일 검색 CLI를 구현하고 새 음악 24곡의 쌍별
-유사도·청취 평가를 수행했다. 이는 곡 단위 검증이며 Phase 6 아티스트 TOP 5 또는
+유사도·청취 평가를 수행했다. 이는 곡 단위 검증이며 Phase 6 추천용 후보 제공 또는
 Phase 9 HTTP API 완료가 아니다. 한국어→영어 자동 변환 구현은 미정으로 보류한다.
 
 관련 Issue:
@@ -275,14 +284,15 @@ Audio
 
 ---
 
-## Phase 5 — Score Engine
+## Phase 5 — 항목 점수 정규화 및 Spring 점수 계약
 
 관련 Issue:
-- `NSUAI-12` 매칭 항목 점수 정규화 및 종합 점수 산출
-- `NSUAI-13` 공통 점수 계약 및 종합 점수 산출 구현
+- `NSUAI-12` 의미·BPM·리듬 항목 점수 정규화
+- `NSUAI-13` AI 항목 점수 공통 계약 및 Spring 전달 구현
 
 목표:
-- 서로 다른 매칭 결과를 하나의 점수 계약으로 통합한다.
+- 의미·BPM·리듬 항목 점수의 범위·근거·누락 처리 계약을 제공한다.
+- 종합 점수 계산은 Spring이 담당한다. 아래 평균은 제품 정책이며 AI 구현 항목이 아니다.
 
 예시:
 
@@ -294,7 +304,7 @@ Audio
 }
 ```
 
-종합 점수 기본 원칙:
+Spring 종합 점수 기본 원칙:
 
 ```text
 matchingScore
@@ -315,47 +325,46 @@ Soft Score
 완료 기준:
 - 모든 점수 항목이 공통 0~100 범위
 - PASS/FAIL 항목은 평균 계산에서 제외
-- 종합 점수 계산 가능
+- Spring이 종합 점수를 계산할 수 있는 항목 점수 제공
 - 점수 구성 근거 확인 가능
 
 ---
 
-## Phase 6 — TOP 5 Ranking
+## Phase 6 — 추천용 곡 검색 및 항목 점수 응답
 
 2026-10-04 Audio 연동 후속 결정: 기존 Top5는 검증용이며 실제 추천 경로는
 AI retrieval 50~100개 → Backend Ranker 최종 Top10이다.
 Reliability·Risk Signal은 별도 표시하고 순위 점수에 합산하지 않는다.
-아래 Top5 단계와 기존 이슈명은 이전 계획 이력이다. 관련 NSUAI-27·NSU-63 이슈에 최신 방향을 반영했다.
+2026-10-05 NSUAI-15·16의 제목·AC를 최신 분담으로 정합화했다.
 revision 전환·검색 계약은 [현재 계약](api/AUDIO_SYNC_BACKEND_HANDOFF.md)을 따른다.
 
 관련 Issue:
-- `NSUAI-15` 아티스트 TOP 5 추천 결과 구현
-- `NSUAI-16` TOP 5 추천 순위 응답 구현
+- `NSUAI-15` 아티스트 추천용 곡 검색 및 항목 점수 제공 구현
+- `NSUAI-16` 곡 검색 결과·항목 점수 및 설명 응답 계약 구현
 
 목표:
-- 필수 조건을 통과한 후보를 종합 매칭 점수 기준으로 정렬한다.
+- Spring이 제공한 ACTIVE 후보 곡을 검색하고 항목 점수를 반환한다.
+- 곡→아티스트 집계·종합 점수·최종 Top10은 Spring에서 수행한다.
 
 흐름:
 
 ```text
-전체 Artist
+Spring Eligibility Filter·ACTIVE 후보 쌍
    ↓
-Hard Filter
+AI 공통 임베딩·유사 곡 검색
    ↓
-후보 Artist
+retrieval 50~100곡·항목 점수·revision
    ↓
-Matching Score
+Spring 곡→아티스트 집계·종합 Matching Score
    ↓
-Sort DESC
-   ↓
-TOP 5
+Spring 최종 Top10
 ```
 
 완료 기준:
-- FAIL 후보 제외
-- Matching Score 기준 정렬
-- 최대 5명 반환
-- 각 후보의 항목별 점수 확인 가능
+- ACTIVE 후보 쌍을 검색 전에 제한하고 결과 revision 반환
+- 곡 단위 유사도 순위와 최종 아티스트 순위를 구분
+- 곡별 항목 점수와 계산 근거 확인 가능
+- 후보 수 부족·누락 점수·응답 필드는 API 계약에서 확정
 
 ---
 
@@ -366,7 +375,9 @@ TOP 5
 - `NSUAI-11` 추천 1위 선정 이유 생성 구현
 
 목표:
-- 1위 후보의 실제 계산 결과를 기반으로 추천 이유를 생성한다.
+- Spring이 선정한 1위와 실제 점수·선정 근거를 기반으로 AI가 추천 이유를 생성한다.
+- 최종 결과·근거 전달 필드, 호출 순서·동기 응답 포함 여부는 미정이다.
+- [설명 계약 제안](api/RECOMMENDATION_EXPLANATION_CONTRACT.md): 최종 순위 확정 후 추가 호출·초기 템플릿 사용을 권장하며 합의 전이다.
 
 원칙:
 - 임의 평가 금지
@@ -395,7 +406,8 @@ Final    91
 - `NSUAI-6` 후보 간 비교 설명 문장 생성
 
 목표:
-- 상위 후보 간 점수 차이를 실제 계산값으로 설명한다.
+- Spring이 선정한 상위 후보의 실제 계산값으로 AI가 점수 차이를 설명한다.
+- 아티스트 집계 점수와 최종 순위는 Spring이 제공하며 AI가 재계산하지 않는다.
 
 예시:
 
@@ -445,28 +457,27 @@ Matching Pipeline
   ├── Embedding
   ├── Audio Feature
   ├── Similarity
-  ├── Score
-  ├── Ranking
+  ├── Item Score Normalization
+  ├── Track Retrieval
   └── Explanation
   ↓
 PostgreSQL + pgvector
 ```
 
-API 응답 예시:
+곡 검색 API 응답의 개념 예시(확정 Schema가 아님; 설명 호출 계약은 별도 미정):
 
 ```json
 {
-  "recommendations": [
+  "tracks": [
     {
-      "artistId": 10,
-      "rank": 1,
-      "matchingScore": 91,
+      "musicId": "example-music-id",
+      "audioRevision": 2,
+      "cosineSimilarity": 0.82,
       "scores": {
         "semantic": 95,
         "bpm": 92,
         "rhythm": 87
-      },
-      "reason": "..."
+      }
     }
   ]
 }
@@ -538,7 +549,7 @@ React
 - Spring → Python 요청
 - Timeout/Error 처리
 - Artist ID 전달
-- TOP 5 결과 반환
+- AI retrieval 50~100곡 → Spring 최종 아티스트 Top10 검증
 - 항목별 Score 반환
 - 추천 이유 반환
 - Sample 등록/수정/삭제 후 Embedding 상태
@@ -571,7 +582,7 @@ React
         ↓
 10. Score Engine
         ↓
-11. TOP 5 Ranking
+11. 곡 retrieval·항목 점수 응답 → Spring 집계·종합 점수·Top10
         ↓
 12. 추천 이유
         ↓
