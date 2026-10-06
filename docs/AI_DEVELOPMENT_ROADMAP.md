@@ -17,12 +17,12 @@
 
 ### Embedding
 - 음악 파일 입력 후 전처리·Audio Embedding 처리에는 **동기 방식**을 사용한다.
-  [ADR 0006](adr/0006-asynchronous-audio-processing.md)을 따른다.
+  [ADR 0006](adr/ADR-0006-asynchronous-audio-processing.md)을 따른다.
   현재 생성·저장·검색 함수는 동기 실행이며 업무 HTTP API는 후속 구현이다.
 - AI에서 연동 계약을 먼저 작성하고 백엔드 검토 후 확정한다.
 - 사용자 음악 요청은 한국어로 받고, 의미를 유지한 영어 설명으로 변환한 뒤
   MSCLAP Text Embedding을 생성한다. 입력 정책은
-  [ADR 0004](adr/0004-korean-input-english-msclap.md)를 따른다.
+  [ADR 0004](adr/ADR-0004-korean-input-english-msclap.md)를 따른다.
   번역 방식 및 자동 번역 경로의 검증은 후속 구현 작업이다.
 
 ### Similarity
@@ -35,7 +35,7 @@
 ### Score Normalization
 - 현재 Phase 2 개발용 함수는 음악↔텍스트 0~0.4, 음악↔음악 0~1의 임시 기준을 사용한다.
   [실험 근거](experiments/audio-search-phase2/README.md) 및
-  [ADR 0005](adr/0005-audio-similarity-display-score.md)를 참고한다.
+  [ADR 0005](adr/ADR-0005-audio-similarity-display-score.md)를 참고한다.
   최종 기준 확정이나 사용자용 종합 점수 구현 완료를 뜻하지 않는다.
 - 우선 고정 수식 기반의 0~100 정규화를 구현·검증한다.
 - 단, 아래 값은 실제 MSCLAP 결과를 측정한 후 최종 결정한다.

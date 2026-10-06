@@ -71,7 +71,7 @@ MSCLAP 1.3.3의 전처리는 max_length padding을 사용하지만 truncation을
 ## 결정과 후속 검증
 
 사용자 결정: **한국어로 요청을 받고 영어로 변환한 뒤 MSCLAP에 입력**한다.
-[ADR 0004](../../adr/0004-korean-input-english-msclap.md)에 반영했다.
+[ADR 0004](../../adr/ADR-0004-korean-input-english-msclap.md)에 반영했다.
 
 영어 설명은 사람이 작성·수정했다. 따라서 자동 번역 품질, 새로운 음악·요청에 대한
 추천 성능, 서비스 전체 적합성 또는 최종 0–100 수식이 검증됐다고 볼 수 없다.

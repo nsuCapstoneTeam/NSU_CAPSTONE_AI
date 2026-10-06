@@ -40,7 +40,7 @@ MSCLAP의 배율 적용 유사도와 순수 cosine도 구분합니다.
 공통 생성 함수와 반환 정보는 [Audio 임베딩 안내](docs/guides/AUDIO_EMBEDDING.md)를 참고하세요.
 테이블 생성·음악 파일 저장·처리 이유는 [임베딩 저장 안내](docs/guides/EMBEDDING_STORAGE.md)를 참고하세요.
 저장된 후보 벡터로 검색하는 방법은 [DB 음악 검색](docs/guides/DATABASE_AUDIO_SEARCH.md)을 참고하세요.
-음악 입력 처리의 동기 방향과 AI 선설계 결정은 [ADR 0006](docs/adr/0006-asynchronous-audio-processing.md)에 기록했습니다.
+음악 입력 처리의 동기 방향과 AI 선설계 결정은 [ADR 0006](docs/adr/ADR-0006-asynchronous-audio-processing.md)에 기록했습니다.
 현재 검색은 곡 단위이며 최종 아티스트 Top10 선정은 Spring에서 수행합니다.
 
 2026-10-04 [백엔드 연동 결정](docs/api/AUDIO_SYNC_BACKEND_HANDOFF.md): revision별 v1·v2 벡터를
@@ -134,7 +134,7 @@ Python 3.11, msclap 1.3.3, torch·torchaudio 2.1.2+cpu, transformers 4.35.2를 �
 - [실험 기록·재현 방법](docs/experiments/fma-phase2/README.md)
 - [공유용 입력 JSON](docs/experiments/fma-phase2/manifest16-descriptions.json)
 - [설명별 순위](docs/experiments/fma-phase2/rankings.csv)
-- [입력 언어 정책 ADR](docs/adr/0004-korean-input-english-msclap.md)
+- [입력 언어 정책 ADR](docs/adr/ADR-0004-korean-input-english-msclap.md)
 
 ## 설치·서버 실행
 
