@@ -17,12 +17,12 @@
 
 ### Embedding
 - 음악 파일 입력 후 전처리·Audio Embedding 처리에는 **동기 방식**을 사용한다.
-  [ADR 0006](adr/0006-asynchronous-audio-processing.md)을 따른다.
+  [ADR 0006](adr/ADR-0006-asynchronous-audio-processing.md)을 따른다.
   현재 생성·저장·검색 함수는 동기 실행이며 업무 HTTP API는 후속 구현이다.
 - AI에서 연동 계약을 먼저 작성하고 백엔드 검토 후 확정한다.
 - 사용자 음악 요청은 한국어로 받고, 의미를 유지한 영어 설명으로 변환한 뒤
   MSCLAP Text Embedding을 생성한다. 입력 정책은
-  [ADR 0004](adr/0004-korean-input-english-msclap.md)를 따른다.
+  [ADR 0004](adr/ADR-0004-korean-input-english-msclap.md)를 따른다.
   번역 방식 및 자동 번역 경로의 검증은 후속 구현 작업이다.
 
 ### Similarity
@@ -35,7 +35,7 @@
 ### Score Normalization
 - 현재 Phase 2 개발용 함수는 음악↔텍스트 0~0.4, 음악↔음악 0~1의 임시 기준을 사용한다.
   [실험 근거](experiments/audio-search-phase2/README.md) 및
-  [ADR 0005](adr/0005-audio-similarity-display-score.md)를 참고한다.
+  [ADR 0005](adr/ADR-0005-audio-similarity-display-score.md)를 참고한다.
   최종 기준 확정이나 사용자용 종합 점수 구현 완료를 뜻하지 않는다.
 - 우선 고정 수식 기반의 0~100 정규화를 구현·검증한다.
 - 단, 아래 값은 실제 MSCLAP 결과를 측정한 후 최종 결정한다.
@@ -192,12 +192,20 @@ Cosine Similarity
 ## Phase 3 — Audio/Text Embedding 생성 및 저장
 
 현재 Audio 공통 생성·테이블·동기 저장·DB 후보 검색 CLI를 구현했습니다.
+현재 Audio 생성은 기존 단일 crop 방식입니다. 승인된
+[ADR-0007](adr/ADR-0007-audio-highlight-embedding-strategy.md)의 Audio Highlight 생성 정책 적용은
+아래 남은 작업에 포함하며, 아직 구현하지 않았습니다.
 음악 입력은 동기로 처리하며 AI에서 연동 계약 초안을 먼저 작성합니다.
 [저장 안내](guides/EMBEDDING_STORAGE.md), [DB 검색 검증](guides/DATABASE_AUDIO_SEARCH.md)을 참고합니다.
 Text 생성·번역, 백엔드 ID/FK·수정/삭제 계약, 오류 기록·자동 재처리는 미완료입니다.
 Phase 3 전체 완료를 의미하지 않습니다.
 
 남은 작업:
+- [ ] ADR-0007 D1에 따른 60~80초 inclusive 길이 validation 구현
+- [ ] ADR-0007 D2·D3·D4에 따른 처음 56초 사용 및 7초 × 8개 non-overlap Chunk 생성
+- [ ] ADR-0007 D6·D7·D8에 따른 Chunk별 L2 → Mean Pooling(N=8) → 최종 L2 및 대표 벡터 1개 생성
+- [ ] 저장·검색의 공통 생성 경로와 preprocessing/generation metadata 정합화: ADR-0007 Future Work 참조
+- [ ] 새 생성 방식 검증 후 ADR-0007 D9에 따른 기존 개발/테스트 Audio Embedding 재생성
 - [ ] revision별 벡터 보관·처리 상태·attempt 소유권·삭제 기록 추가
 - [ ] Backend ACTIVE 전환 커밋 확인 후 이전 revision 정리와 실패 복구
 - [ ] ACTIVE (music_id, audioRevision) 후보 쌍 필터와 검색 결과 revision 반환
@@ -211,19 +219,23 @@ Phase 3 전체 완료를 의미하지 않습니다.
 관련 Issue:
 - `NSUAI-25` Audio/Text Embedding 생성 및 저장 구현
 
+Audio 정책 적용 순서:
+생성 규칙·metadata 구현 → 검증 → 개발/테스트 벡터 재생성 → 저장·검색 확인.
+운영 ACTIVE revision 보관·전환 정책과 구분하며 metadata 형식과 수치 안정성 세부 기준은
+ADR-0007 Future Work에 따라 구현 단계에서 결정·검증합니다.
+
 목표:
 - MSCLAP Embedding을 실제 서비스 구조로 연결한다.
 
 Audio:
 
 ```text
-Audio
+Audio Highlight
  ↓
-Preprocessing
+ADR-0007 기준 공통 생성
+(길이 검증·분할·Chunk 추론·정규화/집계)
  ↓
-MSCLAP
- ↓
-Audio Embedding
+대표 Audio Embedding 1개
  ↓
 PostgreSQL + pgvector
 ```
@@ -239,7 +251,7 @@ Text Embedding
 ```
 
 구현 항목:
-- Audio Embedding 생성
+- ADR-0007 기준 공통 Audio Embedding 생성 — 저장·검색에서 재사용
 - Text Embedding 생성
 - 모델 버전 저장
 - Embedding dimension 관리
@@ -252,6 +264,8 @@ Text Embedding
 - Text 입력으로 Embedding 생성 가능
 - 생성된 벡터 저장 가능
 - 저장된 Embedding을 Similarity 계산에 사용 가능
+- ADR-0007의 길이 경계·분석 범위·고정 Chunk·aggregation·재현성을 검증하고 저장·검색에 동일 규칙이 적용됨을 확인
+- preprocessing/generation metadata 정합화 및 새 방식의 개발/테스트 벡터 재생성 완료, 운영 ACTIVE revision 정책과 구분
 
 ---
 

@@ -36,8 +36,8 @@ Python AI 서버는 전처리·임베딩·pgvector 저장·유사도 검색을 �
 | Audio revision·수정/삭제·전환 후 정리 | NSUAI-25 / NSUAI-26 | 결정 반영, 구현 전 |
 | 요청·응답·오류·타임아웃 | NSUAI-27 / NSU-63 | 초안 검토·업무 API 구현 필요 |
 
-저장 책임은 [ADR 0001](../adr/0001-pgvector-adoption.md),
-처리 방식은 [ADR 0006](../adr/0006-asynchronous-audio-processing.md)을 참고한다.
+저장 책임은 [ADR 0001](../adr/ADR-0001-pgvector-adoption.md),
+처리 방식은 [ADR 0006](../adr/ADR-0006-asynchronous-audio-processing.md)을 참고한다.
 2026-10-04 Linear NSUAI-25·26·27, NSU-63과 연결 GitHub 이슈에 결정·미완료 기준을 반영했다.
 음악 검색 표시 점수는 임시 유사도 지표이며 종합 적합도나 신뢰 확률이 아니다.
 `AudioClassifier.classify()`의 `probability`는 비교 라벨 집합의 softmax 상대점수다.

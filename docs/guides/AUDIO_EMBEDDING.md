@@ -1,9 +1,55 @@
 # 공통 Audio 임베딩 생성
 
+## 승인된 생성 기준 (2026-10-06, 구현 전)
+
+이 절은 앞으로 구현할 Audio 생성 규칙의 기준이다. 결정 이유·공식 근거·대안과
+trade-off 및 이전 정책의 변경 이력은 [ADR-0007](../adr/ADR-0007-audio-highlight-embedding-strategy.md)에 기록한다.
+제품 길이 정책의 주 기준은 [Linear AI-033](https://linear.app/nsu-capstone/document/ssot-아티스트-행사-매칭-플랫폼-mvp-요구사항-e38bb23f87b1)의 v1.11이다.
+아래 현재 구현과 과거 검증 기록이 이 정책의 구현 완료를 뜻하지는 않는다.
+이번에는 Linear 및 문서만 정합화하며 서버 협의 승인 상태와 코드는 변경하지 않는다.
+
+- Artist가 직접 선택한 대표 Highlight의 **권장 길이는 60초**다.
+- **최소 60초·최대 80초**를 길이 validation 조건으로 적용한다. L < 60초 또는 L > 80초는 실패하고, **60초 ≤ L ≤ 80초는 통과**한다. 양 경계인 60초와 80초도 허용한다.
+- 길이 validation 통과는 형식·크기·권리 등 다른 조건 통과를 의미하지 않는다. 최대 80초는 업로드 대상을 전체 음악 파일이 아닌 대표 Highlight로 유지하기 위한 서비스 정책이다.
+- 허용된 입력의 **처음 56초만** 사용해 **7초 × 8개의 non-overlap Chunk**를 생성한다. 56초 이후 구간은 Audio Embedding 생성에 사용하지 않는다.
+- 각 Chunk는 같은 MSCLAP 2023으로 생성하고 **Chunk별 L2 Normalize → Mean Pooling(N=8) → 최종 L2 Normalize**하여 대표 Audio Embedding 1개를 만든다.
+- 대표 벡터를 PostgreSQL + pgvector에 저장한다. Text Embedding과의 서비스 검색 연결은 후속 구현이다.
+- 새 방식 적용 시 기존 개발/테스트 Audio Embedding은 **삭제 후 재생성**한다. 이번에는 데이터를 삭제하거나 생성하지 않는다. 운영 generation 전환은 별도 후속 설계다.
+
+구간은 시작 포함·끝 제외로 표기한다. 모든 허용 입력에 동일한 구간을 사용한다.
+
+```text
+[0,7), [7,14), [14,21), [21,28),
+[28,35), [35,42), [42,49), [49,56)
+```
+
+| 입력 길이 | 길이 validation | Chunk 처리 |
+| --- | --- | --- |
+| L < 60초 | 실패 | Embedding 생성 대상 아님 |
+| L = 60초 | 통과, 권장 길이 | 처음 56초, 8 Chunk |
+| 60 < L < 80초 | 통과 | 처음 56초, 8 Chunk |
+| L = 80초 | 통과, 최대 경계 | 처음 56초, 8 Chunk |
+| L > 80초 | 실패 | Embedding 생성 대상 아님 |
+
+### 정책 변경 이력
+
+- 2026-10-06 이전 승인 기준: 60~70초 권장, 짧은 입력 허용·end-aligned overlap, 가변 Chunk 수, 7초 미만 처리 미결정.
+- 2026-10-06 최종 사용자 승인: 위 정책과 별도 길이 상한을 두지 않던 설명을 현행 정책에서 폐기하고 권장 60초·허용 60~80초·고정 8 non-overlap Chunk로 대체했다. 이전 결정의 이유와 근거는 ADR-0007 변경 이력에서 확인한다.
+
+MSCLAP 공식은 2023의 7초 전처리와 similarity 정규화를 제공하지만,
+권장 60초·허용 60~80초·56초 분석·고정 Chunk 구성·두 단계 L2와 Mean Pooling은 **프로젝트 자체 정책**이다.
+최종 L2는 저장 표현을 통일하는 정책이며, 내부에서 norm을 제거하는
+pgvector cosine 검색의 수학적 필수조건은 아니다.
+
+길이 validation·다중 Chunk 생성·aggregation·전처리 버전·generation metadata·테스트와 공통 생성기 변경은 후속 구현 과제다.
+길이 측정과 60/80초 경계 판정, 검증 담당 계층·오류 응답/화면 안내, sample 경계·채널 처리·구간 실패·0/거의 0 norm의 수치 안정성 기준도 후속 결정·검증이 필요하다.
+
+## 현재 구현 (길이 validation·승인된 다중 Chunk 정책 미적용)
+
 `app.embedding.audio_embedding.AudioEmbeddingGenerator`는 음악 파일을 받아 검증한
 벡터와 메타데이터를 반환합니다. 검색 CLI에서 사용하며 Phase 3 DB 저장에서도
 재사용합니다. 테이블과 저장 흐름은 [임베딩 저장 안내](EMBEDDING_STORAGE.md)에 있습니다.
-Text 생성 구현은 포함하지 않습니다.
+Text 생성 구현은 포함하지 않습니다. 현재 생성기는 60~80초 길이 validation 및 고정 8 Chunk aggregation을 구현하지 않았습니다.
 
 ```python
 from app.embedding.audio_embedding import AudioEmbeddingGenerator
@@ -43,7 +89,7 @@ shape·차원·dtype·norm, 원본 경로·SHA-256, 전처리 버전·seed를 �
 검색 출력에는 `query_embedding_metadata`, `candidate_embedding_metadata`가 추가됩니다.
 기존 유사도·점수·순위 필드는 유지합니다.
 
-## 검증 결과
+## 기존 단일 crop 검증 결과 (새 정책의 검증 결과가 아님)
 
 2026-10-03, Docker CPU 환경에서 자동 테스트 55개 통과, 기존 Starlette
 deprecation 경고 1개를 확인했습니다. 입력 복사·벡터 오류·차원 변화·예외 발생 시
