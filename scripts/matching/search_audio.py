@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 from app.matching.audio_search import audio_cosine_similarities, rank_audio_candidates
-from app.embedding.audio_embedding import AudioEmbeddingGenerator
+from app.embedding.audio_embedding import AudioEmbeddingError, AudioEmbeddingGenerator
 
 
 def digest(path):
@@ -69,13 +69,28 @@ def main():
     generator = AudioEmbeddingGenerator()
     # 검색과 향후 저장에서 전처리 정책이 갈라지지 않도록 공통 생성기를 재사용한다.
     with torch.inference_mode():
-        query_result = generator.generate(args.audio, expected_sha256=query_hash)
+        try:
+            query_result = generator.generate(args.audio, expected_sha256=query_hash)
+        except AudioEmbeddingError as error:
+            print(
+                f'Error: query audio embedding failed: {error.reason} ({error.audio_path})',
+                file=sys.stderr,
+            )
+            return 1
         query = query_result.vector
         vectors = []
         candidate_metadata = []
         for track in candidates:
             print('Embedding candidate', track['track_id'], file=sys.stderr, flush=True)
-            generated = generator.generate(track['audio_path'], expected_sha256=track['sha256'])
+            try:
+                generated = generator.generate(track['audio_path'], expected_sha256=track['sha256'])
+            except AudioEmbeddingError as error:
+                print(
+                    f"Error: candidate track_id={track['track_id']} audio embedding failed: "
+                    f'{error.reason} ({error.audio_path})',
+                    file=sys.stderr,
+                )
+                return 1
             vectors.append(generated.vector)
             candidate_metadata.append(dict(generated.metadata, track_id=track['track_id']))
         cosines = audio_cosine_similarities(query, torch.cat(vectors)).cpu().tolist()
@@ -100,7 +115,8 @@ def main():
         json.dump(result, target, ensure_ascii=False, indent=2)
         target.write('\n')
     print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
 
 
 if __name__ == '__main__':
-    main()
+    raise SystemExit(main())

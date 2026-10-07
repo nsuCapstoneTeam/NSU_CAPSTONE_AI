@@ -2,12 +2,13 @@
 
 ## Status
 
-- **Accepted (사용자 승인, 2026-10-06), 구현 전**.
+- **Accepted (사용자 승인, 2026-10-06); ADR-0007 generation policy 구현 완료**.
 - 범위: Audio Highlight 권장 길이·최소/최대 길이 validation 정책, 분석 범위, Chunk 구성, 대표 벡터 집계, 개발/테스트 벡터 재생성 정책.
-- 이번 작업은 문서만 변경한다. 코드·테스트·DB·API 변경이나 데이터 삭제·재생성은 수행하지 않는다.
 - 승인 근거: 2026-10-06 이 작업 대화의 사용자 최종 문서 작업 승인과 정책 변경 지시(R0).
 - 이전 결정은 아래 변경 이력에 보존한다. 현행 정책은 권장 60초·허용 60~80초(양 경계 포함)·고정 8 non-overlap Chunk이며 기존 D5는 폐기한다.
 - Accepted는 이 범위의 설계 승인을 뜻한다. 팀 전체 제품 요구사항 동기화나 구현 완료를 뜻하지 않는다.
+
+구현 상태: 저장·검색에서 공통 AudioEmbeddingGenerator를 사용하며 60~80초 inclusive validation, 처음 56초의 고정 8개 7초 Chunk, Chunk별 L2 → Mean Pooling(N=8) → 최종 L2 및 대표 벡터 1개 생성, generation metadata/profile이 구현되었다. 관련 unit tests와 MSCLAP batch smoke validation도 수행했다. 권리 확인된 실제 60~80초 Dataset/fixture, 실제 음악 품질 평가, PostgreSQL 통합 검증, 개발/test Embedding 재생성, similarity 분포 검증 및 calibration은 아직 완료되지 않았다.
 
 ## 변경 이력
 
@@ -24,10 +25,10 @@ Artist는 자신의 음악에서 대표 Highlight를 직접 선택해 업로드�
 Audio Embedding 하나를 PostgreSQL + pgvector에 저장하고 Text Embedding과 비교하는 것이
 서비스 목표다. 현재 구현된 DB 검색은 Audio↔Audio이며 서비스용 Text 생성·검색 연결은 미구현이다.
 
-현재 `AudioEmbeddingGenerator`는 MSCLAP 2023 CPU 모델에 원본 파일을 전달하고
-`resample=True`와 `base_seed + int(source_sha256[:8], 16)`으로 단일 crop을 재현한다.
-저장과 Audio 검색은 이 생성기를 공유하지만 다중 Chunk와 pooling은 구현하지 않았다(R7).
-같은 바이트의 crop이 재현된다는 사실과 선택된 Highlight의 여러 구간을 반영한다는 것은 다르다.
+ADR 결정 당시 `AudioEmbeddingGenerator`는 MSCLAP 2023 CPU 모델에 원본 파일을 전달하고
+`resample=True`와 `base_seed + int(source_sha256[:8], 16)`으로 단일 crop을 재현했다(R7).
+이것이 다중 Chunk와 pooling을 결정하게 된 기존 구현 배경이다. 현재는 아래 구현 상태처럼
+고정 Chunk aggregation이 적용되며, 당시 구현과 현재 동작을 혼동하지 않는다.
 
 MSCLAP 2023 config는 `duration=7`, `sampling_rate=44100`, `d_proj=1024`다(R1).
 wrapper는 긴 waveform에서 random crop하고 짧은 waveform은 반복한 뒤 절단한다(R2).
@@ -56,7 +57,8 @@ MSCLAP의 `compute_similarity()`는 학습된 배율을 곱하므로 순수 cosi
 입력 길이를 L초라 할 때 L < 60 또는 L > 80은 길이 validation 실패다.
 60 <= L <= 80은 길이 validation을 통과하며, 다른 파일 형식·크기·권리 조건은 별도로 충족해야 한다.
 권장 길이는 60초다. 허용된 입력은 처음 56초에서 항상 8개의 겹치지 않는 Chunk를 생성한다.
-구간은 시작 포함·끝 제외이며 초 경계의 sample 변환·길이 측정 기준은 후속 구현에서 명시한다.
+구간은 시작 포함·끝 제외다. 구현은 decoded frame 수와 sample rate를 기준으로 길이를 판정하고
+정확한 sample 경계로 Chunk를 자른다.
 
 ```text
 [0,7), [7,14), [14,21), [21,28),
@@ -74,7 +76,7 @@ MSCLAP의 `compute_similarity()`는 학습된 배율을 곱하므로 순수 cosi
 
 ```text
 Artist가 직접 선택한 Highlight (권장 60초)
-→ 길이 validation: 60초 ≤ L ≤ 80초 (구현 전)
+→ 길이 validation: 60초 ≤ L ≤ 80초 (구현 완료)
 → Audio 전처리 → 처음 56초의 7초 × 8 non-overlap Chunk
 → 동일 MSCLAP 2023으로 Chunk별 Audio Embedding
 → Chunk별 L2 Normalize → Mean Pooling(N=8) → 최종 L2 Normalize
@@ -128,7 +130,7 @@ Artist가 직접 선택한 Highlight (권장 60초)
 
 - **Decision:** 분석 범위에서 임의의 7초 하나만 대표 벡터로 사용하지 않는다.
 - **Rationale:** 사용자가 고른 대표 Highlight 중 분석 대상으로 정한 범위를 여러 구간으로 반영하고 crop 선택의 우연성을 제거한다.
-- **Evidence:** [Official Implementation] R2의 긴 입력 random crop. [Project Requirement] R0의 대표 Highlight·재현성 요구. [Engineering Rationale] 다중 구간 선택 자체는 프로젝트 판단이다. R7의 현재 코드도 해시 seed로 단일 crop을 재현하므로 매 호출 결과가 무작위로 바뀐다고 설명하지 않는다.
+- **Evidence:** [Official Implementation] R2의 긴 입력 random crop. [Project Requirement] R0의 대표 Highlight·재현성 요구. [Engineering Rationale] 다중 구간 선택 자체는 프로젝트 판단이다. ADR 작성 당시의 R7 코드는 해시 seed로 단일 crop을 재현했으므로 매 호출 결과가 무작위로 바뀐다고 설명하지 않는다.
 - **Alternative / Trade-off:** random 1개나 고정 1개는 저비용이지만 다른 구간을 반영하지 못한다. 다중 구간은 추론 작업이 늘고 후속 pooling에서 시간 순서를 잃는다. 품질 개선은 별도 실험이 필요하다.
 
 ### D6. Chunk Embedding별 L2 Normalize
@@ -154,7 +156,7 @@ Artist가 직접 선택한 Highlight (권장 60초)
 
 ### D9. 개발/테스트 벡터 삭제 후 재생성
 
-- **Decision:** 새 방식 적용 시 기존 방식으로 생성한 개발/테스트 Audio Embedding은 보존하지 않고 삭제 후 재생성한다. 이번 문서 작업에서는 실행하지 않는다.
+- **Decision:** 새 방식 적용 시 기존 방식으로 생성한 개발/테스트 Audio Embedding은 보존하지 않고 삭제 후 재생성한다. 실제 데이터 삭제·재생성은 아직 수행하지 않았다.
 - **Rationale:** 운영 데이터가 아니며 생성 정책 혼재와 동일 music_id 충돌을 피한다. 현 단계에 복잡한 generation 전환 구조를 도입할 실익이 적다.
 - **Evidence:** [Project Requirement] R0의 개발 데이터 재생성 승인. [Engineering Rationale] R7 repository는 동일 ID의 다른 결과를 `EmbeddingConflict`로 거부한다. R8은 생성 조건이 다르면 재생성하도록 하는 합의 원칙이다.
 - **Alternative / Trade-off:** 이전·신규 generation 병행은 rollback에 유리하지만 키·활성 generation·전환 설계가 추가된다. 삭제·재생성은 재추론 비용과 이전 DB 벡터의 비교·복구 불가를 감수한다. 원본 음원·모델·과거 실험 결과·다른 업무 데이터는 삭제 대상이 아니다. 향후 운영 migration/version transition은 별도 설계다.
@@ -180,17 +182,11 @@ Artist가 직접 선택한 Highlight (권장 60초)
 - N=8이며 각 Chunk의 길이와 pooling 비중은 동일하다. 겹치는 시간 구간은 없지만 모델이 각 시점의 특징을 동일하게 반영한다는 뜻은 아니다.
 - 대표 벡터 1개로 저장·검색 구조를 유지하지만 시간 순서·구간별 검색 근거를 보존하지 못한다.
 - 기존 실험의 단일 crop 결과는 새 전략의 품질 검증 결과가 아니다. 새 Text↔Audio·Audio↔Audio 분포와 청취 평가가 필요하다.
-- 이번 변경은 문서만 적용한다. 현재 실행 명령·코드·전처리 버전·metadata·DB 행은 그대로다.
 
 ### 구현 단계의 Future Work
 
-- 저장·Audio 검색·신규 검증은 공통 생성기에서 디코딩·분할·집계를 재사용한다. scripts에 별도 서비스 로직을 복제하지 않는다.
-- sample 경계·디코더·리샘플러·채널 처리와 모델 실제 실행 config를 명시해 재현성을 검증한다. mono 변환 정책은 아직 확정하지 않았다.
-- R2는 다채널을 flatten하며 mono 평균이 아니다. 또한 R10의 HTSATWrapper는 별도 내부 config(sample_rate=32000 등)를 사용하므로 R1의 wrapper 설정과 모든 내부 설정이 일치한다고 단정하지 않는다. 공식 구현·pretrained 가중치를 이번 작업에서 변경하지 않는다.
-- `preprocessing_version` 갱신, 생성 정책·aggregation·정규화 순서의 metadata 기록은 후속 구현이다. 원본 SHA-256은 업로드 파일 전체 바이트 식별자로 유지하고 분석 범위와 구분한다.
-- 공통 생성 정책(고정 N=8·분석 구간·aggregation)과 파일별 사실(원본 길이 등)을 분리한다. 현재 검색은 crop_seed만 제외하고 profile 전체를 비교하므로 원본 길이를 그대로 공통 호환성 조건에 넣으면 허용된 다른 길이의 입력이 잘못 제외될 수 있다.
 - 개발/테스트 벡터 대상·재생성 원본 목록을 확인하고 실행 단계에서만 삭제·재생성한다. 이 정책을 Backend ACTIVE revision 보존·전환에 적용하지 않는다.
-- 60초 직전·60초·60~80초 내부·80초·80초 직후의 길이 validation, 고정 8 Chunk의 non-overlap·56초 상한, 두 단계 norm, 평균 상쇄, 파일 변경·재현성·저장 충돌·profile 호환성을 검증한다. 이번에 테스트를 작성하거나 실행하지 않는다.
+- 실제 권리 확인 Dataset을 이용한 음악 품질과 PostgreSQL 통합 검증을 수행한다. 현재 unit tests와 smoke validation은 해당 실제 음악/DB 평가를 대체하지 않는다.
 - 실제 처리시간·동시성·메모리·검색 품질을 측정한다. API·timeout·generation 형식은 별도 협의하고 운영 데이터 migration/version transition을 후속 설계한다.
 
 ### 기준 문서와 현재 구현의 차이
@@ -198,13 +194,12 @@ Artist가 직접 선택한 Highlight (권장 60초)
 - R9의 메인 Linear Requirements v1.11을 실제 저장 후 재조회로 확인했다. AI-033은 권장 60초·허용 60~80초(경계 포함)·처음 56초의 주 기준이다. AI-037/RIGHTS-023은 기존 AI-033 참조와 권리·원본 저장 정책을 유지하며 수정하지 않았다. AI-EMBED는 길이 정책을 AI-033, 고정 Chunk/aggregation을 이 ADR로 참조한다. 이는 Audio 정책 한정 승인이고 v1.11 문서 전체는 승인 전이다. v1.9의 추천/신규 아티스트 미승인 정책, 최종 전체 승인 revision v1.8 및 구현 Baseline v1.1은 유지한다.
 - R8에 따라 서버 협의는 Linear가 관리 위치다. 저장소에 남은 server-agreements 문서와 번호 정합화는 이번 범위 밖이다. 서버 협의 012는 Proposed이며 이번 ADR로 승인하지 않는다.
 - 기존 ADR 0003의 MSCLAP·pgvector 방향과 0006의 동기 처리는 유지한다. D9는 개발/테스트 데이터 한정이며 운영 ACTIVE revision 보존 결정을 폐기하지 않는다.
-- 현재 구현은 해시 seed의 단일 crop이며 60~80초 길이 validation·처음 56초/8 Chunk·두 단계 L2·평균 정책은 아직 구현하지 않았다. 현재 동작 설명과 과거 검증 기록은 [공통 생성 기준 문서](../guides/AUDIO_EMBEDDING.md)에 구분해 유지한다.
+- ADR 작성 당시 구현은 해시 seed의 단일 crop이었다. 이후 ADR-0007 생성 정책과 generation metadata/profile을 구현했으며 관련 unit tests와 MSCLAP batch smoke validation을 수행했다. 실제 권리 확인 Dataset·품질 평가·PostgreSQL 통합 검증·개발/test 벡터 재생성과 similarity calibration은 아직 완료되지 않았다. 현재 동작은 [공통 생성 기준 문서](../guides/AUDIO_EMBEDDING.md), 완료·잔여 구현 작업은 [Roadmap Phase 3](../AI_DEVELOPMENT_ROADMAP.md)에서 확인한다.
 
 ### 미결정 사항
 
-- 길이 validation 구현 세부사항: 디코딩 후 길이 측정 기준·60/80초 경계의 판정 정밀도·검증 담당 계층·오류 응답/화면 안내. 허용 범위 자체는 확정이며 7초 미만 입력도 60초 미만 validation 실패에 포함된다.
-- 수치 안정성: Chunk·평균의 0/거의 0 norm 검사, epsilon·실패 기준·단정밀도 norm 허용오차.
-- 디코딩 길이·sample 반올림·채널 처리, 구간 실패 시 전체 실패 또는 다른 처리.
+- 검증 실패의 서버/API 오류 표현과 사용자 안내는 관련 외부 계약에서 정한다. 입력 길이 허용 범위와 AI generator의 validation은 구현되어 있다.
+- 실제 음악 데이터에서의 집계 품질과 매우 작은 비영 평균 벡터의 안정성은 실제 Dataset 검증 단계에서 평가한다. 현재 구현은 float64로 정규화/평균을 계산하고 finite 및 정확한 0 norm만 검사하며 임의 epsilon을 적용하지 않는다.
 - 향후 운영 generation 보관·migration/version transition·rollback 및 서버 간 세부 계약.
 
 ## References
@@ -218,7 +213,7 @@ Artist가 직접 선택한 Highlight (권장 60초)
 | R4 | [Natural Language Supervision for General-Purpose Audio Representations, arXiv:2309.05767v2](https://arxiv.org/pdf/2309.05767v2) | D3의 7초 학습 전처리(§3), D6·D8의 공통 공간·contrastive similarity·cosine 평가(§2). 프로젝트 Chunk aggregation의 권장 근거가 아님 |
 | R5 | [CLAP: Learning Audio Concepts From Natural Language Supervision, arXiv:2206.04769v1](https://arxiv.org/pdf/2206.04769v1) | D3의 버전 구분: 원 논문 §3.2는 5초·44100Hz·1024차원 |
 | R6 | [pgvector v0.8.6 vector.c](https://github.com/pgvector/pgvector/blob/v0.8.6/src/vector.c) | D8: VectorCosineSimilarity/cosine_distance가 내부 norm으로 나눔. 사전 L2는 cosine 수학상 필수가 아님 |
-| R7 | [공통 생성기](../../app/embedding/audio_embedding.py), [repository](../../app/repository/embedding_repository.py), [Audio cosine](../../app/matching/audio_search.py), [저장 안내](../guides/EMBEDDING_STORAGE.md) | D4의 해시 seed, D7의 단일 벡터, D8의 cosine, D9의 동일 ID 충돌 및 현재 구현 한계 |
+| R7 | [공통 생성기](https://github.com/nsuCapstoneTeam/NSU_CAPSTONE_AI/blob/bd186987a72183c03a15806a1bc7a8c1307a9206/app/embedding/audio_embedding.py), [repository](https://github.com/nsuCapstoneTeam/NSU_CAPSTONE_AI/blob/bd186987a72183c03a15806a1bc7a8c1307a9206/app/repository/embedding_repository.py), [Audio cosine](https://github.com/nsuCapstoneTeam/NSU_CAPSTONE_AI/blob/bd186987a72183c03a15806a1bc7a8c1307a9206/app/matching/audio_search.py), [저장 안내](https://github.com/nsuCapstoneTeam/NSU_CAPSTONE_AI/blob/bd186987a72183c03a15806a1bc7a8c1307a9206/docs/guides/EMBEDDING_STORAGE.md) | ADR 작성 당시 코드의 D4 해시 seed 단일 crop, D7 단일 벡터, D8 cosine 및 D9 동일 ID 충돌 근거. 당시 구현 상태의 immutable historical snapshot |
 | R8 | [Linear 서버 협의 목록](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3), [001 생성 버전 분리](https://linear.app/nsu-capstone/document/001-audio-revision과-생성-버전-분리-c5c95e36f3e2), [002 revision 보관](https://linear.app/nsu-capstone/document/002-revision별-벡터-보관과-active-전환-후-정리-e974a4620c8f), [NSUAI-25](https://linear.app/nsu-capstone/issue/NSUAI-25) | D9·Future Work: 생성 조건 변경 시 재생성, 운영 revision 보존과 개발 초기화 구분, 서버 협의 관리 위치 |
 | R9 | [메인 Linear Requirements](https://linear.app/nsu-capstone/document/ssot-아티스트-행사-매칭-플랫폼-mvp-요구사항-e38bb23f87b1), [AI Linear Requirements](https://linear.app/nsu-capstone/document/ssot-ai-clap-기반-아티스트-추천-요구사항-5997d668913b), [메인 협업 가이드](https://github.com/nsuCapstoneTeam/NSU_CAPSTONE/blob/23d3b5b804a91ce4730b6089b720d0cc28c1cd3b/docs/협업-가이드/README.md), [관련 ADR 0003](ADR-0003-embedding-and-scoring-policy.md), [관련 ADR 0006](ADR-0006-asynchronous-audio-processing.md) | D1·D2의 제품 기준: 메인 v1.11 AI-033(Audio 정책 한정 승인), AI-037/RIGHTS-023 기존 참조 유지, AI-EMBED의 기술 기준 참조. 2026-10-06 실제 저장 후 재조회 확인(메인 2026-10-06T12:47:20.537Z, AI 2026-10-06T12:47:50.286Z). 문서 전체 승인·구현 완료를 뜻하지 않음. 협업 가이드·ADR 0003/0006은 문서 책임·동기화·동기 처리 유지 근거 |
 | R10 | [Microsoft HTSATWrapper](https://github.com/microsoft/CLAP/blob/e8a6467b87cd85716e20c6a008126150d9740be0/msclap/models/htsat.py), [내부 config](https://github.com/microsoft/CLAP/blob/e8a6467b87cd85716e20c6a008126150d9740be0/msclap/models/config.py) | Future Work: wrapper 설정과 HTSAT 내부 sample_rate 등이 다름. 실제 config 감사 대상이며 이번에 공식 소스를 변경하지 않음 |
