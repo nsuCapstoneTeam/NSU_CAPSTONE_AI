@@ -72,3 +72,10 @@ A는 세 후보 중 제한된 극단 점수에 몰리는 개수가 가장 적어
 임시 CLI 수식을 서버의 최종 변환 수식으로 승격하지 않습니다.
 외부 수치 전달·결과 버전은 Linear 011의 Superseded 상태와 012 §4.3의 AI 동의 기록을 참조하며, 012 전체 Status=Proposed와 부분 동의를 구분합니다. 상세 확인 위치는 [AI 작업 기준의 상태와 출처](../api/CLAP_RECOMMENDATION_DIRECTION.md#상태와-출처)입니다.
 현재 CLI 수식·실측 결과와 향후 인터페이스 구현·검증은 별도로 관리합니다.
+
+## 향후 transformation 설계 원칙
+
+[ADR-0008](../adr/ADR-0008-music-similarity-transformation-and-ranking.md)은 ADR-0005의 후속·확장으로 raw cosine ranking과 후보 독립 transformation·실험 기반 calibration·버전 추적 원칙을 기록합니다.
+순위는 transformed 표시/전달 점수가 아니라 raw cosine에 의존합니다. 이는 논리적 관계이며 현재 모든 코드 경로가 문자 그대로 정렬 후 변환한다는 뜻은 아닙니다.
+동일 transformation version과 같은 cosine 입력의 점수는 현재 요청 후보 집합에 따라 달라지지 않아야 합니다. 오프라인 calibration 표본의 분포·백분위 분석과 요청별 candidate-relative normalization은 구분합니다.
+위 CLI 수식·예제·실측은 기존 provisional 기준으로 유지하며 최종 calibrated transformation·파라미터는 미확정입니다. ADR-0008을 작성했다고 calibration이나 변환 버전 체계가 구현된 것은 아닙니다.
