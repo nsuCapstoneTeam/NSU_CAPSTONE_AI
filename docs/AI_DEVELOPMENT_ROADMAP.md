@@ -53,7 +53,7 @@
 - [Accepted 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)의 의미·BPM·리듬 항목, 누락 `null`과 사유, 의미 점수 없는 곡 제외를 따른다.
 - 기존 Accepted 005/009의 반환 제한·평균 순위와 용어집의 100곡 설명은 새 흐름과 차이가 있다. 평균을 현행 순위 수식으로 사용하지 않는다.
 - 곡별 추천 이유는 [Accepted 008](https://linear.app/nsu-capstone/document/008-추천-이유-생성-흐름-ae6cde7df2de), 오류/timeout은 [Accepted 010](https://linear.app/nsu-capstone/document/010-ai-곡-검색-실패시간-초과-시-추천-api-응답-46a63dece138)을 참조한다.
-- Proposed 011·012의 정밀도·반환 상한·설명 주체 변경을 확정하지 않는다.
+- Linear 011은 Superseded이며 012 §4.3으로 대체되었다고 기록되어 있다. 012 전체 Status는 Proposed이며 §4.3·§6.2의 AI 동의 기록과 구분한다. 상세 상태·적용 범위 확인은 [작업 기준의 상태와 출처](api/CLAP_RECOMMENDATION_DIRECTION.md#상태와-출처)를 참조하며, 부분 동의를 전체 계약 승인으로 해석하지 않는다.
 - 요청 표현·처리 한도·실패/누락 응답·설명 대상은 서버 협의 정합화가 필요하다.
 
 ---
@@ -316,7 +316,7 @@ Audio
 - 유효 점수의 범위·계산 근거를 확인하고 누락을 임의 0점으로 대체하지 않는다.
 - 의미 점수 누락을 정상 결과로 숨기지 않는다.
 - Hard Filter와 음악 유사도/항목 점수를 구분한다.
-- 정밀도·산식 버전 등 Proposed 011 항목은 승인 없이 확정하지 않는다.
+- 수치 전달·결과 버전의 외부 기준은 Linear 011의 Superseded 상태와 012 §4.3의 AI 동의 기록을 참조한다. 구체 인터페이스 형식과 AI 구현·검증 사항을 구분하며, 012 전체를 Accepted 계약으로 취급하지 않는다.
 
 ---
 
@@ -356,7 +356,7 @@ Spring Hard Filter·ACTIVE 후보 쌍
 - 실제 곡 점수·필터 근거만 사용하고 순위를 재계산하지 않음.
 - 전체 반환 흐름과 기존 Top10/신규 칸 설명 대상의 차이를 서버 협의에서 정합화.
 - endpoint·DTO·timeout·대상 수는 [상세 계약](api/RECOMMENDATION_EXPLANATION_CONTRACT.md)에서 확정.
-- 후보 간 비교·아티스트 집계 근거를 생성하지 않음. Proposed 012의 Spring 설명 책임으로 임의 변경하지 않음.
+- 후보 간 비교·아티스트 집계 근거를 생성하지 않음. 설명 주체·추가 AI 호출은 Accepted 008과 012 §6.2의 AI 동의 기록 사이의 적용 관계 확인이 필요하며, 이 Roadmap에서 임의 변경하지 않음.
 
 완료 기준:
 - 곡과 설명 근거 일치, 실패해도 검색 결과 유지.

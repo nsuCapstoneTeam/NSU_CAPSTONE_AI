@@ -21,7 +21,8 @@ v1·v2를 함께 보관하고 Backend v2 ACTIVE 커밋 확인 후 v1을 정리�
 활성 확인·정리 API, 정리 유예기간, stale 기준 및 세부 DTO는 추가 설계가 필요하다.
 
 서버 정책·용어는 [Linear 서버 협의](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3)의 Accepted 문서와 [용어집](https://linear.app/nsu-capstone/document/용어집-context-475370673105)을 우선 확인한다.
-로컬 서버 기록과 Proposed 011·012를 현행 확정 계약으로 사용하지 않는다.
+로컬 서버 기록은 현행 계약의 기준으로 사용하지 않는다. Linear 011은 Superseded이며 012의 문서 전체 Status는 Proposed이다.
+012의 일부 항목에 기록된 AI 동의와 문서 전체 Status는 구분하며, 상세 상태와 외부 정합화 사항은 [AI 작업 기준의 상태와 출처](CLAP_RECOMMENDATION_DIRECTION.md#상태와-출처)를 참조한다. 이 안내는 외부 승인 상태나 AI 구현 완료를 새로 정의하지 않는다.
 
 ## 책임 경계
 

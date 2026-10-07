@@ -69,4 +69,6 @@ A는 세 후보 중 제한된 극단 점수에 몰리는 개수가 가장 적어
 여기 수식과 FMA 분포는 기존 단일 crop 개발용 기준입니다. ADR-0007 새 검증은 다른 Dataset의
 60~80초 적격 입력을 먼저 준비하며 [Roadmap](../AI_DEVELOPMENT_ROADMAP.md)과 [입력 안내](FMA_VALIDATION.md)를 따릅니다.
 서버 점수·누락 정책은 [Accepted Linear 협의 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)를 확인합니다.
-임시 CLI 수식을 서버 확정 수식으로 승격하지 않으며 Proposed 011·012 정밀도/버전은 별도 승인 대상입니다.
+임시 CLI 수식을 서버의 최종 변환 수식으로 승격하지 않습니다.
+외부 수치 전달·결과 버전은 Linear 011의 Superseded 상태와 012 §4.3의 AI 동의 기록을 참조하며, 012 전체 Status=Proposed와 부분 동의를 구분합니다. 상세 확인 위치는 [AI 작업 기준의 상태와 출처](../api/CLAP_RECOMMENDATION_DIRECTION.md#상태와-출처)입니다.
+현재 CLI 수식·실측 결과와 향후 인터페이스 구현·검증은 별도로 관리합니다.
