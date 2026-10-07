@@ -17,6 +17,11 @@ Python AI/Matching Server 및 AI Matching 시스템에 영향을 주는
 | [ADR-0005](./ADR-0005-audio-similarity-display-score.md) | NSUAI-1, NSUAI-2 | 음악 파일 검색과 음악·텍스트별 임시 표시 점수 분리 | 개발용 기준 채택, 최종 점수 미정 |
 | [ADR-0006](./ADR-0006-asynchronous-audio-processing.md) | NSUAI-17 관련, 외부 이슈 변경 전 | 음악 입력 동기 처리·AI 선설계 | 사용자 결정 반영, 업무 API 구현 전 |
 | [ADR-0007](./ADR-0007-audio-highlight-embedding-strategy.md) | NSUAI-25 관련, 외부 이슈 변경 전 | Highlight 권장 60초·허용 60~80초(경계 포함)·처음 56초/고정 8 non-overlap Chunk·L2/Mean(N=8)·개발 벡터 재생성 | Accepted (사용자 승인), 구현 전 |
+| [ADR-0008](./ADR-0008-music-similarity-transformation-and-ranking.md) | 외부 이슈 변경 없음 | raw cosine ranking·후보 독립 transformation·calibration 및 버전 추적 원칙 | Accepted (AI 원칙 사용자 승인), 최종 calibration·버전 체계 구현 전 |
+
+ADR-0005는 개발용 임시 표시 점수 기준과 초기 실험 근거를 보존한다.
+ADR-0008은 그 후속·확장으로 원본 cosine ranking, 후보 독립 transformation, calibration·버전 추적 원칙을 정한다.
+ADR-0005의 Decision/Status를 변경하거나 Superseded 처리하지 않으며, ADR-0008도 최종 변환 함수·파라미터를 확정하지 않는다.
 
 ## 최상위 기술 ADR 파일명
 
