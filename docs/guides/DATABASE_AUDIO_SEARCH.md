@@ -1,7 +1,23 @@
 # DB에 저장된 음악으로 Top5 검색
 
-아래는 현재 CLI와 검증 결과다. 후속 서비스 계약은 ACTIVE (music_id, audioRevision) 쌍으로
-후보를 제한하고 AI retrieval 50~100개를 Backend Ranker에 전달해 최종 Top10을 선정한다.
+## 새 ADR-0007 개발/검증의 입력 선행조건
+
+2026-10-07 사용자 결정에 따라 기존 30초 FMA 음원·manifest·실험 결과는 과거 PoC로 보존한다.
+새 개발/검증에는 **FMA와 다른 Dataset의 60~80초(양 경계 포함) 입력**을 사용한다.
+Dataset 이름·권리/접근 조건·표본 구성은 아직 선정하지 않았다. 이번 문서 작업에서 음원을 준비하거나 변경하지 않는다.
+기존 FMA를 임의 반복·padding해서 새 검증 입력으로 바꾸지 않는다.
+
+다른 Dataset의 권리·길이 확인 → 새 생성 규칙/metadata 검증 → 개발 벡터 대상·새 입력 매핑 확인 →
+개발/테스트 벡터 삭제·재생성 → 저장/검색 검증 순서를 따른다.
+적격 입력을 준비하기 전에 기존 벡터를 삭제하지 않는다.
+세부 의존 순서는 [Roadmap Phase 3](../AI_DEVELOPMENT_ROADMAP.md)을 따른다.
+ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide에서 관리한다.
+
+
+아래는 현재 단일 crop CLI와 과거 검증 결과다. 2026-10-07 사용자 결정의 후속 목표는
+ACTIVE (music_id, audioRevision) 쌍을 대상으로 전체 곡 유사도를 계산·정렬해 전체 결과를 Spring에 반환하는 것이다.
+Spring은 유사도 순으로 곡을 표시하고 사용자가 별도 버튼으로 해당 Artist와 매칭한다. 아티스트 집계는 하지 않는다.
+이 목표는 Linear Accepted로 이미 정합화된 계약이 아니며 [작업 기준](../api/CLAP_RECOMMENDATION_DIRECTION.md)에서 차이를 확인한다.
 revision 후보 제한·결과 revision 반환은 아직 미구현이다.
 현재 기본 Top5·실험 수치는 변경하지 않는다. [연동 계약](../api/AUDIO_SYNC_BACKEND_HANDOFF.md)을 참고한다.
 
@@ -111,7 +127,9 @@ revision·차원 불일치 제외, 동일 파일 복사본 제외, 빈 목록과
 
 2026-10-03, Docker CPU / PostgreSQL 18 / pgvector 0.8.6에서 전체 테스트 98개가
 통과했습니다. 기존 Starlette deprecation 경고 1개가 있습니다.
-실제 `reference.mp3`와 FMA 6곡을 공통 생성기로 임베딩한 뒤 DB에 후보를 저장했습니다.
+당시 실제 `reference.mp3`와 FMA 6곡을 기존 단일 crop 공통 생성기로 임베딩한 뒤 DB에 후보를 저장했습니다.
+아래는 과거 검증 기록이며 현재 살아 있는 DB 행을 다시 조회한 결과가 아닙니다.
+이 30초 FMA 원본들은 새 최소 60초 validation에서 실패하므로 새 방식 재생성 원본으로 사용할 수 없습니다.
 검색 입력은 1024차원이며 동일 파일인 기존 `dev-reference-001`은 제외되었습니다.
 호환 후보 6곡에서 반환된 Top5는 아래와 같습니다.
 

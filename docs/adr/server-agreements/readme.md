@@ -1,116 +1,40 @@
-# Server Agreements
+# Server Agreements — 과거 기록 보존 목록
 
-## 현재 결정 목록
+현행 서버 협의와 작성 규칙의 관리 위치는 [Linear 서버 협의 목록](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3)이다.
+공통 용어는 [Linear 용어집](https://linear.app/nsu-capstone/document/용어집-context-475370673105)을 우선 확인한다.
+Linear는 2026-10-06 두 저장소의 로컬 server-agreements 관리 위치를 폐기했다.
+여기 남은 문서의 Accepted/Proposed 표시는 **당시 기록**이며 현행 서버 협의의 승인 상태가 아니다.
 
-| ADR | 주제 | Status |
-| --- | --- | --- |
-| [001](001-audio-revision-and-generation-version.md) | Audio revision·모델/전처리 버전 분리 | Accepted |
-| [002](002-audio-revision-activation-and-cleanup.md) | revision별 벡터 보관·ACTIVE 전환 후 정리 | Accepted |
-| [003](003-audio-processing-status.md) | AI 처리 상태·Backend 활성 상태 분리 | Accepted |
-| [004](004-timeout-and-stale-retry.md) | timeout 상태 확인·stale 재처리 | Accepted |
-| [005](005-audio-retrieval-responsibilities.md) | ACTIVE 후보 검색·최종 추천 역할 분담 | Accepted |
-| [007](007-recommendation-scoring-and-explanation-responsibilities.md) | AI 항목 점수·설명 / Spring 종합 점수·Top10 | Accepted |
-| [008](008-music-score-items-and-performance-format.md) | 의미·BPM·리듬 / 공연 형태 필터 분리 | Proposed |
+## Linear로 이전된 중복 사본
 
-Accepted는 합의된 처리 원칙을 의미하며 구현 완료를 뜻하지 않습니다.
-각 문서에 미정인 세부 규칙을 구분했습니다. 근거는 2026-10-04 사용자가 전달한 백엔드 확인과 후속 결정입니다.
-상세 인터페이스 제안은 [Audio API 계약](../../api/AUDIO_SYNC_BACKEND_HANDOFF.md)에 유지합니다.
-007은 2026-10-05 AI 협의 2/9와 메인 SSOT v1.6.1에 따른 보완입니다.
-006 신규 아티스트 후보 검색 계약은 별도 협의 중이며 이번에 확정하지 않았습니다.
+2026-10-07 사용자 승인에 따라 본문·이력이 실질적으로 동일한 로컬 001~004 사본만 삭제했다.
+링크 목적지·목록 기호 등 표시 차이를 제외한 본문은 Linear에 보존되어 있다.
 
-## 관리 범위
+| 이전 번호 | 현행 확인 위치 |
+| --- | --- |
+| 001 | [Audio revision·생성 버전 분리](https://linear.app/nsu-capstone/document/001-audio-revision과-생성-버전-분리-c5c95e36f3e2) |
+| 002 | [revision 보관·ACTIVE 전환 후 정리](https://linear.app/nsu-capstone/document/002-revision별-벡터-보관과-active-전환-후-정리-e974a4620c8f) |
+| 003 | [AI 처리 상태·Backend 활성 상태 분리](https://linear.app/nsu-capstone/document/003-ai-처리-상태와-backend-활성-상태-분리-3a0c0ca81f50) |
+| 004 | [timeout·stale 재처리](https://linear.app/nsu-capstone/document/004-timeout-후-상태-확인과-stale-재처리-bc71a0dcdffd) |
 
-이 디렉터리는 서비스 간 통신 및 역할 분담 과정에서 합의된 아키텍처 결정사항을 기록하기 위한 공간입니다.
+## 이번에 보존한 파일
 
-현재 프로젝트는 Spring Boot 기반의 메인 서버와 ai-recommend-server 등 여러 서비스가 독립적으로 동작할 수 있기 때문에, 서버 간 책임과 통신 규칙을 명확하게 정의해야 합니다.
+| 로컬 기록 | 보존 이유 / 현행 확인 위치 |
+| --- | --- |
+| [005](005-audio-retrieval-responsibilities.md) | Linear NSUAI-16 등 외부 참조가 남아 있으므로 사본을 유지. 현행 확인은 [Linear 005](https://linear.app/nsu-capstone/document/005-audio-후보-검색과-최종-추천-역할-분담-801efc93fbe3)와 후속 협의 및 사용자 결정 구분 |
+| [007](007-recommendation-scoring-and-explanation-responsibilities.md) | 당시 점수·설명 책임의 고유 이력. Linear 007과 다른 내용; 관련 현행 원칙은 Linear 007·008·009 |
+| [008](008-music-score-items-and-performance-format.md) | 당시 음악 항목·공연 형태 제안 이력. Linear 008과 다른 내용; 관련 Accepted 결정은 Linear 009 |
 
-이 디렉터리에서는 다음과 같은 서버 간 협의사항을 ADR 형태로 관리합니다.
+로컬 007·008을 Linear의 같은 번호로 단순 대응시키지 않는다. 과거 Decision·근거는 보존한다.
+2026-10-07 사용자 결정의 전체 결과 반환·유사도 정렬·집계 없음·후보 비교 설명 폐기는
+[AI 작업 기준](../../api/CLAP_RECOMMENDATION_DIRECTION.md)을 확인한다.
+이 정리는 Linear의 Accepted/Proposed 상태나 다른 저장소를 변경하지 않는다.
 
-* 각 서버가 담당하는 책임과 역할
-* 요청 및 응답 데이터의 책임 범위
-* 서버 간 데이터 전달 방식
-* 추천 요청 및 결과 반환 방식
-* 파일 및 오디오 데이터 처리 방식
-* Timeout 정책
-* Retry 정책
-* 장애 발생 시 처리 방식
-* 오류 코드 및 오류 응답 정책
-* API Versioning 정책
-* 비동기 처리 여부
-* 인증 및 서버 간 보안 정책
-* 데이터 저장 책임
-* 서비스 간 의존성에 영향을 주는 결정
+## 문서 책임
 
-## 목적
+- 서버 간 확정 처리 원칙·이유·승인 상태: Linear 서버 협의의 Accepted 문서.
+- 상세 endpoint·DTO·파일 전달 제안: [Audio 연동 문서](../../api/AUDIO_SYNC_BACKEND_HANDOFF.md).
+- AI 저장소 내부 기술 결정과 근거: [최상위 기술 ADR](../README.md).
+- 현재 구현·미구현과 의존 순서: [Roadmap](../../AI_DEVELOPMENT_ROADMAP.md).
 
-서버 간 협의사항을 코드나 구두 합의에만 의존하지 않고 문서로 남겨 다음 문제를 방지하는 것을 목적으로 합니다.
-
-1. 서버별 책임 범위가 불분명해지는 문제
-2. 동일한 기능이 여러 서버에서 중복 구현되는 문제
-3. 요청/응답 구조 변경으로 다른 서버가 갑자기 동작하지 않는 문제
-4. 장애 처리 방식이 서버마다 달라지는 문제
-5. 과거에 특정 구조를 선택한 이유를 알 수 없는 문제
-
-## 문서 작성 원칙
-
-각 결정사항은 가능한 한 하나의 주제만 다룹니다.
-
-예를 들어 다음과 같은 내용을 하나의 문서에 모두 작성하지 않습니다.
-
-추천 API + Timeout + Retry + 에러 처리 + 파일 업로드
-
-대신 각각의 결정사항을 독립된 문서로 관리합니다.
-
-```text
-001-recommendation-request-contract.md
-002-recommendation-response-contract.md
-003-audio-upload-responsibility.md
-004-error-handling-policy.md
-005-timeout-retry-policy.md
-```
-
-각 문서는 기본적으로 다음 내용을 포함합니다.
-
-```markdown
-# 제목
-
-## Status
-
-Proposed / Accepted / Deprecated / Superseded
-
-## Context
-
-어떤 문제가 있었는가?
-
-## Decision
-
-어떤 방식으로 결정했는가?
-
-## Rationale
-
-왜 이 방식을 선택했는가?
-
-## Consequences
-
-이 결정으로 얻는 장점과 감수해야 하는 단점은 무엇인가?
-
-## Server Responsibilities
-
-각 서버는 무엇을 책임지는가?
-
-## Contract
-
-서버 사이에서 반드시 지켜야 할 규칙은 무엇인가?
-```
-
-## 중요한 원칙
-
-이 디렉터리는 단순 API 명세를 저장하기 위한 공간이 아닙니다.
-
-OpenAPI Schema, JSON Schema와 같은 상세 인터페이스 명세는 별도의 API Contract 문서에서 관리할 수 있습니다.
-
-이곳에서는 주로 다음 질문에 대한 답을 기록합니다.
-
-“두 서버가 왜 이렇게 통신하기로 결정했는가?”
-
-그리고 한 번 Accepted 된 결정이 변경되는 경우 기존 문서를 삭제하거나 내용을 덮어쓰기보다는 새로운 ADR을 작성하여 변경 이력을 남기는 것을 원칙으로 합니다.
+Accepted는 설계 합의를 뜻하며 구현 완료가 아니다. Proposed 내용을 확정 계약처럼 사용하지 않는다.

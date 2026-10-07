@@ -8,7 +8,7 @@
 | guides/ | 개발자가 기능을 실행하고 검증하는 사용법 |
 | api/ | 서버 연동의 상세 인터페이스·계약 제안 |
 | adr/ | 아키텍처 결정·선택 이유·변경 이력 |
-| adr/server-agreements/ | 서버 간 역할·처리 원칙에 대한 주제별 ADR |
+| adr/server-agreements/ | 보존된 과거 서버 협의 기록; 현행 관리는 Linear |
 | experiments/ | 실험 입력·결과·평가 근거 |
 | 협업-가이드/ | 팀 도구·협업 절차 |
 
@@ -26,10 +26,11 @@
 | 음악·텍스트 검증 근거 | [Phase 2 실험](experiments/fma-phase2/README.md) |
 | 음악·음악 검증 근거 | [음악 검색 실험](experiments/audio-search-phase2/README.md) |
 | 기술 결정 | [ADR](adr/README.md) |
-| 서버 간 주제별 합의·결정 이유 | [Server Agreements](adr/server-agreements/readme.md) |
+| 현행 서버 협의·용어 | [Linear 서버 협의](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3) · [용어집](https://linear.app/nsu-capstone/document/용어집-context-475370673105) |
+| 과거 서버 협의 기록 | [보존 목록](adr/server-agreements/readme.md) |
 | API 책임 경계 | [API](api/README.md) |
-| 현재 AI 측 변경 제안 | [CLAP 중심 곡 추천](api/CLAP_RECOMMENDATION_DIRECTION.md) |
-| AI 선설계·동기 연동 | [현재 계약](api/AUDIO_SYNC_BACKEND_HANDOFF.md) |
+| 현재 사용자 결정·AI 작업 기준 | [전체 곡 유사도 정렬·반환](api/CLAP_RECOMMENDATION_DIRECTION.md) |
+| AI 선설계·동기 연동 | [동기 연동 설계 및 인터페이스 참고](api/AUDIO_SYNC_BACKEND_HANDOFF.md) — Accepted 원칙과 미확정 상세 인터페이스 제안을 구분 |
 | 팀 협업 | [협업 가이드](협업-가이드/README.md) |
 
 사용법 문서는 guides/로 모았고 실험 데이터·API·ADR의 기존 경로는 유지했습니다.

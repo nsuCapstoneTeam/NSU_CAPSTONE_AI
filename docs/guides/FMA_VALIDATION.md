@@ -1,5 +1,19 @@
 # Phase 2 — FMA를 이용한 MSCLAP 단독 검증
 
+## 새 ADR-0007 개발/검증의 입력 선행조건
+
+2026-10-07 사용자 결정에 따라 기존 30초 FMA 음원·manifest·실험 결과는 과거 PoC로 보존한다.
+새 개발/검증에는 **FMA와 다른 Dataset의 60~80초(양 경계 포함) 입력**을 사용한다.
+Dataset 이름·권리/접근 조건·표본 구성은 아직 선정하지 않았다. 이번 문서 작업에서 음원을 준비하거나 변경하지 않는다.
+기존 FMA를 임의 반복·padding해서 새 검증 입력으로 바꾸지 않는다.
+
+다른 Dataset의 권리·길이 확인 → 새 생성 규칙/metadata 검증 → 개발 벡터 대상·새 입력 매핑 확인 →
+개발/테스트 벡터 삭제·재생성 → 저장/검색 검증 순서를 따른다.
+적격 입력을 준비하기 전에 기존 벡터를 삭제하지 않는다.
+세부 의존 순서는 [Roadmap Phase 3](../AI_DEVELOPMENT_ROADMAP.md)을 따른다.
+ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide에서 관리한다.
+
+
 관련 작업: [NSUAI-1](https://linear.app/nsu-capstone/issue/NSUAI-1),
 [NSUAI-2](https://linear.app/nsu-capstone/issue/NSUAI-2).
 
@@ -132,6 +146,6 @@ Phase 2 완료, 최종 모델 적합성, 실제 embedding dimension 또는 정�
 ## 데이터 없이 확인
 
 ```powershell
-python -m unittest tests.test_fma_validation -v
+python -m unittest discover -s tests/fma -p 'test_fma_validation.py' -v
 python -m scripts.fma.validate_fma --help
 ```

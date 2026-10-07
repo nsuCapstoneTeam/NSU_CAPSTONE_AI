@@ -1,6 +1,6 @@
 # AI Development Roadmap
 
-> 2026-10-05 현재 AI 측 방향: [CLAP 중심 곡 추천](api/CLAP_RECOMMENDATION_DIRECTION.md)을 우선 참고합니다. 아래 항목 평균·Spring Ranker·아티스트 집계·후보 비교 설명은 이전 계획이며, 이번 변경안은 팀 전체 합의 전입니다. BPM·리듬은 초기 순위에서 보류하고 추천 이유는 검증 가능한 근거로 유지합니다.
+> 2026-10-07 이 작업 대화의 사용자 결정, 구현 전: 전체 통과 곡 Embedding/유사도 계산·정렬·전체 반환 → Spring 곡 표시 → 별도 사용자 Artist 매칭. 집계·후보 비교 설명은 하지 않습니다. [작업 기준](api/CLAP_RECOMMENDATION_DIRECTION.md)은 Linear Accepted와의 차이를 명시합니다. Proposed는 확정 정책이 아닙니다.
 
 
 > Repository: `nsuCapstoneTeam/NSU_CAPSTONE_AI`  
@@ -13,7 +13,7 @@
 
 ### AI Model
 - Microsoft `MSCLAP` 사용
-- 실제 model/checkpoint, Embedding dimension, similarity 분포는 구현 초기에 검증한다.
+- Phase 2에서 MSCLAP 2023 CPU·Audio/Text 1024차원을 측정했다. 환경 변경 시 재검증하며 새 aggregation 분포는 후속 검증이다.
 
 ### Embedding
 - 음악 파일 입력 후 전처리·Audio Embedding 처리에는 **동기 방식**을 사용한다.
@@ -45,16 +45,16 @@
   - clamp
   - 최종 변환 수식
 
-### Final Matching Score
-- 2026-10-05 AI 측 기준: 의미·BPM·리듬 3개 항목을 제공하며 음악 분위기·스타일은 의미 점수에 포함한다.
-- 별도 공연 스타일 점수는 중복 산출하지 않는다. 공연 형태는 Spring이 프로필과 요청을 비교하고 필수 조건이면 필터로 처리한다.
-- [ADR 008](adr/server-agreements/008-music-score-items-and-performance-format.md)은 AI 측 선택이며 메인 SSOT·백엔드 반영은 별도 확인한다. 누락 점수 정책은 미정이다.
-- 곡→아티스트 집계·종합 Matching Score·최종 Top10은 Spring Backend Ranker 책임이다.
-- AI는 의미·BPM·리듬 항목 점수와 retrieval 후보 50~100곡, 추천 이유·후보 비교 설명을 제공한다.
-- PASS/FAIL Hard Filter는 종합 점수 평균 계산에서 제외한다.
-- 정규화된 Soft Score 항목들의 평균으로 Spring이 종합 매칭 점수를 산출한다.
-- 설명용 최종 선정 결과·점수·근거 전달 필드와 호출 순서는 미정이다.
-  AI는 설명을 위해 최종 점수나 순위를 재계산하지 않는다.
+### 현행 흐름과 서버 정책
+
+- Spring Hard Filter → AI 전체 통과 곡 Embedding/유사도 계산·정렬 → 전체 결과 Spring 반환 → 유사도 순 곡 표시 → 별도 사용자 버튼으로 해당 Artist와 매칭.
+- 전체 반환·유사도 정렬·아티스트 집계 없음·후보 비교 설명 폐기의 출처는 **이번 사용자 결정**이다. Linear Accepted로 이미 반영됐다고 설명하지 않는다.
+- 정책·용어는 [Linear 서버 협의](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3)의 Accepted 문서와 [용어집](https://linear.app/nsu-capstone/document/용어집-context-475370673105)을 먼저 확인한다.
+- [Accepted 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)의 의미·BPM·리듬 항목, 누락 `null`과 사유, 의미 점수 없는 곡 제외를 따른다.
+- 기존 Accepted 005/009의 반환 제한·평균 순위와 용어집의 100곡 설명은 새 흐름과 차이가 있다. 평균을 현행 순위 수식으로 사용하지 않는다.
+- 곡별 추천 이유는 [Accepted 008](https://linear.app/nsu-capstone/document/008-추천-이유-생성-흐름-ae6cde7df2de), 오류/timeout은 [Accepted 010](https://linear.app/nsu-capstone/document/010-ai-곡-검색-실패시간-초과-시-추천-api-응답-46a63dece138)을 참조한다.
+- Proposed 011·012의 정밀도·반환 상한·설명 주체 변경을 확정하지 않는다.
+- 요청 표현·처리 한도·실패/누락 응답·설명 대상은 서버 협의 정합화가 필요하다.
 
 ---
 
@@ -201,11 +201,13 @@ Text 생성·번역, 백엔드 ID/FK·수정/삭제 계약, 오류 기록·자�
 Phase 3 전체 완료를 의미하지 않습니다.
 
 남은 작업:
+- [ ] 기존 30초 FMA와 다른 Dataset의 권리·접근 조건을 확인하고 60~80초 적격 입력 fixture 준비·길이 검증
+- [ ] 개발 벡터 재생성 대상과 새 입력 매핑 확인: 같은 FMA 원본으로 재생성하지 않음
 - [ ] ADR-0007 D1에 따른 60~80초 inclusive 길이 validation 구현
 - [ ] ADR-0007 D2·D3·D4에 따른 처음 56초 사용 및 7초 × 8개 non-overlap Chunk 생성
 - [ ] ADR-0007 D6·D7·D8에 따른 Chunk별 L2 → Mean Pooling(N=8) → 최종 L2 및 대표 벡터 1개 생성
 - [ ] 저장·검색의 공통 생성 경로와 preprocessing/generation metadata 정합화: ADR-0007 Future Work 참조
-- [ ] 새 생성 방식 검증 후 ADR-0007 D9에 따른 기존 개발/테스트 Audio Embedding 재생성
+- [ ] 적격 새 입력·대상 매핑·새 생성 방식 검증 완료 후 ADR-0007 D9의 개발/테스트 벡터 삭제·재생성
 - [ ] revision별 벡터 보관·처리 상태·attempt 소유권·삭제 기록 추가
 - [ ] Backend ACTIVE 전환 커밋 확인 후 이전 revision 정리와 실패 복구
 - [ ] ACTIVE (music_id, audioRevision) 후보 쌍 필터와 검색 결과 revision 반환
@@ -220,7 +222,9 @@ Phase 3 전체 완료를 의미하지 않습니다.
 - `NSUAI-25` Audio/Text Embedding 생성 및 저장 구현
 
 Audio 정책 적용 순서:
-생성 규칙·metadata 구현 → 검증 → 개발/테스트 벡터 재생성 → 저장·검색 확인.
+다른 Dataset의 권리·60~80초 입력 준비 → 생성 규칙·metadata 구현 → 검증 → 재생성 대상/입력 매핑 확인 → 개발/테스트 벡터 삭제·재생성 → 저장·검색 확인.
+기존 30초 FMA 음원·manifest·결과는 과거 PoC로 보존한다. 새 Dataset 이름은 미정이며 임의 반복/padding으로 FMA를 새 fixture로 바꾸지 않는다.
+Dataset 선행조건은 Roadmap과 [FMA 안내](guides/FMA_VALIDATION.md)·[DB 검증 안내](guides/DATABASE_AUDIO_SEARCH.md)에서 관리하고 ADR-0007은 변경하지 않는다.
 운영 ACTIVE revision 보관·전환 정책과 구분하며 metadata 형식과 수치 안정성 세부 기준은
 ADR-0007 Future Work에 따라 구현 단계에서 결정·검증합니다.
 
@@ -265,7 +269,7 @@ Text Embedding
 - 생성된 벡터 저장 가능
 - 저장된 Embedding을 Similarity 계산에 사용 가능
 - ADR-0007의 길이 경계·분석 범위·고정 Chunk·aggregation·재현성을 검증하고 저장·검색에 동일 규칙이 적용됨을 확인
-- preprocessing/generation metadata 정합화 및 새 방식의 개발/테스트 벡터 재생성 완료, 운영 ACTIVE revision 정책과 구분
+- 다른 Dataset의 60~80초 입력·대상 매핑, preprocessing/generation metadata 정합화·새 방식 개발 벡터 재생성 완료; 운영 ACTIVE revision 정책과 구분
 
 ---
 
@@ -298,154 +302,75 @@ Audio
 
 ---
 
-## Phase 5 — 항목 점수 정규화 및 Spring 점수 계약
+## Phase 5 — Accepted 항목 점수·누락 정책 정합화
 
-관련 Issue:
-- `NSUAI-12` 의미·BPM·리듬 항목 점수 정규화
-- `NSUAI-13` AI 항목 점수 공통 계약 및 Spring 전달 구현
+관련 Issue: `NSUAI-12`, `NSUAI-13`.
 
 목표:
-- 의미·BPM·리듬 항목 점수의 범위·근거·누락 처리 계약을 제공한다.
-- 종합 점수 계산은 Spring이 담당한다. 아래 평균은 제품 정책이며 AI 구현 항목이 아니다.
-
-예시:
-
-```json
-{
-  "semanticScore": 82,
-  "bpmScore": 91,
-  "rhythmScore": 76
-}
-```
-
-Spring 종합 점수 기본 원칙:
-
-```text
-matchingScore
-=
-정규화된 Soft Score 항목의 평균
-```
-
-Hard Filter:
-
-```text
-Hard Filter
-→ 후보 제거
-
-Soft Score
-→ 후보 순위 결정
-```
+- [Accepted 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)의 의미·BPM·리듬 항목과 0~100 범위·누락 정책을 구현·검증한다.
+- 누락은 `null`과 사유로 전달하고 의미 점수 없는 곡은 후보 제외 원칙을 따른다.
+- 기존 Accepted의 유효 항목 평균과 이번 유사도 정렬은 다른 기준이다. 평균을 현행 순위 계산 작업으로 두지 않는다.
+- 누락/제외 표현을 전체 곡 처리·반환 목표와 서버 계약에서 정합화한다.
 
 완료 기준:
-- 모든 점수 항목이 공통 0~100 범위
-- PASS/FAIL 항목은 평균 계산에서 제외
-- Spring이 종합 점수를 계산할 수 있는 항목 점수 제공
-- 점수 구성 근거 확인 가능
+- 유효 점수의 범위·계산 근거를 확인하고 누락을 임의 0점으로 대체하지 않는다.
+- 의미 점수 누락을 정상 결과로 숨기지 않는다.
+- Hard Filter와 음악 유사도/항목 점수를 구분한다.
+- 정밀도·산식 버전 등 Proposed 011 항목은 승인 없이 확정하지 않는다.
 
 ---
 
-## Phase 6 — 추천용 곡 검색 및 항목 점수 응답
+## Phase 6 — 전체 통과 곡 유사도 정렬·전체 반환
 
-2026-10-04 Audio 연동 후속 결정: 기존 Top5는 검증용이며 실제 추천 경로는
-AI retrieval 50~100개 → Backend Ranker 최종 Top10이다.
-Reliability·Risk Signal은 별도 표시하고 순위 점수에 합산하지 않는다.
-2026-10-05 NSUAI-15·16의 제목·AC를 최신 분담으로 정합화했다.
-revision 전환·검색 계약은 [현재 계약](api/AUDIO_SYNC_BACKEND_HANDOFF.md)을 따른다.
-
-관련 Issue:
-- `NSUAI-15` 아티스트 추천용 곡 검색 및 항목 점수 제공 구현
-- `NSUAI-16` 곡 검색 결과·항목 점수 및 설명 응답 계약 구현
-
-목표:
-- Spring이 제공한 ACTIVE 후보 곡을 검색하고 항목 점수를 반환한다.
-- 곡→아티스트 집계·종합 점수·최종 Top10은 Spring에서 수행한다.
-
-흐름:
+출처: 2026-10-07 이 작업 대화의 사용자 결정, 구현 전. 기존 Accepted 005의 50~100/Backend Top10이 새 흐름으로 승인됐다는 뜻은 아니다.
+관련 Issue: `NSUAI-15`, `NSUAI-16`. 실제 Issue/AC와 차이는 별도 정합화가 필요하며 이번에 Linear를 변경하지 않는다.
 
 ```text
-Spring Eligibility Filter·ACTIVE 후보 쌍
-   ↓
-AI 공통 임베딩·유사 곡 검색
-   ↓
-retrieval 50~100곡·항목 점수·revision
-   ↓
-Spring 곡→아티스트 집계·종합 Matching Score
-   ↓
-Spring 최종 Top10
+Spring Hard Filter·ACTIVE 후보 쌍
+→ AI 전체 곡의 공통 Embedding/유사도 계산·정렬
+→ 전체 결과·곡 식별자·revision Spring 반환
+→ Spring 유사도 순 곡 표시
+→ 사용자가 별도 버튼으로 해당 Artist와 매칭
 ```
 
 완료 기준:
-- ACTIVE 후보 쌍을 검색 전에 제한하고 결과 revision 반환
-- 곡 단위 유사도 순위와 최종 아티스트 순위를 구분
-- 곡별 항목 점수와 계산 근거 확인 가능
-- 후보 수 부족·누락 점수·응답 필드는 API 계약에서 확정
+- ACTIVE 후보 쌍을 계산 전에 정확히 제한하고 결과 revision 반환.
+- 전체 전달 곡을 대상으로 하고 CLI Top5/50~100/Proposed 100곡으로 임의 축소하지 않음.
+- 호환 벡터 재사용·필요한 생성·처리 한도·실패/누락 표현을 정합화하고 전체 반환 검증.
+- 아티스트 집계·후보 비교 문장을 생성하지 않음.
+- Reliability·Risk Signal을 음악 유사도 순위에 합산하지 않음.
+- 입력 표현·동점 처리·대량 결과 성능은 후속 계약/실측으로 확인.
+- 화면·매칭 버튼은 Backend/Frontend 구현 책임이며 AI 완료와 구분.
+
+당시 계획 이력: 2026-10-04~05에는 AI retrieval 50~100 → Backend Ranker Top10을 계획했다.
+저장소 현행 작업 목표는 이번 사용자 결정으로 대체하며 Linear 승인 상태는 그대로다.
 
 ---
 
-## Phase 7 — 추천 1위 선정 이유
+## Phase 7 — 곡별 추천 이유
 
-관련 Issue:
-- `NSUAI-10` 추천 1위 선정 이유 설명 구현
-- `NSUAI-11` 추천 1위 선정 이유 생성 구현
+관련 Issue: `NSUAI-10`, `NSUAI-11`.
 
 목표:
-- Spring이 선정한 1위와 실제 점수·선정 근거를 기반으로 AI가 추천 이유를 생성한다.
-- 최종 결과·근거 전달 필드, 호출 순서·동기 응답 포함 여부는 미정이다.
-- [설명 계약 제안](api/RECOMMENDATION_EXPLANATION_CONTRACT.md): 최종 순위 확정 후 추가 호출·초기 템플릿 사용을 권장하며 합의 전이다.
-
-원칙:
-- 임의 평가 금지
-- 실제 계산된 값만 사용
-- 높은 기여 항목을 설명에 사용
-
-예시:
-
-```text
-Artist A
-
-Semantic 95
-BPM      92
-Rhythm   87
-
-Final    91
-```
-
----
-
-## Phase 8 — 후보 간 비교 설명
-
-관련 Issue:
-- `NSUAI-3` 후보 간 매칭 점수 비교 설명 구현
-- `NSUAI-5` 상위 후보 간 항목별 점수 차이(diff) 계산
-- `NSUAI-6` 후보 간 비교 설명 문장 생성
-
-목표:
-- Spring이 선정한 상위 후보의 실제 계산값으로 AI가 점수 차이를 설명한다.
-- 아티스트 집계 점수와 최종 순위는 Spring이 제공하며 AI가 재계산하지 않는다.
-
-예시:
-
-```text
-Artist A vs Artist B
-
-Semantic +7
-BPM      +12
-Rhythm    -2
-```
-
-표현 예시:
-
-```text
-Artist A는 Artist B보다
-음악 스타일 적합도가 7점,
-BPM 적합도가 12점 높습니다.
-```
+- [Accepted 008](https://linear.app/nsu-capstone/document/008-추천-이유-생성-흐름-ae6cde7df2de)의 추가 AI 호출·템플릿 우선·실패 시 이유만 `null` 원칙 구현.
+- 실제 곡 점수·필터 근거만 사용하고 순위를 재계산하지 않음.
+- 전체 반환 흐름과 기존 Top10/신규 칸 설명 대상의 차이를 서버 협의에서 정합화.
+- endpoint·DTO·timeout·대상 수는 [상세 계약](api/RECOMMENDATION_EXPLANATION_CONTRACT.md)에서 확정.
+- 후보 간 비교·아티스트 집계 근거를 생성하지 않음. Proposed 012의 Spring 설명 책임으로 임의 변경하지 않음.
 
 완료 기준:
-- 동일 항목끼리 비교
-- 실제 점수와 diff 일치
-- 안정적인 항목 순서
-- 구조화 데이터 + 표시 문자열 제공 가능
+- 곡과 설명 근거 일치, 실패해도 검색 결과 유지.
+- 누락·오래된 결과·근거 없는 설명 검증.
+- LLM 도입·성능 목표는 별도 결정/측정 전 미정.
+
+---
+
+## Phase 8 — 후보 간 비교 설명 (폐기 이력)
+
+이전 계획은 상위 후보 항목 diff 계산과 비교 문장 생성이었다.
+Accepted 008 및 2026-10-07 사용자 결정에 따라 현행 구현에서 제외한다.
+확인 시 `NSUAI-3`·`NSUAI-5`는 Canceled, `NSUAI-6`은 Todo로 남아 있어 Issue 정합화가 필요하다.
+이번에 Issue 상태를 변경하지 않는다. 이 Phase 번호를 재사용하지 않는다.
 
 ---
 
@@ -521,18 +446,22 @@ Sample 등록
 → Embedding 생성
 
 Sample 수정
-→ 기존 Embedding 무효화 또는 삭제
-→ 새 Embedding 생성
+→ 기존 v1 ACTIVE 벡터 유지·새 v2 생성/보관
+→ Backend v2 ACTIVE 전환 커밋 확인
+→ 유예/재검색 정책에 따라 이전 v1 정리
 
 Sample 삭제
-→ Embedding 삭제
+→ 검색 후보에서 제거·삭제 revision 기록
+→ 과거 시도의 재등록 차단·연결 벡터 정리
 ```
 
 완료 기준:
-- 이전 Embedding이 추천에 남지 않음
+- 새 ACTIVE 전환 확인 전 기존 벡터 유지, 전환 후 이전 revision 정리
 - 수정된 Sample의 Embedding 재생성
 - 삭제 시 연결된 Embedding 제거
 - 실패 상태 식별 및 재처리 가능
+
+Phase 3의 저장·상태·ACTIVE 기반 위에서 이 Phase는 수정/삭제 lifecycle과 복구를 검증한다.
 
 ---
 
@@ -563,7 +492,7 @@ React
 - Spring → Python 요청
 - Timeout/Error 처리
 - Artist ID 전달
-- AI retrieval 50~100곡 → Spring 최종 아티스트 Top10 검증
+- 전체 통과 곡 처리·유사도 정렬·전체 반환 → Spring 곡 표시 → 별도 사용자 Artist 매칭 검증
 - 항목별 Score 반환
 - 추천 이유 반환
 - Sample 등록/수정/삭제 후 Embedding 상태
@@ -573,7 +502,7 @@ React
 
 # 2. 실제 구현 시작 순서
 
-개발을 처음 시작할 때는 아래 순서를 따른다.
+아래는 초기 구축부터의 의존 순서다. Phase 1 기반·Phase 2 PoC·현재 Audio 저장/검색 CLI는 이미 구현됐으며 서비스 전체 완료와 구분한다.
 
 ```text
 1. 프로젝트 실행 환경 구축
@@ -594,19 +523,19 @@ React
         ↓
 9. BPM / Rhythm Feature
         ↓
-10. Score Engine
+10. Accepted 항목 점수·누락 정책 검증
         ↓
-11. 곡 retrieval·항목 점수 응답 → Spring 집계·종합 점수·Top10
+11. 전체 통과 곡 유사도 정렬·전체 반환 → Spring 곡 표시
         ↓
 12. 추천 이유
         ↓
-13. 후보 비교 설명
+13. Embedding revision 수정/삭제 lifecycle 검증 (비교 설명은 폐기)
         ↓
 14. Python API Server
         ↓
 15. Spring Boot 연동
         ↓
-16. Embedding 수정/삭제
+16. 별도 사용자 Artist 매칭 연동 검증
         ↓
 17. E2E Test
 ```
@@ -630,10 +559,11 @@ MSCLAP 모델을 실제 로딩한 뒤 확인한다.
 
 ## Hard Filter와 Soft Score를 분리한다
 - Hard Filter = 후보 포함 여부
-- Soft Score = 후보 순위 계산
+- 음악 유사도 = 현행 사용자 결정의 곡 정렬 기준
+- 항목 점수 = Accepted 서버 정책의 값·누락 처리; 평균을 현행 순위 수식으로 사용하지 않음
 
 ## 설명은 실제 점수만 사용한다
-추천 이유와 후보 비교 설명에서 임의의 AI 평가를 추가하지 않는다.
+곡별 추천 이유에 임의 평가를 추가하지 않는다. 후보 간 비교 설명은 제공하지 않는다.
 
 ---
 
@@ -651,9 +581,6 @@ Duplicate:
 
 - `NSUAI-1`
 - `NSUAI-2`
-- `NSUAI-3`
-- `NSUAI-5`
-- `NSUAI-6`
 - `NSUAI-8`
 - `NSUAI-9`
 - `NSUAI-10`
@@ -668,27 +595,16 @@ Duplicate:
 
 ---
 
-# 5. 가장 먼저 할 작업
+# 5. 현재 다음 작업
 
-현재 개발의 첫 번째 실질 목표는 다음이다.
+MSCLAP PoC·Audio/Text 차원·실제 Similarity 측정과 Audio 저장/검색 CLI는 이미 수행한 단계다.
+다음은 Phase 3의 다른 Dataset 입력 준비와 ADR-0007 생성 규칙·metadata 적용이다.
+60~80초 적격 입력과 재생성 대상 매핑을 검증하기 전 기존 개발 벡터를 삭제하지 않는다.
+길이 경계·8 Chunk·L2/Mean·재현성 검증 후 재생성·저장/검색 확인으로 진행한다.
 
-> **MSCLAP PoC를 성공시키고 Audio/Text Embedding과 실제 Similarity 값을 확인한다.**
+## 2026-10-07 정합화 이력
 
-첫 구현 완료 기준:
-
-```text
-test audio
-+
-test text
-↓
-MSCLAP
-↓
-Audio Embedding
-Text Embedding
-↓
-Cosine Similarity
-↓
-실제 similarity 값 출력
-```
-
-이 단계가 검증된 후 다음 단계인 pgvector 저장과 점수 정규화로 진행한다.
+이번 사용자 결정으로 전체 곡 반환·유사도 정렬·집계 없음·후보 비교 설명 폐기를 반영했다.
+이전 순위/반환 제한 계획은 당시 이력이며 Linear Accepted 상태는 변경하지 않았다.
+30초 FMA는 과거 PoC로 보존하고 새 검증은 다른 Dataset을 사용한다.
+ADR-0007·코드·테스트·DB·데이터를 변경하지 않은 문서 작업이다.
