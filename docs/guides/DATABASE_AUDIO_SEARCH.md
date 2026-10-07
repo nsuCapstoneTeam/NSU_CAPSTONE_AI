@@ -14,7 +14,12 @@ Dataset 이름·권리/접근 조건·표본 구성은 아직 선정하지 않�
 ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide에서 관리한다.
 
 
-아래는 현재 단일 crop CLI와 과거 검증 결과다. 2026-10-07 사용자 결정의 후속 목표는
+현재 DB 검색은 query 음악도 저장 시와 같은 공통 AudioEmbeddingGenerator로 생성합니다.
+60~80초 validation 후 처음 56초를 7초 × 8개 non-overlap Chunk로 나누고,
+MSCLAP batch Embedding → Chunk L2 → Mean Pooling(N=8) → Final L2 순서로
+단일 대표 벡터를 만듭니다. 아래 실제 검증 결과와 저장된 개발 벡터는 이전 generation의 historical 기록입니다.
+
+2026-10-07 사용자 결정의 후속 목표는
 ACTIVE (music_id, audioRevision) 쌍을 대상으로 전체 곡 유사도를 계산·정렬해 전체 결과를 Spring에 반환하는 것이다.
 Spring은 유사도 순으로 곡을 표시하고 사용자가 별도 버튼으로 해당 Artist와 매칭한다. 아티스트 집계는 하지 않는다.
 이 목표는 Linear Accepted로 이미 정합화된 계약이 아니며 [작업 기준](../api/CLAP_RECOMMENDATION_DIRECTION.md)에서 차이를 확인한다.
@@ -47,10 +52,10 @@ revision 후보 제한·결과 revision 반환은 아직 미구현이다.
 ### 후보의 생성 조건 확인
 
 저장과 검색에서 모델, 모델 버전, checkpoint revision, 패키지 버전,
-전처리 버전·내용·기본 seed, dimension, dtype, device가 일치해야 합니다.
+전처리 버전·내용, dimension, dtype, device가 일치해야 합니다.
 동일 차원이라고 해서 다른 모델의 벡터를 비교하지 않습니다.
-`crop_seed`만 비교 조건에서 제외합니다. 파일 해시에서 파생되는 값이라 서로 다른 곡은
-원래 다른 crop_seed를 갖기 때문입니다. 원본 메타데이터를 수정하는 것은 아닙니다.
+generation profile은 모든 고정 생성 조건을 그대로 비교합니다. source SHA-256과 원본 길이는
+파일별 metadata이며 공통 profile 호환 조건이 아닙니다.
 revision이 확인되지 않은 체크포인트는 기존 생성기의 한계가 그대로 적용됩니다.
 파일 경로나 원본 음악 파일의 존재 여부는 DB 후보 검색에 필요하지 않습니다.
 
@@ -119,8 +124,9 @@ DB 검색에는 manifest가 필요 없습니다. 기존 개발 DB·pgvector와 �
 docker compose run --rm --no-deps -e RUN_EMBEDDING_DB_TESTS=1 ai python -m pytest tests -q
 ```
 
-DB 거리와 Python 코사인의 일치, Top5·TopK, 동점 정렬, 모델·기본 seed·패키지·
-revision·차원 불일치 제외, 동일 파일 복사본 제외, 빈 목록과 적은 후보 수를 검사합니다.
+현재 테스트는 DB 거리와 Python 코사인의 일치, Top5·TopK, 동점 정렬,
+모델·checkpoint revision·generation profile·package·차원 불일치 제외,
+동일 파일 복사본 제외, 빈 목록과 적은 후보 수를 검사합니다.
 테스트용 행은 트랜잭션 종료 시 롤백합니다.
 
 ## 실제 검증 결과

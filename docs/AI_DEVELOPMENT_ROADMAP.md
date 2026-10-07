@@ -195,9 +195,9 @@ Cosine Similarity
 ## Phase 3 — Audio/Text Embedding 생성 및 저장
 
 현재 Audio 공통 생성·테이블·동기 저장·DB 후보 검색 CLI를 구현했습니다.
-현재 Audio 생성은 기존 단일 crop 방식입니다. 승인된
-[ADR-0007](adr/ADR-0007-audio-highlight-embedding-strategy.md)의 Audio Highlight 생성 정책 적용은
-아래 남은 작업에 포함하며, 아직 구현하지 않았습니다.
+Audio 공통 생성기는 승인된 [ADR-0007](adr/ADR-0007-audio-highlight-embedding-strategy.md)의
+60~80초 validation 및 고정 8 chunk 대표 벡터 생성 정책을 적용합니다.
+실제 권리 확인 Dataset에서의 MSCLAP 통합 평가와 개발 벡터 재생성은 별도 선행 작업입니다.
 음악 입력은 동기로 처리하며 AI에서 연동 계약 초안을 먼저 작성합니다.
 [저장 안내](guides/EMBEDDING_STORAGE.md), [DB 검색 검증](guides/DATABASE_AUDIO_SEARCH.md)을 참고합니다.
 Text 생성·번역, 백엔드 ID/FK·수정/삭제 계약, 오류 기록·자동 재처리는 미완료입니다.
@@ -206,10 +206,10 @@ Phase 3 전체 완료를 의미하지 않습니다.
 남은 작업:
 - [ ] 기존 30초 FMA와 다른 Dataset의 권리·접근 조건을 확인하고 60~80초 적격 입력 fixture 준비·길이 검증
 - [ ] 개발 벡터 재생성 대상과 새 입력 매핑 확인: 같은 FMA 원본으로 재생성하지 않음
-- [ ] ADR-0007 D1에 따른 60~80초 inclusive 길이 validation 구현
-- [ ] ADR-0007 D2·D3·D4에 따른 처음 56초 사용 및 7초 × 8개 non-overlap Chunk 생성
-- [ ] ADR-0007 D6·D7·D8에 따른 Chunk별 L2 → Mean Pooling(N=8) → 최종 L2 및 대표 벡터 1개 생성
-- [ ] 저장·검색의 공통 생성 경로와 preprocessing/generation metadata 정합화: ADR-0007 Future Work 참조
+- [x] ADR-0007 D1에 따른 decoded sample frame 기준 60~80초 inclusive 길이 validation 구현
+- [x] ADR-0007 D2·D3·D4에 따른 처음 56초 사용 및 7초 × 8개 non-overlap Chunk 생성
+- [x] ADR-0007 D6·D7·D8에 따른 Chunk별 L2 → Mean Pooling(N=8) → 최종 L2 및 대표 벡터 1개 생성
+- [x] 저장·검색의 공통 생성 경로와 preprocessing/generation metadata 정합화
 - [ ] 적격 새 입력·대상 매핑·새 생성 방식 검증 완료 후 ADR-0007 D9의 개발/테스트 벡터 삭제·재생성
 - [ ] revision별 벡터 보관·처리 상태·attempt 소유권·삭제 기록 추가
 - [ ] Backend ACTIVE 전환 커밋 확인 후 이전 revision 정리와 실패 복구
@@ -225,11 +225,13 @@ Phase 3 전체 완료를 의미하지 않습니다.
 - `NSUAI-25` Audio/Text Embedding 생성 및 저장 구현
 
 Audio 정책 적용 순서:
-다른 Dataset의 권리·60~80초 입력 준비 → 생성 규칙·metadata 구현 → 검증 → 재생성 대상/입력 매핑 확인 → 개발/테스트 벡터 삭제·재생성 → 저장·검색 확인.
+완료: ADR-0007 generator·generation metadata 구현, synthetic Audio 단위 검증, MSCLAP batch smoke validation.
+남은 순서: 다른 Dataset의 권리·60~80초 입력 준비 → 실제 음악 품질 및 PostgreSQL 통합 검증 → 재생성 대상/입력 매핑 확인 → 개발/테스트 벡터 삭제·재생성 → 새 generation 기반 저장·검색 검증 → similarity 분포 평가·calibration.
 기존 30초 FMA 음원·manifest·결과는 과거 PoC로 보존한다. 새 Dataset 이름은 미정이며 임의 반복/padding으로 FMA를 새 fixture로 바꾸지 않는다.
 Dataset 선행조건은 Roadmap과 [FMA 안내](guides/FMA_VALIDATION.md)·[DB 검증 안내](guides/DATABASE_AUDIO_SEARCH.md)에서 관리하고 ADR-0007은 변경하지 않는다.
-운영 ACTIVE revision 보관·전환 정책과 구분하며 metadata 형식과 수치 안정성 세부 기준은
-ADR-0007 Future Work에 따라 구현 단계에서 결정·검증합니다.
+운영 ACTIVE revision 보관·전환 정책과 구분합니다. 생성기는 float64로 norm과 pooling을
+계산하고 정확한 0 및 non-finite만 거부합니다. 실제 모델·Dataset 통합 평가는 적격 fixture가
+준비된 뒤 수행합니다.
 
 목표:
 - MSCLAP Embedding을 실제 서비스 구조로 연결한다.
@@ -601,7 +603,7 @@ Duplicate:
 # 5. 현재 다음 작업
 
 MSCLAP PoC·Audio/Text 차원·실제 Similarity 측정과 Audio 저장/검색 CLI는 이미 수행한 단계다.
-다음은 Phase 3의 다른 Dataset 입력 준비와 ADR-0007 생성 규칙·metadata 적용이다.
+다음은 Phase 3의 다른 Dataset 입력 준비와 ADR-0007 생성 규칙의 실제 MSCLAP 검증이다.
 60~80초 적격 입력과 재생성 대상 매핑을 검증하기 전 기존 개발 벡터를 삭제하지 않는다.
 길이 경계·8 Chunk·L2/Mean·재현성 검증 후 재생성·저장/검색 확인으로 진행한다.
 

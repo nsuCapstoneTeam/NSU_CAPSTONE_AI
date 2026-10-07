@@ -14,13 +14,13 @@ Dataset 이름·권리/접근 조건·표본 구성은 아직 선정하지 않�
 ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide에서 관리한다.
 
 
-## 승인된 생성 기준 (2026-10-06, 구현 전)
+## 승인된 생성 기준 (ADR-0007, 구현 적용)
 
-이 절은 앞으로 구현할 Audio 생성 규칙의 기준이다. 결정 이유·공식 근거·대안과
+이 절은 현재 구현에 적용된 Audio 생성 규칙이다. 결정 이유·공식 근거·대안과
 trade-off 및 이전 정책의 변경 이력은 [ADR-0007](../adr/ADR-0007-audio-highlight-embedding-strategy.md)에 기록한다.
 제품 길이 정책의 주 기준은 [Linear AI-033](https://linear.app/nsu-capstone/document/ssot-아티스트-행사-매칭-플랫폼-mvp-요구사항-e38bb23f87b1)의 v1.11이다.
-아래 현재 구현과 과거 검증 기록이 이 정책의 구현 완료를 뜻하지는 않는다.
-이번에는 Linear 및 문서만 정합화하며 서버 협의 승인 상태와 코드는 변경하지 않는다.
+현재 공통 생성기 구현은 아래 정책을 적용한다. 실제 MSCLAP 통합 검증과 새 Dataset 평가 상태는
+구현 단위 테스트 통과 여부와 구분해 관리한다.
 
 - Artist가 직접 선택한 대표 Highlight의 **권장 길이는 60초**다.
 - **최소 60초·최대 80초**를 길이 validation 조건으로 적용한다. L < 60초 또는 L > 80초는 실패하고, **60초 ≤ L ≤ 80초는 통과**한다. 양 경계인 60초와 80초도 허용한다.
@@ -55,48 +55,55 @@ MSCLAP 공식은 2023의 7초 전처리와 similarity 정규화를 제공하지�
 최종 L2는 저장 표현을 통일하는 정책이며, 내부에서 norm을 제거하는
 pgvector cosine 검색의 수학적 필수조건은 아니다.
 
-길이 validation·다중 Chunk 생성·aggregation·전처리 버전·generation metadata·테스트와 공통 생성기 변경은 후속 구현 과제다.
-길이 측정과 60/80초 경계 판정, 검증 담당 계층·오류 응답/화면 안내, sample 경계·채널 처리·구간 실패·0/거의 0 norm의 수치 안정성 기준도 후속 결정·검증이 필요하다.
+길이는 decoder가 반환한 sample frame 수와 sample rate의 정수 경계로 검사한다. 입력을 decode한 뒤
+처음 56초만 남기고 mono downmix 및 44.1kHz resampling을 적용한다. 고정된 8개 구간을
+PCM float 임시 WAV로 만들며 MSCLAP 공개 API가 각 입력을 random crop하지 않도록 정확히 7초로 전달한다.
+다채널은 시간축을 보존하는 채널 산술 평균으로 downmix한다. 이는 프로젝트 전처리 정책이며
+공식 MSCLAP wrapper의 기존 채널 flatten 동작과 다르다.
 
-## 현재 구현 (길이 validation·승인된 다중 Chunk 정책 미적용)
+Chunk는 각각 L2 정규화하고 float64 계산으로 평균 및 최종 L2 정규화를 수행한다. norm 검사에는
+임의 epsilon을 적용하지 않고 finite 여부와 정확한 0만 검사한다. 0에 가까운 비영 norm은 임계값으로
+거부하지 않는다. decoder별 압축 형식의 경계 정밀도와 실제 음원에서의 품질은 별도 통합 검증 대상이다.
+
+## 현재 구현
 
 `app.embedding.audio_embedding.AudioEmbeddingGenerator`는 음악 파일을 받아 검증한
 벡터와 메타데이터를 반환합니다. 검색 CLI에서 사용하며 Phase 3 DB 저장에서도
 재사용합니다. 테이블과 저장 흐름은 [임베딩 저장 안내](EMBEDDING_STORAGE.md)에 있습니다.
-Text 생성 구현은 포함하지 않습니다. 현재 생성기는 60~80초 길이 validation 및 고정 8 Chunk aggregation을 구현하지 않았습니다.
+Text 생성 구현은 포함하지 않습니다. 현재 생성기는 60~80초 길이 validation과 고정 8 Chunk aggregation을 적용합니다.
 
 ```python
 from app.embedding.audio_embedding import AudioEmbeddingGenerator
 
-generator = AudioEmbeddingGenerator(seed=43)
+generator = AudioEmbeddingGenerator()
 result = generator.generate('samples/reference.mp3')
 vector = result.vector        # CPU Tensor, shape (1, 실제 모델 차원)
-metadata = result.metadata    # 원본 해시, 모델·체크포인트·전처리·차원
+metadata = result.metadata    # 원본 해시·길이, 모델·체크포인트·전처리 profile·차원
 ```
 
-생성기는 최초 요청에서 MSCLAP 2023 CPU 모델을 불러오고 이후 재사용합니다.
-파일 검사와 해시 확인은 모델 로딩 전에 수행합니다. 리샘플링을 명시적으로 켜고,
-`base_seed + int(SHA256[:8], 16)`으로 모델 기본 crop/pad를 고정합니다.
-기존 검색과 같은 방식이며 파일 이름이나 요청/후보 역할이 바뀌어도 같은 바이트는
-같은 seed를 사용합니다. 전체 음악을 분석하는 다중 구간 방식은 아닙니다.
+생성기는 파일 존재·비어 있음·SHA-256과 기대 해시를 확인한 뒤 오디오를 decode하고
+60~80초 길이를 검증합니다. 최초 요청에서 MSCLAP 2023 CPU 모델을 불러오고 이후 재사용합니다.
+처음 56초를 7초 단위 8개 chunk로 만들어 한 번의 공개 `get_audio_embeddings(paths, resample=False)`
+호출로 처리합니다. 각 chunk 임베딩을 정규화해 평균하고, 최종 벡터 하나를 다시 정규화합니다.
 
-벡터를 반환하기 전에 shape·실수형·유한값·0벡터·차원을 검사합니다.
-차원은 하드코딩하지 않고 첫 성공 결과로 측정합니다. 이후 호출의 차원은 일치해야
-하며 저장 정책이 확정되면 `expected_dimension`을 전달할 수도 있습니다.
-원본 해시를 생성 전후 비교해 변경된 파일에 잘못된 메타데이터를 붙이지 않습니다.
-`expected_sha256`으로 후보 목록 검사 이후 파일 변경도 확인합니다.
+Chunk batch는 `[8, D]`, 최종 대표 벡터는 `[1, D]` shape로 각각 검증합니다.
+실수형·finite·nonzero·차원 일치를 확인합니다. norm은 float64로 계산해 dtype에 따른
+norm underflow/overflow를 줄이고, 임의의 작은 norm 임계값은 두지 않습니다.
+원본 해시를 생성 전후 비교하며 `expected_sha256`으로 후보 검사 이후 파일 변경도 확인합니다.
 
-메타데이터는 모델 버전, 실제 체크포인트 경로·확인 가능한 revision, 패키지 버전,
-shape·차원·dtype·norm, 원본 경로·SHA-256, 전처리 버전·seed를 포함합니다.
+metadata에는 모델·체크포인트 revision·패키지·차원·dtype·norm·원본 SHA-256과 원본
+decode 길이·sample rate·channel 수를 기록합니다. generation profile에는 고정 분석 시간,
+chunk 길이·수·overlap, pooling/normalization, resampling과 channel 정책을 포함합니다.
+새 preprocessing version은 `msclap2023-audio-first56s-8x7s-nonoverlap-chunk-l2-mean-final-l2-v2`입니다.
 체크포인트 경로만으로 임의의 로컬 가중치 파일 무결성을 보장하지는 않습니다.
 
-모델 초기화와 추론의 Python/Torch CPU 난수 상태는 복원합니다. 공통 함수끼리의
-호출은 잠금으로 직렬화하여 crop seed 간섭을 방지합니다. 공통 함수를 사용하지 않는
-외부 코드의 난수 소비나 서로 다른 하드웨어·패키지 버전까지 통제하지는 않습니다.
+고정 길이 chunk 입력에서는 seed 기반 crop이 필요하지 않습니다. 공통 모델 호출은 잠금으로
+직렬화하며 임시 chunk 디렉터리는 추론의 성공·실패와 관계없이 정리합니다.
 
 `AudioEmbeddingError`의 `reason`은 파일 누락·빈 파일·읽기 실패·원본 변경·모델 로딩
 실패·생성 실패·벡터 검증 실패를 구분합니다. 디코딩 오류를 포함한 생성 실패는
-`audio_embedding_failed`이고 원본 예외를 보존합니다. 오류를 DB에 기록하고 재처리하는
+`audio_embedding_failed`이며 decode/전처리 실패는 `audio_decode_or_preprocessing_failed`로
+분류하고 원본 예외를 보존합니다. 오류를 DB에 기록하고 재처리하는
 부분은 저장 계층 구현에서 연결합니다.
 
 기존 FMA 측정 스크립트는 과거 실험 재현을 위해 변경하지 않았습니다.

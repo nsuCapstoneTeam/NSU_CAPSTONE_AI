@@ -58,7 +58,6 @@ def main():
                         help='JSON tracks with integer track_id and audio_path; relative paths use current directory')
     parser.add_argument('--output', type=Path, required=True, help='New JSON file, never overwritten')
     parser.add_argument('--top-k', type=int, default=5)
-    parser.add_argument('--seed', type=int, default=43)
     args = parser.parse_args()
     if args.top_k < 1:
         parser.error('--top-k must be positive')
@@ -67,7 +66,7 @@ def main():
     candidates, excluded, query_hash = load_candidates(args.manifest, args.audio)
     import torch
     print('Loading MSCLAP 2023 CPU...', file=sys.stderr, flush=True)
-    generator = AudioEmbeddingGenerator(seed=args.seed)
+    generator = AudioEmbeddingGenerator()
     # 검색과 향후 저장에서 전처리 정책이 갈라지지 않도록 공통 생성기를 재사용한다.
     with torch.inference_mode():
         query_result = generator.generate(args.audio, expected_sha256=query_hash)
@@ -83,7 +82,8 @@ def main():
     result = {
         'query_audio': str(args.audio.resolve()), 'query_sha256': query_hash,
         'model': 'MSCLAP 2023', 'checkpoint_path': query_result.metadata['checkpoint_path'],
-        'seed': args.seed, 'preprocessing': 'resample=True; MSCLAP crop/pad seeded by file SHA-256',
+        'preprocessing_version': query_result.metadata['preprocessing_version'],
+        'preprocessing': query_result.metadata['preprocessing'],
         'comparison': 'audio-audio', 'score_bounds': {'lower': 0.0, 'upper': 1.0, 'status': 'provisional'},
         'candidate_count': len(candidates), 'excluded_identical_track_ids': excluded,
         'candidate_manifest_sha256': digest(args.manifest),

@@ -31,7 +31,12 @@ def result(value=1.0):
     return AudioEmbeddingResult(torch.full((1, 4), value), {
         'source_sha256': 'a' * 64, 'shape': [1, 4], 'dimension': 4,
         'model': 'MSCLAP', 'model_version': '2023', 'preprocessing_version': 'test-v1',
-        'packages': {'torch': 'test'}, 'preprocessing': {'base_seed': 43},
+        'packages': {'torch': 'test'}, 'preprocessing': {
+            'analysis_duration_seconds': 56, 'chunk_duration_seconds': 7,
+            'chunk_count': 8, 'chunk_overlap_seconds': 0,
+            'chunk_normalization': 'l2', 'aggregation': 'mean',
+            'final_normalization': 'l2', 'channel_policy': 'arithmetic_mean_downmix_to_mono',
+        },
         'dtype': 'torch.float32', 'device': 'cpu',
     })
 
