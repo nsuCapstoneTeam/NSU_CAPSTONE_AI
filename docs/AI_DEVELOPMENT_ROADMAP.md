@@ -37,6 +37,9 @@
   [실험 근거](experiments/audio-search-phase2/README.md) 및
   [ADR 0005](adr/ADR-0005-audio-similarity-display-score.md)를 참고한다.
   최종 기준 확정이나 사용자용 종합 점수 구현 완료를 뜻하지 않는다.
+- raw cosine ranking·후보 독립 transformation·provisional 점수·calibration 원칙과 생성/변환 버전의 구분은
+  [ADR-0008](adr/ADR-0008-music-similarity-transformation-and-ranking.md)을 따른다.
+  구체 calibration과 transformation/calibration 버전 체계의 구현·검증은 후속 작업이다.
 - 우선 고정 수식 기반의 0~100 정규화를 구현·검증한다.
 - 단, 아래 값은 실제 MSCLAP 결과를 측정한 후 최종 결정한다.
   - similarity 유효 범위
@@ -553,9 +556,9 @@ Python 내부의 Matching Pipeline을 먼저 함수 수준에서 완성한 뒤 H
 실제 MSCLAP similarity 분포를 측정한 후 결정한다.
 
 ## Embedding Dimension을 하드코딩하지 않는다
-현재 pgvector 테스트에서 사용한 임시 dimension은 MSCLAP 실제 dimension으로 간주하지 않는다.
-
-MSCLAP 모델을 실제 로딩한 뒤 확인한다.
+과거 pgvector 기능 확인에 사용한 `VECTOR(3)`은 테스트 값이며 MSCLAP의 실제 차원이 아니다.
+현재 Phase 2에서 MSCLAP 2023 CPU의 Audio/Text Embedding을 1024차원으로 실측했다.
+저장·검색에 사용하는 차원은 실제 모델/환경의 출력으로 검증하며, 모델·checkpoint·환경 변경 시 재검증한다.
 
 ## Hard Filter와 Soft Score를 분리한다
 - Hard Filter = 후보 포함 여부

@@ -73,3 +73,4 @@ MSCLAP Embedding 생성
 PostgreSQL + pgvector 저장/갱신
         ↓
 처리 완료
+```

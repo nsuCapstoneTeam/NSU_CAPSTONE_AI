@@ -37,3 +37,4 @@ AI 분석 및 Matching
 TOP 5 생성
     ↓
 Spring Boot에 응답
+```
