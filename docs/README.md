@@ -30,7 +30,7 @@
 | 과거 서버 협의 기록 | [보존 목록](adr/server-agreements/readme.md) |
 | API 책임 경계 | [API](api/README.md) |
 | 현재 사용자 결정·AI 작업 기준 | [전체 곡 유사도 정렬·반환](api/CLAP_RECOMMENDATION_DIRECTION.md) |
-| AI 선설계·동기 연동 | [현재 계약](api/AUDIO_SYNC_BACKEND_HANDOFF.md) |
+| AI 선설계·동기 연동 | [동기 연동 설계 및 인터페이스 참고](api/AUDIO_SYNC_BACKEND_HANDOFF.md) — Accepted 원칙과 미확정 상세 인터페이스 제안을 구분 |
 | 팀 협업 | [협업 가이드](협업-가이드/README.md) |
 
 사용법 문서는 guides/로 모았고 실험 데이터·API·ADR의 기존 경로는 유지했습니다.
