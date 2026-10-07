@@ -13,7 +13,7 @@ Audio 임베딩 테이블·동기 저장 CLI와 DB 후보 검색 CLI를 연결�
 백엔드 계약·수정/삭제 연동, BPM·리듬 분석, 설명 생성과 분석 API는 후속 작업입니다.
 현행 개발 목표는 AI가 Hard Filter를 통과한 전체 곡을 유사도 순으로 반환하고 Spring이 곡을 표시하는 흐름입니다.
 사용자는 해당 곡의 Artist와 별도 버튼으로 매칭합니다. 곡→아티스트 집계는 하지 않습니다.
-전체 결과 반환과 ADR-0007 생성 정책은 아직 구현하지 않았습니다.
+ADR-0007 Audio 생성 정책은 구현했습니다. 전체 결과 반환은 아직 구현하지 않았습니다.
 
 ## 구현 상태
 
@@ -70,20 +70,34 @@ FMA 검증 도구·영어 입력 정책·음악 파일 검색·임시 점수 변
 긴 입력 수정은 `scripts/fma/validate_fma.py`에 적용되며 서비스용
 `ClapModel.encode_text`에 번역·축약 처리를 연결한 것은 아닙니다.
 
-## 음악 파일 검색 사용법
+## 음악 파일 검색
 
-FMA 데이터를 별도로 준비하고 `samples/reference.mp3`에 검색할 음악을 넣습니다.
-프로젝트 루트에서 실행하며 Compose 설정을 위해 `.env`의 `DB_PASSWORD`가 필요합니다.
-검색은 DB에 접속하지 않고 공유한 검증용 후보 24곡을 사용합니다.
+### 현재 사용 조건
+
+현재 `search_audio.py`를 실행하려면 query Audio와 manifest의 모든 candidate Audio가 각각
+**60~80초(양 경계 포함)**여야 합니다. 생성기는 ADR-0007 정책에 따라 처음 56초를 7초씩
+8개의 겹치지 않는 구간으로 처리하고, Chunk별 L2 정규화 → Mean Pooling → 최종 L2
+정규화로 대표 Embedding 하나를 만듭니다.
+
+현재 준비·문서화된 실제 query/candidate Dataset 또는 manifest 중 이 조건을 만족하는 것은 없습니다.
+따라서 현재 실행에는 적격 Dataset/fixture 준비가 선행되어야 합니다. 실제 권리 확인을 거친
+60~80초 Dataset/fixture 준비와 음악 품질 평가는 후속 작업이며, 실행 가능한 데이터 경로를
+임의로 제시하지 않습니다. 검색 절차와 입력 형식은 [사용 안내](docs/guides/AUDIO_SEARCH.md)를
+참고하세요.
+
+### Historical FMA PoC
+
+아래 명령과 `manifest24.json`은 당시 single-crop generation 기준의 약 30초 FMA를 사용한
+**과거 PoC**입니다. 해당 query 및 candidate 파일은 현재 generator의 최소 60초 validation을
+통과하지 못하므로 이 명령은 현재 사용법이 아닙니다. 기존 FMA 파일·manifest·실험 결과는
+역사적 근거로 보존하며, 30초 파일을 반복·연결·padding해 현재 정책에 맞추지 않습니다.
 
 ```powershell
 docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio samples/reference.mp3 --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/search-reference-new.json
 ```
 
-결과 JSON은 곡 ID·원본 코사인·표시 점수·순위를 반환합니다. 출력은 덮어쓰지 않으므로
-반복 실행 시 새 이름을 사용하세요. 동일 파일은 SHA-256으로 제외합니다.
-현재 점수는 내부 검증용 지표이고, 사용자에게 보여줄 최종 적합도는 미확정입니다.
-자체 후보 목록과 공개 FMA 음원 예시는 [사용 안내](docs/guides/AUDIO_SEARCH.md)에 있습니다.
+당시 결과와 평가 근거는 [Phase 2 실험 기록](docs/experiments/audio-search-phase2/README.md)에,
+현재 입력 요건과 구분은 [검색 가이드](docs/guides/AUDIO_SEARCH.md)에 보존되어 있습니다.
 
 ## 이번 음악 검색·점수 실험
 
@@ -256,7 +270,7 @@ py -3.11 -m venv .venv
 - [API 책임 경계](docs/api/README.md)
 - [협업 가이드](docs/협업-가이드/README.md)
 
-현재 다음 작업은 Phase 3의 다른 Dataset 60~80초 입력 준비 → ADR-0007 생성·metadata 검증 → 개발 벡터 재생성 → 저장·검색 확인입니다.
+현재 다음 작업은 Phase 3의 다른 Dataset 60~80초 입력 준비 → 실제 음악 품질·PostgreSQL 통합 검증 → 개발 벡터 재생성 → 새 generation 기반 저장·검색 확인입니다.
 백엔드 ID·수정/삭제 계약, Text 생성·번역, Accepted 항목 점수·곡별 설명과 전체 통과 곡 반환/API 연동은 Roadmap의 의존 순서에 따라 진행합니다.
 기존 30초 FMA 자료는 과거 PoC로 유지하며 새 생성 정책 검증에 사용하지 않습니다.
 최종 점수와 더 큰 후보 집합의 검색 품질은 추가 검증이 필요하며 번역 구현은 보류합니다.
