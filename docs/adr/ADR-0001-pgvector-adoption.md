@@ -49,3 +49,4 @@ AWS RDS를 독립적인 데이터베이스 인프라로 사용한다.
 Spring Boot EC2 ──┐
                   ├── RDS PostgreSQL + pgvector
 Python AI EC2 ────┘
+```

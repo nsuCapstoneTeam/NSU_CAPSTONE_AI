@@ -60,7 +60,7 @@ FMA small의 공식 validation split에서 seed 43으로 장르별 3곡, 총 24�
 
 `scripts.matching.search_audio`는 SHA-256 기반 seed로 crop을 고정하고 매번 후보 임베딩을
 생성합니다. 입력과 같은 바이트의 파일은 제외하며 원본 코사인 내림차순으로 정렬합니다.
-점수가 같으면 정수 track ID 오름차순으로 순위를 안정화합니다.
+원본 cosine similarity가 같으면 정수 track ID 오름차순으로 순위를 안정화합니다.
 
 - 공개 FMA 곡 `015770` 입력: 동일 곡 제외 후 23곡 비교, TOP 5 JSON 반환 성공.
 - 사용자 `reference.mp3` 입력: 24곡 비교, TOP 5 JSON 반환 성공.
