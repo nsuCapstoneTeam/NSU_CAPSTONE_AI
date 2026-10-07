@@ -1,6 +1,8 @@
 # 008. 음악 점수 항목과 공연 형태의 분리
 
-> 2026-10-05 현재 AI 측 방향: [CLAP 중심 곡 추천](../../api/CLAP_RECOMMENDATION_DIRECTION.md)을 우선 참고합니다. 아래 항목 평균·Spring Ranker·아티스트 집계·후보 비교 설명은 이전 계획이며, 이번 변경안은 팀 전체 합의 전입니다. BPM·리듬은 초기 순위에서 보류하고 추천 이유는 검증 가능한 근거로 유지합니다.
+> 과거 제안 기록 보존. 아래 Status·Decision은 당시 내용이며 현행 기준이 아니다. 로컬 번호는 Linear의 같은 번호와 내용이 다르다. 현행 서버 정책은 [Linear 목록](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3)의 Accepted 문서, 이번 사용자 결정은 [AI 작업 기준](../../api/CLAP_RECOMMENDATION_DIRECTION.md)을 확인한다.
+>
+> 관련 현행 확인 위치: [Linear 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd). Proposed 012를 승인하거나 당시 기록을 재작성하지 않는다.
 
 
 ## Status

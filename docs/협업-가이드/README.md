@@ -14,6 +14,12 @@
 
 최신 Slack의 사람이 확정한 결정과 기존 문서가 충돌하면 해당 결정을 Linear에 반영하여 동기화한다. Agent의 제안만으로 요구사항을 확정하지 않는다.
 
+서버 계약·점수·누락 점수·오류 정책은 [Linear 서버 협의](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3)의 Accepted 문서를,
+공통 용어는 [Linear 용어집](https://linear.app/nsu-capstone/document/용어집-context-475370673105)을 우선 확인한다. Proposed는 확정 정책이 아니다.
+문서와 최신 사용자 결정에 차이가 있으면 출처와 적용 범위를 명시하고 승인 상태를 임의로 변경하지 않는다.
+2026-10-07 이번 문서 정리에서는 Linear와 NSU_CAPSTONE은 확인만 하며, 사용자 결정의
+[AI 작업 기준](../api/CLAP_RECOMMENDATION_DIRECTION.md)을 정합화한다.
+
 ## 저장소 범위
 
 Python 내부 CLAP 모델, 임베딩, 오디오 전처리·분석, 유사도 및 점수 계산을 다룬다.

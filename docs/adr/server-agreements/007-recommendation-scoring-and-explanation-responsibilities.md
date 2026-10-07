@@ -1,6 +1,8 @@
 # 007. 항목 점수·최종 추천·설명 생성의 역할 분담
 
-> 2026-10-05 현재 AI 측 방향: [CLAP 중심 곡 추천](../../api/CLAP_RECOMMENDATION_DIRECTION.md)을 우선 참고합니다. 아래 항목 평균·Spring Ranker·아티스트 집계·후보 비교 설명은 이전 계획이며, 이번 변경안은 팀 전체 합의 전입니다. BPM·리듬은 초기 순위에서 보류하고 추천 이유는 검증 가능한 근거로 유지합니다.
+> 과거 합의 기록 보존. 아래 Status·Decision은 당시 내용이며 현행 기준이 아니다. 로컬 번호는 Linear의 같은 번호와 내용이 다르다. 현행 서버 정책은 [Linear 목록](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3)의 Accepted 문서, 이번 사용자 결정은 [AI 작업 기준](../../api/CLAP_RECOMMENDATION_DIRECTION.md)을 확인한다.
+>
+> 관련 현행 확인 위치: [Linear 007](https://linear.app/nsu-capstone/document/007-추천-단위는-곡-69137a45b2c6) · [008](https://linear.app/nsu-capstone/document/008-추천-이유-생성-흐름-ae6cde7df2de) · [009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd). Proposed 012를 승인하거나 당시 기록을 재작성하지 않는다.
 
 
 ## Status
@@ -52,6 +54,6 @@ BPM·리듬 점수·설명 생성·업무 HTTP API는 후속 구현이며 담당
 
 근거: [메인 SSOT v1.6.1](https://linear.app/nsu-capstone/document/ssot-아티스트-행사-매칭-플랫폼-mvp-요구사항-e38bb23f87b1),
 [Top10 공지](https://nsu-capstone.slack.com/archives/C0BUSGZSA0P/p1791122087150769),
-[005](005-audio-retrieval-responsibilities.md),
+[당시 서버 협의 005](https://linear.app/nsu-capstone/document/005-audio-후보-검색과-최종-추천-역할-분담-801efc93fbe3),
 [NSUAI-15](https://linear.app/nsu-capstone/issue/NSUAI-15),
 [NSUAI-16](https://linear.app/nsu-capstone/issue/NSUAI-16).

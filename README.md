@@ -1,6 +1,6 @@
 # NSU_CAPSTONE_AI
 
-> 2026-10-05 현재 AI 측 방향: [CLAP 중심 곡 추천](docs/api/CLAP_RECOMMENDATION_DIRECTION.md)을 우선 참고합니다. 아래 항목 평균·Spring Ranker·아티스트 집계·후보 비교 설명은 이전 계획이며, 이번 변경안은 팀 전체 합의 전입니다. BPM·리듬은 초기 순위에서 보류하고 추천 이유는 검증 가능한 근거로 유지합니다.
+> 2026-10-07 사용자 결정(이 작업 대화), 구현 전: Spring Hard Filter → AI가 통과한 전체 곡의 Embedding/유사도 계산·정렬 → 전체 결과 반환 → Spring 유사도 순 곡 표시 → 사용자가 별도 버튼으로 해당 Artist와 매칭. 곡→아티스트 집계와 후보 간 비교 설명은 하지 않습니다. [현재 작업 기준](docs/api/CLAP_RECOMMENDATION_DIRECTION.md)에서 사용자 결정과 Linear Accepted 정책의 출처·차이를 구분합니다.
 
 
 아티스트–행사 매칭 플랫폼의 Python AI 서버입니다. Microsoft MSCLAP 기반 음악·텍스트와
@@ -11,7 +11,9 @@
 번역 방식·구현은 미정으로 보류합니다. 임시 점수 변환과 곡 단위 검색 CLI까지 구현했고,
 Audio 임베딩 테이블·동기 저장 CLI와 DB 후보 검색 CLI를 연결했습니다.
 백엔드 계약·수정/삭제 연동, BPM·리듬 분석, 설명 생성과 분석 API는 후속 작업입니다.
-곡→아티스트 집계·종합 Matching Score 계산·최종 Top10 선정은 Spring Backend Ranker 책임입니다.
+현행 개발 목표는 AI가 Hard Filter를 통과한 전체 곡을 유사도 순으로 반환하고 Spring이 곡을 표시하는 흐름입니다.
+사용자는 해당 곡의 Artist와 별도 버튼으로 매칭합니다. 곡→아티스트 집계는 하지 않습니다.
+전체 결과 반환과 ADR-0007 생성 정책은 아직 구현하지 않았습니다.
 
 ## 구현 상태
 
@@ -28,8 +30,8 @@ Audio 임베딩 테이블·동기 저장 CLI와 DB 후보 검색 CLI를 연결�
 | 음악 파일로 후보 곡 검색 | CLI 구현, 원본 코사인 순위·음악 간 임시 0~100점 반환 |
 | DB 저장 임베딩으로 후보 곡 검색 | 호환 조건 필터·동일 파일 제외·pgvector 정확 검색 CLI 구현 |
 | 임시 유사도 표시 점수 | 음악↔텍스트 0~0.4 / 음악↔음악 0~1, 최종 기준 검증 필요 |
-| 의미·BPM·리듬 항목 점수·추천 이유·후보 비교 설명 | Audio 임시 의미 점수 외 후속 구현 |
-| 곡→아티스트 집계·종합 매칭 점수·최종 Top10 | Spring Backend Ranker 책임 |
+| 의미·BPM·리듬 항목 점수·곡별 추천 이유 | Audio 임시 의미 점수 외 후속 구현; Accepted 서버 협의 참조 |
+| 전체 통과 곡 유사도 정렬·전체 결과 반환 | 사용자 결정 반영, 구현 전; 아티스트 집계·후보 비교 설명 제외 |
 | 분석·매칭 HTTP API·Spring Boot 연동 | 후속 구현 |
 
 분류 코드의 softmax는 라벨 사이의 상대점수이며 행사 적합도 백분율이 아닙니다.
@@ -41,16 +43,17 @@ MSCLAP의 배율 적용 유사도와 순수 cosine도 구분합니다.
 테이블 생성·음악 파일 저장·처리 이유는 [임베딩 저장 안내](docs/guides/EMBEDDING_STORAGE.md)를 참고하세요.
 저장된 후보 벡터로 검색하는 방법은 [DB 음악 검색](docs/guides/DATABASE_AUDIO_SEARCH.md)을 참고하세요.
 음악 입력 처리의 동기 방향과 AI 선설계 결정은 [ADR 0006](docs/adr/ADR-0006-asynchronous-audio-processing.md)에 기록했습니다.
-현재 검색은 곡 단위이며 최종 아티스트 Top10 선정은 Spring에서 수행합니다.
+현재 검색은 곡 단위 개발 CLI입니다. 기본 Top5는 검증 설정이며 서비스의 전체 결과 반환을 구현한 것은 아닙니다.
 
 2026-10-04 [백엔드 연동 결정](docs/api/AUDIO_SYNC_BACKEND_HANDOFF.md): revision별 v1·v2 벡터를
 함께 보관하고 Backend ACTIVE 전환 커밋 확인 후 이전 벡터를 정리합니다.
 AI 상태 조회·stale 재처리·ACTIVE revision 쌍 검색은 구현 전입니다.
-최종 추천은 AI 후보 50~100개 → Backend Ranker Top10이며 Reliability·Risk Signal은 별도 표시합니다.
+현행 목표는 전체 통과 곡의 유사도 정렬·전체 결과 반환이며 Reliability·Risk Signal은 별도 표시합니다.
+점수·누락 점수·오류의 Accepted 정책과 이번 사용자 결정의 차이는 [작업 기준](docs/api/CLAP_RECOMMENDATION_DIRECTION.md)에 기록합니다.
 
-## 최신 main 대비 추가·수정
+## 과거 구현 변경 기록 (PR #28 이후 Audio 저장·검색)
 
-비교 기준: 로컬 main
+당시 비교 기준: 로컬 main
 [`a86be58`](https://github.com/nsuCapstoneTeam/NSU_CAPSTONE_AI/commit/a86be58d9db19dcf2d767f117cf083c63ecc48aa) (PR #28 병합).
 FMA 검증 도구·영어 입력 정책·음악 파일 검색·임시 점수 변환은 이미 main에 포함되어 있습니다.
 
@@ -253,6 +256,7 @@ py -3.11 -m venv .venv
 - [API 책임 경계](docs/api/README.md)
 - [협업 가이드](docs/협업-가이드/README.md)
 
-다음은 Phase 3의 백엔드 ID·수정/삭제 계약 확정과 Text 생성 연결입니다. 이후 BPM·리듬 분석,
-항목별 점수 통합, AI 후보 retrieval·Backend Top10·설명, API 연결 순서로 진행합니다.
+현재 다음 작업은 Phase 3의 다른 Dataset 60~80초 입력 준비 → ADR-0007 생성·metadata 검증 → 개발 벡터 재생성 → 저장·검색 확인입니다.
+백엔드 ID·수정/삭제 계약, Text 생성·번역, Accepted 항목 점수·곡별 설명과 전체 통과 곡 반환/API 연동은 Roadmap의 의존 순서에 따라 진행합니다.
+기존 30초 FMA 자료는 과거 PoC로 유지하며 새 생성 정책 검증에 사용하지 않습니다.
 최종 점수와 더 큰 후보 집합의 검색 품질은 추가 검증이 필요하며 번역 구현은 보류합니다.

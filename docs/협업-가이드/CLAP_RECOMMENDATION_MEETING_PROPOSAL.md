@@ -2,6 +2,11 @@
 
 작성일: 2026-10-05
 
+> 과거 회의 제안 이력. 아래 체크리스트·역할 분담은 당시 제안이며 현행 개발 작업이 아니다.
+> 2026-10-07 사용자 결정은 [AI 작업 기준](../api/CLAP_RECOMMENDATION_DIRECTION.md)에 반영했다.
+> 점수·누락·오류 정책은 [Linear 서버 협의](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3)의 Accepted 문서를 확인한다.
+> 당시 청취·피드백·설명 대안과 미정 항목은 기록 가치가 있어 보존한다.
+
 상태: 회의용 Proposed. 팀 전체 합의 및 기능 구현 완료를 의미하지 않습니다.
 기존 요구사항·Accepted ADR을 대체하지 않으며 회의 합의 후 변경 이력을 반영합니다.
 
@@ -92,7 +97,7 @@ AI 반환 개수, 상위 비율, 최소 점수, Top10 유지 여부, 더 보기 
 본 제안이 채택되면 새 ADR과 SSOT 변경 이력으로 이 책임을 수정해야 합니다.
 이번 회의 자료 작성만으로 Linear AC나 Accepted 결정은 변경하지 않습니다.
 
-- [서버 협의 005](../adr/server-agreements/005-audio-retrieval-responsibilities.md)
+- [당시 서버 협의 005](https://linear.app/nsu-capstone/document/005-audio-후보-검색과-최종-추천-역할-분담-801efc93fbe3)
 - [역할 분담 007](../adr/server-agreements/007-recommendation-scoring-and-explanation-responsibilities.md)
 - [음악 항목 제안 008](../adr/server-agreements/008-music-score-items-and-performance-format.md)
 - [현재 API 계약](../api/AUDIO_SYNC_BACKEND_HANDOFF.md)
