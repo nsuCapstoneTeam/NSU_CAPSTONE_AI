@@ -63,16 +63,13 @@ class AudioEmbeddingRepository:
         if type(top_k) is not int or not 1 <= top_k <= 100:
             raise ValueError('top_k must be an integer between 1 and 100')
         metadata, profile, vector = prepare_embedding(query_result)
-        # crop_seed는 파일 해시에서 파생되어 곡마다 다르지만 나머지 생성 정책은 같아야 한다.
-        profile['preprocessing'] = {key: value for key, value in profile['preprocessing'].items()
-                                    if key != 'crop_seed'}
         with connection.cursor() as cursor:
             # 차원 혼합 테이블에서 거리 계산이 필터보다 먼저 실행되지 않도록 후보를 먼저 확정한다.
             # 후보 수와 TopK도 한 SQL 스냅샷에서 계산해 동시 등록 중 서로 다른 목록을 보고하지 않는다.
             cursor.execute('''WITH eligible AS MATERIALIZED (
                 SELECT music_id, embedding FROM ai_embeddings.audio_embeddings
                 WHERE dimension = %s
-                  AND generation_profile #- '{preprocessing,crop_seed}' = %s
+                  AND generation_profile = %s
                   AND source_sha256 <> %s
             )
             SELECT totals.candidate_count, matches.music_id, matches.cosine_similarity

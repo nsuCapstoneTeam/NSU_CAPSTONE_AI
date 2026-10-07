@@ -20,11 +20,15 @@ ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide�
 종합 점수·번역·HTTP API는 포함되지 않습니다. 이 문서는 로컬 manifest 검색을 설명합니다.
 후보를 미리 저장해 사용하는 검색은 [DB 음악 검색](DATABASE_AUDIO_SEARCH.md)을 참고하세요.
 
-프로젝트 루트에서 `samples`에 검색할 음악을 넣은 뒤 실행합니다.
-FMA 데이터는 별도로 다운로드합니다. [FMA 안내](FMA_VALIDATION.md)를 참고하세요.
-아래는 기존 단일 crop CLI/과거 PoC의 24곡 FMA validation 목록 예시입니다.
-ADR-0007 적용 후 새 검증에는 위 적격 Dataset 입력을 사용하며 아래 결과를 새 aggregation 검증으로 간주하지 않습니다.
-Compose 설정을 위해 `.env`의 `DB_PASSWORD`가 필요하지만 검색은 DB에 접속하지 않습니다.
+## Historical PoC / 과거 검증
+
+다음 명령과 FMA 목록은 당시 single-crop generation을 사용한 약 30초 입력의 과거 PoC 기록입니다.
+기존 FMA 파일·manifest·결과는 역사적 근거로 보존합니다. 현재 generator는 최소 60초를
+검증하므로 이 입력을 아래 명령으로 그대로 다시 실행하면 validation에 실패합니다.
+이 자료를 새 8-Chunk 정책의 검증으로 간주하지 마세요. 30초 파일을 반복·연결·padding하지 않습니다.
+아래 명령은 당시 실행 기록이며 현재 실행 방법이 아닙니다.
+
+Compose 설정을 위해 `.env`의 `DB_PASSWORD`가 필요했지만 당시 검색도 DB에 접속하지 않았습니다.
 
 ```powershell
 docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio samples/reference.mp3 --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/search-reference-new.json
@@ -35,20 +39,26 @@ docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python 
 동일 파일은 이름이 달라도 SHA-256으로 제외합니다. 누락·디코딩 실패 등은 오류로
 중단하며 불완전한 결과를 정상 검색 결과로 저장하지 않습니다.
 
-`--top-k` 기본값은 5이며 후보가 적으면 남은 후보 수만 반환합니다.
-`--seed` 기본값은 43입니다. 기존 출력 파일이 있으면 새 파일명을 사용하세요.
-입력 포맷은 torchaudio가 디코딩할 수 있는 MP3·WAV 등을 사용합니다.
-Docker에서는 `samples`가 읽기 전용으로 연결되므로 입력 음원을 변경하지 않습니다.
+## Current Usage / 현재 실행
 
-입력 음악이 없는 상태에서 먼저 검색을 시험하려면 공개 FMA 곡으로 실행할 수 있습니다.
+현재 `search_audio.py`는 `AudioEmbeddingGenerator`의 generation policy를 사용합니다.
+입력은 60~80초(양 경계 포함)여야 하며, 처음 56초에서 7초 × 8개 Chunk를 생성해
+하나의 대표 벡터로 집계합니다. 실제 권리 확인 60~80초 Dataset/fixture 준비와 음악 품질 평가는 후속 단계입니다.
+적격 query Audio와 각 후보 Audio를 준비해야 합니다. manifest의 모든 후보도 현재 60~80초
+validation을 통과해야 합니다. Dataset/fixture 준비 후 아래 placeholder 경로를 실제 경로로 바꿔 실행합니다.
 
 ```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio datasets/fma/fma_small/015/015770.mp3 --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/search-public-new.json
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio samples/eligible-highlight.wav --manifest samples/eligible-candidates.json --output datasets/fma/results/search-eligible-new.json
 ```
 
-위 예시는 동일 곡을 제외한 23곡 중 상위 5곡을 반환합니다.
+`--top-k` 기본값은 5이며 후보가 적으면 남은 후보 수만 반환합니다.
+검색 생성은 고정 8 chunk 방식이며 random crop seed를 사용하지 않습니다. 기존 출력 파일이 있으면 새 파일명을 사용하세요.
+입력은 현재 실행환경의 torchaudio decoder가 읽을 수 있어야 합니다. 압축 형식별 공식 지원 범위는
+별도 검증 전까지 확정하지 않습니다.
+Docker에서는 `samples`가 읽기 전용으로 연결되므로 입력 음원을 변경하지 않습니다.
+
 검색 결과의 정확성은 청취 평가가 필요하며, 현재 점수는 사용자용 최종 적합도 기준이 아닙니다.
-[실험 근거와 한계](../experiments/audio-search-phase2/README.md)를 함께 참고하세요.
+[과거 실험 근거와 한계](../experiments/audio-search-phase2/README.md)를 참고하세요.
 
 사용자 후보 목록도 아래 형식으로 만들 수 있습니다. 상대 경로는 실행 디렉터리
 기준이고, Docker에서 접근 가능한 경로를 사용해야 합니다.
@@ -57,9 +67,8 @@ docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python 
 {"tracks": [{"track_id": 1, "audio_path": "samples/candidate.mp3"}]}
 ```
 
-MSCLAP의 crop/pad는 전체 음원 분석이 아닙니다. 입력 파일의 SHA-256과 seed로
-crop을 고정합니다. 이전 쌍별 검증은 곡 ID 기반 seed이므로 결과가 정확히 같지는
-않을 수 있습니다. 이 manifest 검색 도구는 후보 임베딩을 매 실행마다 생성합니다.
+Audio Highlight 길이와 첫 56초 분석 범위는 [공통 생성 기준](AUDIO_EMBEDDING.md)을 따릅니다.
+이 manifest 검색 도구는 후보 임베딩을 매 실행마다 생성합니다.
 DB 검색 도구는 저장된 후보 벡터를 재사용합니다. 점수는 비슷함의 확률을 나타내지 않습니다.
 
 검색은 [공통 Audio 생성기](AUDIO_EMBEDDING.md)를 사용합니다. 각 파일의 임베딩을

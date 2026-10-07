@@ -28,24 +28,28 @@ def connection():
 @pytest.fixture
 def make_result():
     version = 'search-test-' + uuid.uuid4().hex
-    def make(values, file_hash='a' * 64, crop_seed=1):
+    def make(values, file_hash='a' * 64, profile_change=None):
         vector = torch.tensor([values], dtype=torch.float32)
         return AudioEmbeddingResult(vector, {
             'source_sha256': file_hash, 'shape': list(vector.shape), 'dimension': vector.shape[1],
             'model': 'MSCLAP', 'model_version': '2023', 'preprocessing_version': version,
-            'packages': {'torch': 'test'}, 'preprocessing': {'base_seed': 43, 'crop_seed': crop_seed},
+            'packages': {'torch': 'test'}, 'preprocessing': {
+                'analysis_duration_seconds': 56, 'chunk_duration_seconds': 7,
+                'chunk_count': 8, 'aggregation': 'mean', 'channel_policy': 'mono',
+                'profile_change': profile_change,
+            },
             'dtype': 'torch.float32', 'device': 'cpu',
         })
     return make
 
 
 def test_database_rank_matches_torch_and_returns_top_five(connection, make_result):
-    query = make_result([1, 0, 0], file_hash='b' * 64, crop_seed=99)
+    query = make_result([1, 0, 0], file_hash='b' * 64)
     values = [[1, 0, 0], [0, 1, 0], [0.8, 0.6, 0], [-1, 0, 0], [0.5, 0.5, 0], [1, 0, 0]]
     prefix = 'test-' + uuid.uuid4().hex + '-'
     repository = AudioEmbeddingRepository()
     for index, vector in enumerate(values):
-        repository.save(connection, prefix + str(index), make_result(vector, crop_seed=index))
+        repository.save(connection, prefix + str(index), make_result(vector))
     cosines = audio_cosine_similarities(query.vector, torch.tensor(values)).tolist()
     expected = sorted(range(len(values)), key=lambda index: (-cosines[index], prefix + str(index)))[:5]
     found = repository.search(connection, query)
@@ -55,14 +59,14 @@ def test_database_rank_matches_torch_and_returns_top_five(connection, make_resul
     assert len(repository.search(connection, query, top_k=2)['results']) == 2
 
 
-@pytest.mark.parametrize('mismatch', ['dimension', 'model_version', 'base_seed', 'package', 'revision'])
+@pytest.mark.parametrize('mismatch', ['dimension', 'model_version', 'generation_profile', 'package', 'revision'])
 def test_incompatible_embedding_excluded_before_distance(connection, make_result, mismatch):
     query = make_result([1, 0, 0], file_hash='b' * 64)
     candidate = make_result([1, 0, 0, 0] if mismatch == 'dimension' else [1, 0, 0])
     if mismatch == 'model_version':
         candidate.metadata['model_version'] = 'other'
-    if mismatch == 'base_seed':
-        candidate.metadata['preprocessing']['base_seed'] = 44
+    if mismatch == 'generation_profile':
+        candidate.metadata['preprocessing']['profile_change'] = 'different'
     if mismatch == 'package':
         candidate.metadata['packages']['torch'] = 'other'
     if mismatch == 'revision':

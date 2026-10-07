@@ -55,8 +55,12 @@ result = self.generator.generate(audio_path)
 
 음악 파일 검색에서도 사용하던 생성기를 그대로 호출합니다. 저장용 전처리를 별도로
 만들면 검색 입력과 저장 후보의 벡터 분포가 달라질 수 있기 때문입니다.
-파일 내용 SHA-256으로 crop seed를 고정하고, 생성 전후 해시를 비교하며,
-유한값·0벡터·shape·차원을 검사합니다. 벡터와 생성 메타데이터를 함께 반환합니다.
+원본 파일의 SHA-256을 계산해 기대 해시와 비교하고 생성 전후 해시를 확인합니다.
+SHA-256은 원본 식별·변경 감지에 쓰며 crop 위치나 seed 결정에는 사용하지 않습니다.
+현재 생성기는 파일을 decode하고 60~80초 길이를 검증한 뒤 처음 56초를 7초 × 8개
+non-overlap Chunk로 처리합니다. 각 MSCLAP Chunk Embedding을 L2 정규화하고,
+Mean Pooling 후 최종 L2 정규화하여 대표 벡터 하나와 생성 metadata를 반환합니다.
+벡터의 유한값·0벡터·shape·차원도 검사합니다.
 자세한 동작은 [공통 생성기 설명](AUDIO_EMBEDDING.md)을 참고하세요.
 
 ### 3. 생성이 끝난 뒤 DB 트랜잭션 시작
@@ -78,7 +82,7 @@ DB 실패 후 자동 재시도는 아직 없으며, 같은 ID로 CLI를 다시 �
 pgvector 단정밀도로 변환한 뒤에도 유한값과 0벡터를 확인합니다.
 따라서 변환 과정에서 overflow나 underflow가 발생한 벡터도 저장하지 않습니다.
 
-`generation_profile`에는 모델·revision·패키지·전처리·seed·차원·dtype·device를
+`generation_profile`에는 모델·revision·패키지·전처리 조건·차원·dtype·device를
 기록합니다. 파일 경로는 파일 이동에도 달라질 수 있어 동일성 비교에서 제외합니다.
 원본 metadata는 별도로 모두 저장합니다. 로컬 절대 경로가 포함될 수 있으므로
 이를 사용자 응답에 그대로 노출하는 API는 만들지 않았습니다.

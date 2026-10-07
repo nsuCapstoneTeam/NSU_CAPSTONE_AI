@@ -12,7 +12,12 @@ def make_result():
     return AudioEmbeddingResult(torch.ones(1, 4), {
         'source_sha256': 'a' * 64, 'shape': [1, 4], 'dimension': 4,
         'model': 'MSCLAP', 'model_version': '2023', 'preprocessing_version': 'test-v1',
-        'packages': {'torch': 'test'}, 'preprocessing': {'base_seed': 43},
+        'packages': {'torch': 'test'}, 'preprocessing': {
+            'analysis_duration_seconds': 56, 'chunk_duration_seconds': 7,
+            'chunk_count': 8, 'chunk_overlap_seconds': 0,
+            'chunk_normalization': 'l2', 'aggregation': 'mean',
+            'final_normalization': 'l2', 'channel_policy': 'arithmetic_mean_downmix_to_mono',
+        },
         'dtype': 'torch.float32', 'device': 'cpu', 'source_path': '/test/audio.mp3',
     })
 
@@ -40,6 +45,27 @@ def test_float32_conversion_cannot_store_zero_or_infinite_vector():
         vector = torch.full((1, 4), number, dtype=torch.float64)
         with pytest.raises(ValueError):
             prepare_embedding(AudioEmbeddingResult(vector, result.metadata))
+
+
+def test_source_facts_do_not_change_shared_generation_profile():
+    first = make_result()
+    second = make_result()
+    second.metadata.update({
+        'source_sha256': 'b' * 64,
+        'source_duration_seconds': 80,
+        'source_sample_rate': 48_000,
+        'source_channels': 2,
+        'source_path': '/another/location/audio.wav',
+    })
+
+    first_profile = prepare_embedding(first)[1]
+    second_profile = prepare_embedding(second)[1]
+
+    assert first_profile == second_profile
+    assert 'source_sha256' not in first_profile
+    assert 'source_duration_seconds' not in first_profile
+    assert 'source_sample_rate' not in first_profile
+    assert 'source_channels' not in first_profile
 
 
 def test_generation_failure_does_not_open_database(monkeypatch):
