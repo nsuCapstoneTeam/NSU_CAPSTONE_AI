@@ -62,7 +62,7 @@ temp/
 *.flac
 
 data/
-datasets/
+/datasets/
 
 # =========================
 # ML Models / Checkpoints

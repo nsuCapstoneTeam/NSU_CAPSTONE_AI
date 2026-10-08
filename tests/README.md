@@ -9,6 +9,7 @@
 | embedding/ | 공통 생성기·저장 흐름·실제 DB 제약과 트랜잭션 |
 | matching/ | 후보 검색·순위·점수 정규화 |
 | fma/ | 표본 선택·검증 입력 처리 |
+| audio/ | Phase A Dataset 도구의 synthetic Audio·frame 경계·PCM·CLI·재현성 검사 |
 
 전체 테스트 명령은 그대로입니다.
 
