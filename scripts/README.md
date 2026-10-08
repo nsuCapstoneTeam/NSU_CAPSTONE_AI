@@ -18,6 +18,8 @@ Docker 명령에서는 `ai` 다음에 같은 Python 명령을 붙입니다.
 | matching/ | validate_audio_similarity.py | 음악 간 쌍별 유사도 측정 |
 | fma/ | download_fma.ps1 | FMA 다운로드·체크섬·압축 해제 |
 | fma/ | validate_fma.py | 표본 선택·음악/텍스트 유사도 측정 |
+| datasets/ | prepare_audio_highlights.py | Phase A 지정 구간의 로컬 60초 WAV 생성; 기존 출력 보호 |
+| datasets/ | validate_audio_highlights.py | 원본/Highlight 무결성·PCM·반복 재현성 검사; 모델·DB 접근 없음 |
 
 ```powershell
 docker compose run --rm --no-deps ai python -m scripts.database.check_database

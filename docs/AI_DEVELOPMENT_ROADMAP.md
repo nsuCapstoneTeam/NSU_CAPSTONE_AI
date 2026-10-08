@@ -204,7 +204,7 @@ Text 생성·번역, 백엔드 ID/FK·수정/삭제 계약, 오류 기록·자�
 Phase 3 전체 완료를 의미하지 않습니다.
 
 남은 작업:
-- [ ] 기존 30초 FMA와 다른 Dataset의 권리·접근 조건을 확인하고 60~80초 적격 입력 fixture 준비·길이 검증
+- [x] 기존 30초 FMA와 다른 Phase A Dataset의 로컬 MSCLAP 기술 검증용 출처·라이선스 확인(사용자 확인 근거) 및 60초 적격 fixture 준비·길이 검증
 - [ ] 개발 벡터 재생성 대상과 새 입력 매핑 확인: 같은 FMA 원본으로 재생성하지 않음
 - [x] ADR-0007 D1에 따른 decoded sample frame 기준 60~80초 inclusive 길이 validation 구현
 - [x] ADR-0007 D2·D3·D4에 따른 처음 56초 사용 및 7초 × 8개 non-overlap Chunk 생성
@@ -226,8 +226,10 @@ Phase 3 전체 완료를 의미하지 않습니다.
 
 Audio 정책 적용 순서:
 완료: ADR-0007 generator·generation metadata 구현, synthetic Audio 단위 검증, MSCLAP batch smoke validation.
-남은 순서: 다른 Dataset의 권리·60~80초 입력 준비 → 실제 음악 품질 및 PostgreSQL 통합 검증 → 재생성 대상/입력 매핑 확인 → 개발/테스트 벡터 삭제·재생성 → 새 generation 기반 저장·검색 검증 → similarity 분포 평가·calibration.
-기존 30초 FMA 음원·manifest·결과는 과거 PoC로 보존한다. 새 Dataset 이름은 미정이며 임의 반복/padding으로 FMA를 새 fixture로 바꾸지 않는다.
+완료 단계: Phase A Dataset 준비·60초 입력 기술 검증·Phase A 로컬 MSCLAP 기술 검증용 출처·라이선스 확인.
+다음 순서: 실제 MSCLAP real-music Embedding 검증·음악 품질 평가 (NEXT) → PostgreSQL 통합 검증 → 재생성 대상/새 입력 매핑 확인 및 기존 dev/test Audio Embedding 재생성 → 새 generation 기반 저장·검색 검증 → Similarity 분포 검증 → Calibration. Phase A 완료는 이후 단계의 완료를 뜻하지 않는다.
+기존 30초 FMA 음원·manifest·결과는 과거 PoC로 보존하며 임의 반복/padding으로 FMA를 새 fixture로 바꾸지 않는다.
+2026-10-08 [Phase A](experiments/audio-highlight-phase-a/README.md)에서 Kevin MacLeod 음원 6곡의 지정 60초 WAV 생성·기술 검증·반복 재현성을 완료했다. 공식 곡의 CC BY 4.0과 원본 MP3의 공식 Incompetech 직접 다운로드는 각각 confirmed_by_user다. Phase A 종합 verification_status=verified, rights_cleared=true로 로컬 MSCLAP 기술 검증용 출처·라이선스 확인을 완료했다. 공식 서버 파일과 SHA-256 비교는 not_performed이며 모든 향후 서비스/배포 용도의 포괄적인 권리 검토 완료를 뜻하지 않는다. 실제 MSCLAP/DB 평가·벡터 삭제/재생성은 수행하지 않았다.
 Dataset 선행조건은 Roadmap과 [FMA 안내](guides/FMA_VALIDATION.md)·[DB 검증 안내](guides/DATABASE_AUDIO_SEARCH.md)에서 관리하고 ADR-0007은 변경하지 않는다.
 운영 ACTIVE revision 보관·전환 정책과 구분합니다. 생성기는 float64로 norm과 pooling을
 계산하고 정확한 0 및 non-finite만 거부합니다. 실제 모델·Dataset 통합 평가는 적격 fixture가

@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "dataset_id": "adr0007-audio-highlight-phase-a-v1",
+  "path_base": "repository_root",
+  "tracks": [
+    {
+      "track_id": "the-britons",
+      "title": "The Britons",
+      "artist": "Kevin MacLeod",
+      "source": {
+        "path": "datasets/audio-highlight-validation/source/The Britons.mp3",
+        "sha256": "00e766ef7a2635b1e7c116bfff794cb3485c17730ec26c114a9b3fb21d7a837d",
+        "decoded_frames": 13526784,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "highlight": {
+        "path": "datasets/audio-highlight-validation/highlights/the-britons.wav",
+        "start_seconds": 0,
+        "duration_seconds": 60,
+        "start_frame": 0,
+        "end_frame_exclusive": 2646000,
+        "format_policy": {
+          "container": "WAV",
+          "subtype": "FLOAT",
+          "encoding": "PCM_F",
+          "bits_per_sample": 32,
+          "sample_rate": "preserve_source",
+          "channels": "preserve_source"
+        }
+      },
+      "rights": {
+        "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN2600004",
+        "official_catalog_isrc": "USUAN2600004",
+        "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "attribution": "\"The Britons\" Kevin MacLeod (incompetech.com). Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/ Changes: excerpt [0, 60) seconds (60 seconds); converted from MP3 to float32 WAV; source sample rate and stereo preserved.",
+        "verification_status": "verified",
+        "source_url_role": "official_track_information_page_not_mp3_download_url",
+        "official_license_verification": {
+          "status": "confirmed_by_user",
+          "basis": "User confirmed CC BY 4.0 on the official Incompetech page for this track.",
+          "evidence_document": "docs/experiments/audio-highlight-phase-a/ATTRIBUTION.md"
+        },
+        "local_source_verification": {
+          "status": "confirmed_by_user",
+          "source_sha256": "00e766ef7a2635b1e7c116bfff794cb3485c17730ec26c114a9b3fb21d7a837d",
+          "observed_local_title": "The Britons",
+          "observed_local_artist": "Kevin MacLeod",
+          "basis": "User confirmed that this currently used source MP3 was directly downloaded from the official Incompetech website."
+        },
+        "official_binary_verification": {
+          "status": "not_performed",
+          "method": "sha256_comparison",
+          "basis": "No separately obtained official server file was compared with this local source SHA-256."
+        },
+        "verification_scope": "phase_a_local_msclap_technical_validation",
+        "verification_basis": "official_license_and_user_confirmed_official_download"
+      }
+    },
+    {
+      "track_id": "dentaneosuchus-hunt",
+      "title": "Dentaneosuchus Hunt",
+      "artist": "Kevin MacLeod",
+      "source": {
+        "path": "datasets/audio-highlight-validation/source/Dentaneosuchus Hunt.mp3",
+        "sha256": "9db6b36ce1f47769a4f3b5c36c4a06981dea0e7a8fa9d44d7d30ddf180760ace",
+        "decoded_frames": 11832192,
+        "sample_rate": 48000,
+        "channels": 2
+      },
+      "highlight": {
+        "path": "datasets/audio-highlight-validation/highlights/dentaneosuchus-hunt.wav",
+        "start_seconds": 120,
+        "duration_seconds": 60,
+        "start_frame": 5760000,
+        "end_frame_exclusive": 8640000,
+        "format_policy": {
+          "container": "WAV",
+          "subtype": "FLOAT",
+          "encoding": "PCM_F",
+          "bits_per_sample": 32,
+          "sample_rate": "preserve_source",
+          "channels": "preserve_source"
+        }
+      },
+      "rights": {
+        "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN2500003",
+        "official_catalog_isrc": "USUAN2500003",
+        "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "attribution": "\"Dentaneosuchus Hunt\" Kevin MacLeod (incompetech.com). Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/ Changes: excerpt [120, 180) seconds (60 seconds); converted from MP3 to float32 WAV; source sample rate and stereo preserved.",
+        "verification_status": "verified",
+        "source_url_role": "official_track_information_page_not_mp3_download_url",
+        "official_license_verification": {
+          "status": "confirmed_by_user",
+          "basis": "User confirmed CC BY 4.0 on the official Incompetech page for this track.",
+          "evidence_document": "docs/experiments/audio-highlight-phase-a/ATTRIBUTION.md"
+        },
+        "local_source_verification": {
+          "status": "confirmed_by_user",
+          "source_sha256": "9db6b36ce1f47769a4f3b5c36c4a06981dea0e7a8fa9d44d7d30ddf180760ace",
+          "observed_local_title": "Dentaneosuchus Hunt",
+          "observed_local_artist": "Kevin MacLeod",
+          "basis": "User confirmed that this currently used source MP3 was directly downloaded from the official Incompetech website."
+        },
+        "official_binary_verification": {
+          "status": "not_performed",
+          "method": "sha256_comparison",
+          "basis": "No separately obtained official server file was compared with this local source SHA-256."
+        },
+        "verification_scope": "phase_a_local_msclap_technical_validation",
+        "verification_basis": "official_license_and_user_confirmed_official_download"
+      }
+    },
+    {
+      "track_id": "cretaceous-dawn",
+      "title": "Cretaceous Dawn",
+      "artist": "Kevin MacLeod",
+      "source": {
+        "path": "datasets/audio-highlight-validation/source/Cretaceous Dawn.mp3",
+        "sha256": "a3f7bc1b0e0947d9b2a00c4faaeec55c73458b13b97d7fcb5d20e830da6e9226",
+        "decoded_frames": 11763072,
+        "sample_rate": 48000,
+        "channels": 2
+      },
+      "highlight": {
+        "path": "datasets/audio-highlight-validation/highlights/cretaceous-dawn.wav",
+        "start_seconds": 60,
+        "duration_seconds": 60,
+        "start_frame": 2880000,
+        "end_frame_exclusive": 5760000,
+        "format_policy": {
+          "container": "WAV",
+          "subtype": "FLOAT",
+          "encoding": "PCM_F",
+          "bits_per_sample": 32,
+          "sample_rate": "preserve_source",
+          "channels": "preserve_source"
+        }
+      },
+      "rights": {
+        "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN2500001",
+        "official_catalog_isrc": "USUAN2500001",
+        "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "attribution": "\"Cretaceous Dawn\" Kevin MacLeod (incompetech.com). Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/ Changes: excerpt [60, 120) seconds (60 seconds); converted from MP3 to float32 WAV; source sample rate and stereo preserved.",
+        "verification_status": "verified",
+        "source_url_role": "official_track_information_page_not_mp3_download_url",
+        "official_license_verification": {
+          "status": "confirmed_by_user",
+          "basis": "User confirmed CC BY 4.0 on the official Incompetech page for this track.",
+          "evidence_document": "docs/experiments/audio-highlight-phase-a/ATTRIBUTION.md"
+        },
+        "local_source_verification": {
+          "status": "confirmed_by_user",
+          "source_sha256": "a3f7bc1b0e0947d9b2a00c4faaeec55c73458b13b97d7fcb5d20e830da6e9226",
+          "observed_local_title": "Cretaceous Dawn",
+          "observed_local_artist": "Kevin MacLeod",
+          "basis": "User confirmed that this currently used source MP3 was directly downloaded from the official Incompetech website."
+        },
+        "official_binary_verification": {
+          "status": "not_performed",
+          "method": "sha256_comparison",
+          "basis": "No separately obtained official server file was compared with this local source SHA-256."
+        },
+        "verification_scope": "phase_a_local_msclap_technical_validation",
+        "verification_basis": "official_license_and_user_confirmed_official_download"
+      }
+    },
+    {
+      "track_id": "that-zen-moment",
+      "title": "That Zen Moment",
+      "artist": "Kevin MacLeod",
+      "source": {
+        "path": "datasets/audio-highlight-validation/source/That Zen Moment.mp3",
+        "sha256": "d796b819607ebb2b9c04a5b5a838d0e167ed66b765ecacf9423fb6c0953853dc",
+        "decoded_frames": 26539776,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "highlight": {
+        "path": "datasets/audio-highlight-validation/highlights/that-zen-moment.wav",
+        "start_seconds": 270,
+        "duration_seconds": 60,
+        "start_frame": 11907000,
+        "end_frame_exclusive": 14553000,
+        "format_policy": {
+          "container": "WAV",
+          "subtype": "FLOAT",
+          "encoding": "PCM_F",
+          "bits_per_sample": 32,
+          "sample_rate": "preserve_source",
+          "channels": "preserve_source"
+        }
+      },
+      "rights": {
+        "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN2400001",
+        "official_catalog_isrc": "USUAN2400001",
+        "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "attribution": "\"That Zen Moment\" Kevin MacLeod (incompetech.com). Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/ Changes: excerpt [270, 330) seconds (60 seconds); converted from MP3 to float32 WAV; source sample rate and stereo preserved.",
+        "verification_status": "verified",
+        "source_url_role": "official_track_information_page_not_mp3_download_url",
+        "official_license_verification": {
+          "status": "confirmed_by_user",
+          "basis": "User confirmed CC BY 4.0 on the official Incompetech page for this track.",
+          "evidence_document": "docs/experiments/audio-highlight-phase-a/ATTRIBUTION.md"
+        },
+        "local_source_verification": {
+          "status": "confirmed_by_user",
+          "source_sha256": "d796b819607ebb2b9c04a5b5a838d0e167ed66b765ecacf9423fb6c0953853dc",
+          "observed_local_title": "That Zen Moment",
+          "observed_local_artist": "Kevin MacLeod",
+          "basis": "User confirmed that this currently used source MP3 was directly downloaded from the official Incompetech website."
+        },
+        "official_binary_verification": {
+          "status": "not_performed",
+          "method": "sha256_comparison",
+          "basis": "No separately obtained official server file was compared with this local source SHA-256."
+        },
+        "verification_scope": "phase_a_local_msclap_technical_validation",
+        "verification_basis": "official_license_and_user_confirmed_official_download"
+      }
+    },
+    {
+      "track_id": "boogie-party",
+      "title": "Boogie Party",
+      "artist": "Kevin MacLeod",
+      "source": {
+        "path": "datasets/audio-highlight-validation/source/Boogie Party.mp3",
+        "sha256": "738c7cf5b142bca6f249f731d1f7c5a5025d17b7a05ba649319b0c512c229643",
+        "decoded_frames": 11984256,
+        "sample_rate": 44100,
+        "channels": 2
+      },
+      "highlight": {
+        "path": "datasets/audio-highlight-validation/highlights/boogie-party.wav",
+        "start_seconds": 90,
+        "duration_seconds": 60,
+        "start_frame": 3969000,
+        "end_frame_exclusive": 6615000,
+        "format_policy": {
+          "container": "WAV",
+          "subtype": "FLOAT",
+          "encoding": "PCM_F",
+          "bits_per_sample": 32,
+          "sample_rate": "preserve_source",
+          "channels": "preserve_source"
+        }
+      },
+      "rights": {
+        "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN2200002",
+        "official_catalog_isrc": "USUAN2200002",
+        "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "attribution": "\"Boogie Party\" Kevin MacLeod (incompetech.com). Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/ Changes: excerpt [90, 150) seconds (60 seconds); converted from MP3 to float32 WAV; source sample rate and stereo preserved.",
+        "verification_status": "verified",
+        "source_url_role": "official_track_information_page_not_mp3_download_url",
+        "official_license_verification": {
+          "status": "confirmed_by_user",
+          "basis": "User confirmed CC BY 4.0 on the official Incompetech page for this track.",
+          "evidence_document": "docs/experiments/audio-highlight-phase-a/ATTRIBUTION.md"
+        },
+        "local_source_verification": {
+          "status": "confirmed_by_user",
+          "source_sha256": "738c7cf5b142bca6f249f731d1f7c5a5025d17b7a05ba649319b0c512c229643",
+          "observed_local_title": "Boogie Party",
+          "observed_local_artist": "Kevin MacLeod",
+          "basis": "User confirmed that this currently used source MP3 was directly downloaded from the official Incompetech website."
+        },
+        "official_binary_verification": {
+          "status": "not_performed",
+          "method": "sha256_comparison",
+          "basis": "No separately obtained official server file was compared with this local source SHA-256."
+        },
+        "verification_scope": "phase_a_local_msclap_technical_validation",
+        "verification_basis": "official_license_and_user_confirmed_official_download"
+      }
+    },
+    {
+      "track_id": "all-this",
+      "title": "All This",
+      "artist": "Kevin MacLeod",
+      "source": {
+        "path": "datasets/audio-highlight-validation/source/All This.mp3",
+        "sha256": "15aa40f76bf114748e23452e4659fed30cfb88745efa5d13c7279ea2fc370f12",
+        "decoded_frames": 10987776,
+        "sample_rate": 48000,
+        "channels": 2
+      },
+      "highlight": {
+        "path": "datasets/audio-highlight-validation/highlights/all-this.wav",
+        "start_seconds": 90,
+        "duration_seconds": 60,
+        "start_frame": 4320000,
+        "end_frame_exclusive": 7200000,
+        "format_policy": {
+          "container": "WAV",
+          "subtype": "FLOAT",
+          "encoding": "PCM_F",
+          "bits_per_sample": 32,
+          "sample_rate": "preserve_source",
+          "channels": "preserve_source"
+        }
+      },
+      "rights": {
+        "source_url": "https://incompetech.com/music/royalty-free/index.html?isrc=USUAN1300001",
+        "official_catalog_isrc": "USUAN1300001",
+        "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+        "license_url": "https://creativecommons.org/licenses/by/4.0/",
+        "attribution": "\"All This\" Kevin MacLeod (incompetech.com). Licensed under Creative Commons Attribution 4.0 International (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/ Changes: excerpt [90, 150) seconds (60 seconds); converted from MP3 to float32 WAV; source sample rate and stereo preserved.",
+        "verification_status": "verified",
+        "source_url_role": "official_track_information_page_not_mp3_download_url",
+        "official_license_verification": {
+          "status": "confirmed_by_user",
+          "basis": "User confirmed CC BY 4.0 on the official Incompetech page for this track.",
+          "evidence_document": "docs/experiments/audio-highlight-phase-a/ATTRIBUTION.md"
+        },
+        "local_source_verification": {
+          "status": "confirmed_by_user",
+          "source_sha256": "15aa40f76bf114748e23452e4659fed30cfb88745efa5d13c7279ea2fc370f12",
+          "observed_local_title": "All This",
+          "observed_local_artist": "Kevin MacLeod",
+          "basis": "User confirmed that this currently used source MP3 was directly downloaded from the official Incompetech website."
+        },
+        "official_binary_verification": {
+          "status": "not_performed",
+          "method": "sha256_comparison",
+          "basis": "No separately obtained official server file was compared with this local source SHA-256."
+        },
+        "verification_scope": "phase_a_local_msclap_technical_validation",
+        "verification_basis": "official_license_and_user_confirmed_official_download"
+      }
+    }
+  ]
+}
