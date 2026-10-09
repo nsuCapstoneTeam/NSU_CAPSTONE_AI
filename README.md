@@ -79,22 +79,14 @@ FMA 검증 도구·영어 입력 정책·음악 파일 검색·임시 점수 변
 8개의 겹치지 않는 구간으로 처리하고, Chunk별 L2 정규화 → Mean Pooling → 최종 L2
 정규화로 대표 Embedding 하나를 만듭니다.
 
-현재 준비·문서화된 실제 query/candidate Dataset 또는 manifest 중 이 조건을 만족하는 것은 없습니다.
-따라서 현재 실행에는 적격 Dataset/fixture 준비가 선행되어야 합니다. 실제 권리 확인을 거친
-60~80초 Dataset/fixture 준비와 음악 품질 평가는 후속 작업이며, 실행 가능한 데이터 경로를
-임의로 제시하지 않습니다. 검색 절차와 입력 형식은 [사용 안내](docs/guides/AUDIO_SEARCH.md)를
+Phase A에서 별도 6곡·60초 fixture를 준비했습니다. 실제 MSCLAP 및 PostgreSQL 새 정책 검증은 아직 미완료입니다.
+Phase A manifest는 검색 후보 manifest와 형식이 다르므로 직접 전달하지 않습니다. 검색 절차와 입력 형식은 [사용 안내](docs/guides/AUDIO_SEARCH.md)를
 참고하세요.
 
 ### Historical FMA PoC
 
-아래 명령과 `manifest24.json`은 당시 single-crop generation 기준의 약 30초 FMA를 사용한
-**과거 PoC**입니다. 해당 query 및 candidate 파일은 현재 generator의 최소 60초 validation을
-통과하지 못하므로 이 명령은 현재 사용법이 아닙니다. 기존 FMA 파일·manifest·실험 결과는
-역사적 근거로 보존하며, 30초 파일을 반복·연결·padding해 현재 정책에 맞추지 않습니다.
-
-```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio samples/reference.mp3 --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/search-reference-new.json
-```
+30초 FMA·단일 crop 실험의 [핵심 조건·결과·한계](docs/experiments/audio-search-phase2/README.md)를 보존합니다.
+원본·manifest·상세 산출물은 Cleanup으로 삭제하며 완전 재현은 지원하지 않습니다. 현재 8-Chunk 검증과 구분합니다.
 
 당시 결과와 평가 근거는 [Phase 2 실험 기록](docs/experiments/audio-search-phase2/README.md)에,
 현재 입력 요건과 구분은 [검색 가이드](docs/guides/AUDIO_SEARCH.md)에 보존되어 있습니다.
@@ -148,9 +140,7 @@ Python 3.11, msclap 1.3.3, torch·torchaudio 2.1.2+cpu, transformers 4.35.2를 �
 영어 설명은 사람이 작성·수정했으므로 자동 번역 성능을 검증한 결과가 아닙니다.
 서비스 전체 성능이나 최종 정규화 공식을 확정하는 근거로 일반화하지 않습니다.
 
-- [실험 기록·재현 방법](docs/experiments/fma-phase2/README.md)
-- [공유용 입력 JSON](docs/experiments/fma-phase2/manifest16-descriptions.json)
-- [설명별 순위](docs/experiments/fma-phase2/rankings.csv)
+- [Historical 실험 조건·검색 결과·청취 평가](docs/experiments/fma-phase2/README.md)
 - [입력 언어 정책 ADR](docs/adr/ADR-0004-korean-input-english-msclap.md)
 
 ## 설치·서버 실행
@@ -194,22 +184,10 @@ docker compose exec -T ai python -m scripts.database.check_database
 DB 장애나 확장 누락이면 ready는 503이며 Docker healthy는 live 기준입니다.
 API 문서는 `http://localhost:8000/docs`에서 확인합니다.
 
-## FMA 검증 실행
+## FMA Historical 근거
 
-전체 절차는 [FMA 검증 가이드](docs/guides/FMA_VALIDATION.md)에 있습니다.
-데이터·모델 캐시는 Git에서 제외됩니다. 모델 검증은 DB에 접속하지 않지만
-Compose 설정 평가를 위해 `.env`의 `DB_PASSWORD` 값은 필요합니다.
-
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/fma/download_fma.ps1
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.fma.validate_fma prepare --metadata datasets/fma/fma_metadata/tracks.csv --audio-root datasets/fma/fma_small --per-genre 10 --seed 42 --manifest datasets/fma/manifests/manifest80-new.json
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.fma.validate_fma run --manifest datasets/fma/manifests/manifest80-new.json --output datasets/fma/results/genre80-new
-```
-
-manifest와 output은 새로운 이름을 사용합니다. 기존 결과를 덮어쓰지 않습니다.
-0–100 기준 조정에는 validation split을 사용하고, test 결과에 맞춰 조정하지 않습니다.
-샘플만 확인하려면 `samples/sample.wav`를 준비하고
-`python -m scripts.embedding.check_audio_embedding`을 실행합니다.
+[FMA Historical 안내](docs/guides/FMA_VALIDATION.md)에서 보존된 실험 보고서와 현재 Phase A 경로를 확인합니다.
+다운로드·측정 코드와 모델 캐시 연결은 유지하지만 삭제한 입력을 사용하는 실행 예제는 제공하지 않습니다.
 
 ## 자동 테스트
 
@@ -261,7 +239,7 @@ py -3.11 -m venv .venv
 | docs/experiments/audio-search-phase2/ | 정규화·음악 검색의 공유용 근거, 음원 제외 |
 | docs/adr/ | 기술 결정·미확정 사항 |
 | compose.fma.yaml | FMA 데이터·모델 캐시 연결 |
-| datasets/fma/ | 로컬 데이터·결과·평가 페이지, Git 제외 |
+| datasets/fma/huggingface/ | 공유 MSCLAP/GPT-2 모델 캐시, Git 제외 |
 
 ## 관련 자료와 다음 작업
 
@@ -272,5 +250,5 @@ py -3.11 -m venv .venv
 
 현재 다음 작업은 Phase 3의 다른 Dataset 60~80초 입력 준비 → 실제 음악 품질·PostgreSQL 통합 검증 → 개발 벡터 재생성 → 새 generation 기반 저장·검색 확인입니다.
 백엔드 ID·수정/삭제 계약, Text 생성·번역, Accepted 항목 점수·곡별 설명과 전체 통과 곡 반환/API 연동은 Roadmap의 의존 순서에 따라 진행합니다.
-기존 30초 FMA 자료는 과거 PoC로 유지하며 새 생성 정책 검증에 사용하지 않습니다.
+기존 30초 FMA의 핵심 실험 근거만 Markdown으로 유지하며 새 생성 정책 검증에 사용하지 않습니다.
 최종 점수와 더 큰 후보 집합의 검색 품질은 추가 검증이 필요하며 번역 구현은 보류합니다.

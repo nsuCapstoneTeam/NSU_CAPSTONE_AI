@@ -2,9 +2,9 @@
 
 ## 새 ADR-0007 개발/검증의 입력 선행조건
 
-2026-10-07 사용자 결정에 따라 기존 30초 FMA 음원·manifest·실험 결과는 과거 PoC로 보존한다.
+FMA Historical PoC의 핵심 실험 근거는 Markdown으로 보존하고, 원본·manifest·상세 결과는 2026-10-09 Cleanup에서 삭제한다.
 새 개발/검증에는 **FMA와 다른 Dataset의 60~80초(양 경계 포함) 입력**을 사용한다.
-Dataset 이름·권리/접근 조건·표본 구성은 아직 선정하지 않았다. 이번 문서 작업에서 음원을 준비하거나 변경하지 않는다.
+[Phase A](../experiments/audio-highlight-phase-a/README.md)의 6곡·60초 fixture와 Phase A 범위 출처·라이선스 확인은 완료됐다. 실제 MSCLAP real-music 검증과 새 정책 PostgreSQL 통합 검증은 아직 미완료다.
 기존 FMA를 임의 반복·padding해서 새 검증 입력으로 바꾸지 않는다.
 
 다른 Dataset의 권리·길이 확인 → 새 생성 규칙/metadata 검증 → 개발 벡터 대상·새 입력 매핑 확인 →
@@ -106,7 +106,7 @@ docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python 
 옵션으로 TopK(1~100, 기본 5)와 새로운 결과 파일을 지정할 수 있습니다.
 
 ```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_database_audio --audio samples/reference.mp3 --top-k 5 --output datasets/fma/results/search-database-new.json
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_database_audio --audio samples/reference.mp3 --top-k 5 --output tmp/search-database-new.json
 ```
 
 출력 파일은 덮어쓰지 않습니다. `candidate_count`는 조건이 맞고 동일 파일 제외를 마친
@@ -152,6 +152,6 @@ docker compose run --rm --no-deps -e RUN_EMBEDDING_DB_TESTS=1 ai python -m pytes
 이번 검증은 저장·검색 경로의 수치 일치 확인이며 새로운 추천 품질 평가가 아닙니다.
 전체 FMA를 검색하거나 큰 DB의 성능을 측정한 것은 아닙니다.
 검증용 후보 6개는 DB에 남겼으며 원본 음악은 Git에 포함하지 않습니다.
-로컬 검증 결과는 `datasets/fma/results/search-database-pilot.json`에 있습니다.
+[Historical DB 경로 검증 요약](../experiments/audio-search-phase2/README.md#당시-공통-생성기db-경로-검증)을 보존하며 상세 JSON은 삭제했습니다. Cleanup에서 기존 DB 행은 변경하지 않습니다.
 
 구현 근거: [pgvector 공식 문서](https://github.com/pgvector/pgvector)의 코사인 거리·정확 검색 규칙.

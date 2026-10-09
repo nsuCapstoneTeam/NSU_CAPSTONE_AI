@@ -62,12 +62,12 @@ A는 세 후보 중 제한된 극단 점수에 몰리는 개수가 가장 적어
 최종 기준은 새 설명·새 음악과 별도 평가로 검증해야 합니다.
 자동 한국어→영어 번역 경로는 아직 검증되지 않았습니다.
 
-공유한 [탐색 자료](../experiments/audio-search-phase2/text-normalization-comparison.json)와
-[음악 간 측정·평가](../experiments/audio-search-phase2/README.md)에 근거와 해시를 기록했습니다.
+[Historical 변환 탐색](../experiments/audio-search-phase2/README.md#음악텍스트-기준-탐색)과
+[음악 간 측정·평가](../experiments/audio-search-phase2/README.md)에 핵심 근거를 보존했습니다. 상세 산출물은 삭제했습니다.
 음악 파일 검색 CLI의 음악↔음악 변환과 Audio 임베딩 저장·DB 검색 CLI는 구현되어 있습니다.
 업무 HTTP API·Text 저장·번역·곡별 설명은 후속 작업입니다.
 여기 수식과 FMA 분포는 기존 단일 crop 개발용 기준입니다. ADR-0007 새 검증은 다른 Dataset의
-60~80초 적격 입력을 먼저 준비하며 [Roadmap](../AI_DEVELOPMENT_ROADMAP.md)과 [입력 안내](FMA_VALIDATION.md)를 따릅니다.
+Phase A에서 준비한 별도 60초 적격 입력을 사용하며 [Roadmap](../AI_DEVELOPMENT_ROADMAP.md)과 [입력 안내](FMA_VALIDATION.md)를 따릅니다.
 서버 점수·누락 정책은 [Accepted Linear 협의 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)를 확인합니다.
 임시 CLI 수식을 서버의 최종 변환 수식으로 승격하지 않습니다.
 외부 수치 전달·결과 버전은 Linear 011의 Superseded 상태와 012 §4.3의 AI 동의 기록을 참조하며, 012 전체 Status=Proposed와 부분 동의를 구분합니다. 상세 확인 위치는 [AI 작업 기준의 상태와 출처](../api/CLAP_RECOMMENDATION_DIRECTION.md#상태와-출처)입니다.

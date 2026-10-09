@@ -46,9 +46,10 @@
 행사 조건 구조화에 사용하는 기존 LLM을 재사용할지, Python에서 번역 모델/API를
 호출할지 결정한 뒤 구현한다.
 
-## 로컬 검증 자료
+## Historical 검증 근거
 
-- 입력: datasets/fma/manifests/manifest-listening-aligned-docker.json
-- 결과: datasets/fma/results/listening-aligned/
-- 청취 평가: datasets/fma/evaluations/fma-top3-evaluation.json
+- [실험 조건](../experiments/fma-phase2/README.md#목적과-조건)
+- [수정본 검색 결과](../experiments/fma-phase2/README.md#수정본-검색-결과)
+- [사용자 청취 평가와 한계](../experiments/fma-phase2/README.md#사용자-청취-평가)
+- 원본·상세 산출물은 Cleanup으로 삭제했으며 핵심 근거는 위 Markdown에 보존한다.
 - 관련 작업: NSUAI-1, NSUAI-2 및 Phase 3 Text Embedding 생성

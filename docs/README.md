@@ -22,7 +22,7 @@
 | 음악 파일로 Top5 검색 | [Audio 검색](guides/AUDIO_SEARCH.md) |
 | DB 저장 후보로 Top5 검색 | [DB 음악 검색](guides/DATABASE_AUDIO_SEARCH.md) |
 | 유사도 표시 점수 | [점수 정규화](guides/SEMANTIC_SCORE_NORMALIZATION.md) |
-| FMA 데이터 준비·검증 실행 | [FMA 검증](guides/FMA_VALIDATION.md) |
+| FMA Historical PoC 안내 | [FMA 검증](guides/FMA_VALIDATION.md) |
 | 음악·텍스트 검증 근거 | [Phase 2 실험](experiments/fma-phase2/README.md) |
 | 음악·음악 검증 근거 | [음악 검색 실험](experiments/audio-search-phase2/README.md) |
 | 기술 결정 | [ADR](adr/README.md) |

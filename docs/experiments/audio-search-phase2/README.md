@@ -1,7 +1,17 @@
-# 음악 파일 검색 및 임시 점수 검증
+# 음악 파일 검색 및 임시 점수 검증 — Historical PoC
 
-2026-10-02 KST, MSCLAP 2023 CPU 실험입니다. 이 폴더에는 음원·가중치·벡터가
-아닌 공유용 후보 목록, 측정값, 청취 평가, 집계를 보관합니다.
+2026-10-02 KST의 로컬 Docker CPU 실험입니다. 핵심 조건·수치·한계를 Markdown으로 보존합니다.
+2026-10-09 Cleanup에서 원본·상세 CSV/JSON·manifest·Embedding·청취 UI를 삭제하며 완전 재현은 지원하지 않습니다.
+
+## 공통 실험 조건
+
+- FMA small 30초 MP3, 8개 장르: Electronic, Experimental, Folk, Hip-Hop, Instrumental, International, Pop, Rock.
+- MSCLAP 2023, Audio/Text 1024차원, checkpoint `microsoft/msclap` revision `c47d441165daa21986ead0850660917636a81775`.
+- Python 3.11, msclap 1.3.3, torch/torchaudio 2.1.2+cpu, transformers 4.35.2.
+- 당시 모델 기본 단일 7초 crop/pad, resample=True. 현재 첫 56초·8-Chunk 집계와 다른 조건입니다.
+- Audio↔Text는 공식 test split/표본 seed 42 및 추론 `42 + track_id`, Audio↔Audio는 공식 validation split/표본 seed 43 및 추론 `43 + track_id`입니다.
+- 순위는 정규화 내적의 raw cosine으로 계산합니다. MSCLAP 배율 출력·softmax·확률과 구분합니다.
+- 언어 비교·16/80곡 선정과 영어 입력 결정은 [FMA 실험](../fma-phase2/README.md)에 보존합니다.
 
 ## 음악↔텍스트 기준 탐색
 
@@ -19,12 +29,15 @@
 A는 점수 제한이 상대적으로 적어 임시 표시 기준으로 선택했습니다.
 하한 0과 상한 0.4가 실제 부적합·완벽한 적합의 경계라는 뜻은 아닙니다.
 기존 test 자료를 기준 탐색에 사용했으므로 독립 검증으로 보고하지 않습니다.
-세 후보의 상세 통계·입력 해시는 [비교 자료](text-normalization-comparison.json)에 있습니다.
+96개는 전체 조합의 무작위 표본이 아니라 선택된 순위입니다. 평가자는 1명이며 설명 작성자이기도 합니다.
+적합 cosine 범위는 -0.04578~0.39833, 부적합은 -0.01134~0.23770으로 겹칩니다.
+선형 점수 변환은 원래 순위를 개선하지 않으며 clipping은 동점을 만들 수 있습니다. 순위는 raw cosine을 사용합니다.
+점수는 확률이나 행사 적합성 분류가 아닙니다. 자동 한국어→영어 번역 성능도 평가하지 않았습니다.
 
 ## 새 음악 표본 및 쌍별 측정
 
 FMA small의 공식 validation split에서 seed 43으로 장르별 3곡, 총 24곡을
-선정했습니다. 기존 80곡과 중복은 없습니다. 같은 곡 비교를 제외한 276쌍을 측정했습니다.
+선정했습니다. 장르별 ID 정렬 후보에서 seed로 표본을 선택했고 기존 80곡과 중복은 없습니다. 같은 곡 비교를 제외한 276쌍을 측정했습니다.
 임베딩 shape는 `(24, 1024)`이고 추론 seed는 `43 + track_id`입니다.
 
 | 항목 | 결과 |
@@ -53,12 +66,13 @@ FMA small의 공식 validation split에서 seed 43으로 장르별 3곡, 총 24�
 
 1위 후보는 비슷함 3, 애매함 4, 다름 1개입니다.
 상대적인 평균 차이는 있지만 범위가 겹치며, 적합 확률이나 최종 서비스 품질을
-보장하지 않습니다. 24개 평가는 같은 음악이 반복되는 소규모 표본입니다.
+보장하지 않습니다. 24개 평가는 같은 음악이 반복되는 소규모 표본입니다. 276쌍도 24곡을 공유하므로 독립 관측 276개가 아닙니다. 장르 일치는 진단 proxy이며 인간 유사도의 정답이 아닙니다.
+비슷함 점수 범위 48.16~93.94와 다름 31.94~65.45도 겹칩니다.
 추가 기준 조정에 이 평가를 사용하면 별도 표본으로 다시 검증해야 합니다.
 
 ## 검색 실행 검증
 
-`scripts.matching.search_audio`는 SHA-256 기반 seed로 crop을 고정하고 매번 후보 임베딩을
+당시 `scripts.matching.search_audio`는 SHA-256 기반 seed로 crop을 고정하고 매번 후보 임베딩을
 생성합니다. 입력과 같은 바이트의 파일은 제외하며 원본 코사인 내림차순으로 정렬합니다.
 원본 cosine similarity가 같으면 정수 track ID 오름차순으로 순위를 안정화합니다.
 
@@ -69,35 +83,17 @@ FMA small의 공식 validation split에서 seed 43으로 장르별 3곡, 총 24�
 - 검색은 SHA-256 seed, 쌍별 실험은 곡 ID seed를 사용하므로 crop과 결과가 다를 수 있습니다.
   쌍별 실험의 청취 평가를 검색 CLI 자체의 정확도 평가로 취급하지 않습니다.
 
-## 재현 방법
+## 당시 공통 생성기·DB 경로 검증
 
-FMA 데이터 다운로드, Docker 및 `.env` 준비는 [기본 검증 안내](../../guides/FMA_VALIDATION.md)를
-따릅니다. 모델 추론은 DB 연결을 사용하지 않지만 Compose는 `DB_PASSWORD` 설정이 필요합니다.
-프로젝트 루트에서 실행하고 기존 결과를 덮어쓰지 않는 새 output 이름을 사용합니다.
+2026-10-03의 단일 crop 공통 생성기 재측정에서 개인 reference와 후보 24곡의 Top5 ID·cosine·점수가 기존 검색과 모두 일치했고 1024차원 및 25개 입력 메타데이터를 확인했습니다. 당시 테스트 55개 통과 기록은 현재 8-Chunk real-music 평가가 아닙니다.
 
-```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.validate_audio_similarity --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/audio-audio-reproduction --seed 43
+같은 날 Docker CPU / PostgreSQL 18 / pgvector 0.8.6의 후보 6곡 pilot에서 DB와 Torch의 Top5 순위가 일치했고 cosine 최대 차이는 약 `1.4543e-7`이었습니다. 당시 테스트 98개 통과 기록입니다.
+이는 저장·검색 수치 일치 확인이며 추천 품질·큰 DB 성능·현재 정책 검증이 아닙니다. [당시 DB 검증 요약](../../guides/DATABASE_AUDIO_SEARCH.md#실제-검증-결과)을 유지하며 Cleanup에서 DB 행을 삭제하거나 다시 조회하지 않습니다.
 
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio datasets/fma/fma_small/015/015770.mp3 --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/search-public-example.json
-```
+## 보존 범위와 현재 검증
 
-전체 재측정 CSV는 현재 음악 간 점수 열을 추가하므로 이전 원본과 바이트 단위로
-같지 않습니다. `track_id_a`, `track_id_b`, `cosine_similarity`를 대조합니다.
-업로드 준비 시 공유 manifest와 새 측정 CLI로 다시 실행하여 276개 원본 코사인 값이
-모두 정확히 일치하는 것을 확인했습니다. 전체 자동 테스트는 46개 통과했고,
-Starlette TestClient deprecation 경고가 1개 있었습니다.
-checkpoint는 `c47d441165daa21986ead0850660917636a81775`, msclap 1.3.3,
-torch·torchaudio 2.1.2+cpu, transformers 4.35.2 기준입니다.
-
-## 공유 파일
-
-- [manifest24.json](manifest24.json): 이식 가능한 음원 경로·곡 ID·제목·라이선스
-- [similarities.csv](similarities.csv): 실제 276쌍 원본 측정값, 상한 0.4 적용 진단 열 포함
-- [measurement-report.json](measurement-report.json): 패키지·음원 해시·분포
-- [listening-evaluation.json](listening-evaluation.json): 청취 평가 24개·집계, 자유 메모 제외
-- [search-example.json](search-example.json): 사용자 검색 결과 예시, 입력 음원·경로 제외
-- [provenance.json](provenance.json): 원본 및 공유 파일 해시; 공유 JSON·CSV는 LF 사용
-
-원본 음원·ZIP·모델·벡터 캐시·개인 입력 음원·HTML 평가 페이지는 Git에 포함하지 않습니다.
-장르 일치는 진단용이고 검색 계산에 사용하지 않습니다. BPM·리듬 특징은 별도 추출하지
-않았으며 행사 적합도·아티스트별 TOP 5·종합 점수·LLM 설명 검증도 후속 작업입니다.
+당시 공유 자료 준비에서는 276개 raw cosine 재측정 일치와 자동 테스트 46개 통과를 확인했습니다. 상세 해시·개별 판정·점수 행은 보존하지 않습니다.
+현재 기준은 [ADR-0007](../../adr/ADR-0007-audio-highlight-embedding-strategy.md)과 [Phase A](../audio-highlight-phase-a/README.md)입니다.
+Phase A의 별도 음악 6곡·60초 fixture 준비, PCM 동일성·재현성 및 Phase A 범위 출처·라이선스 확인은 완료됐습니다.
+실제 MSCLAP real-music Embedding 검증과 새 정책 PostgreSQL 통합 검증은 아직 미완료입니다. 다음 단계는 실제 MSCLAP Embedding 검증이며 이후 DB·벡터 재생성·분포 검증·Calibration을 진행합니다.
+과거 FMA 분포·임시 anchor를 새 생성 조건의 calibration 근거로 간주하지 않습니다. 완전 재현 명령은 제공하지 않으며 공유 모델 캐시와 현재 import되는 helper는 유지합니다.

@@ -228,7 +228,7 @@ Audio 정책 적용 순서:
 완료: ADR-0007 generator·generation metadata 구현, synthetic Audio 단위 검증, MSCLAP batch smoke validation.
 완료 단계: Phase A Dataset 준비·60초 입력 기술 검증·Phase A 로컬 MSCLAP 기술 검증용 출처·라이선스 확인.
 다음 순서: 실제 MSCLAP real-music Embedding 검증·음악 품질 평가 (NEXT) → PostgreSQL 통합 검증 → 재생성 대상/새 입력 매핑 확인 및 기존 dev/test Audio Embedding 재생성 → 새 generation 기반 저장·검색 검증 → Similarity 분포 검증 → Calibration. Phase A 완료는 이후 단계의 완료를 뜻하지 않는다.
-기존 30초 FMA 음원·manifest·결과는 과거 PoC로 보존하며 임의 반복/padding으로 FMA를 새 fixture로 바꾸지 않는다.
+기존 30초 FMA의 핵심 조건·결과·한계는 Historical Markdown으로 보존하고 원본·상세 산출물은 삭제하며 임의 반복/padding으로 FMA를 새 fixture로 바꾸지 않는다.
 2026-10-08 [Phase A](experiments/audio-highlight-phase-a/README.md)에서 Kevin MacLeod 음원 6곡의 지정 60초 WAV 생성·기술 검증·반복 재현성을 완료했다. 공식 곡의 CC BY 4.0과 원본 MP3의 공식 Incompetech 직접 다운로드는 각각 confirmed_by_user다. Phase A 종합 verification_status=verified, rights_cleared=true로 로컬 MSCLAP 기술 검증용 출처·라이선스 확인을 완료했다. 공식 서버 파일과 SHA-256 비교는 not_performed이며 모든 향후 서비스/배포 용도의 포괄적인 권리 검토 완료를 뜻하지 않는다. 실제 MSCLAP/DB 평가·벡터 삭제/재생성은 수행하지 않았다.
 Dataset 선행조건은 Roadmap과 [FMA 안내](guides/FMA_VALIDATION.md)·[DB 검증 안내](guides/DATABASE_AUDIO_SEARCH.md)에서 관리하고 ADR-0007은 변경하지 않는다.
 운영 ACTIVE revision 보관·전환 정책과 구분합니다. 생성기는 float64로 norm과 pooling을
@@ -613,5 +613,5 @@ MSCLAP PoC·Audio/Text 차원·실제 Similarity 측정과 Audio 저장/검색 C
 
 이번 사용자 결정으로 전체 곡 반환·유사도 정렬·집계 없음·후보 비교 설명 폐기를 반영했다.
 이전 순위/반환 제한 계획은 당시 이력이며 Linear Accepted 상태는 변경하지 않았다.
-30초 FMA는 과거 PoC로 보존하고 새 검증은 다른 Dataset을 사용한다.
+30초 FMA는 핵심 근거만 Historical Markdown으로 보존하고 새 검증은 다른 Dataset을 사용한다.
 ADR-0007·코드·테스트·DB·데이터를 변경하지 않은 문서 작업이다.
