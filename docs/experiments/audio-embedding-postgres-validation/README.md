@@ -83,12 +83,10 @@ try {
   $env:DB_PASSWORD = $env:VALIDATION_DB_PASSWORD
 # Guard database identity before migration/write; never fall back to a development DB.
 # Keep credentials in this PowerShell process and out of logs/evidence.
-  # Apply the production migration path; schema is not created by hand.
-  python -m scripts.database.migrate_embeddings
-  if ($LASTEXITCODE -ne 0) { throw 'Production migration failed.' }
-
+  # The validator checks expected DB name, loopback host, dedicated port, user/owner and marker
+  # through its read-only identity guard before it applies production migrations.
   # Run actual Phase A input validation, MSCLAP generation and PostgreSQL integration tests.
-$runId = Get-Date -Format 'yyyyMMdd-HHmmss'
+  $runId = Get-Date -Format 'yyyyMMdd-HHmmss'
   python -m scripts.database.validate_audio_embedding_postgres --expected-database audio_embedding_validation --run-integration-tests --report "docs/experiments/audio-embedding-postgres-validation/validation-result-$runId.json"
   if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL/MSCLAP validation failed; inspect the report before cleanup.' }
 } finally {
@@ -101,7 +99,7 @@ $runId = Get-Date -Format 'yyyyMMdd-HHmmss'
 }
 ~~~
 
-검증 CLI는 실제 연결에서 database name, 접속 user와 database owner 일치, 위 ownership marker를 확인한 뒤에만 쓰기와 migration을 허용합니다. 이름·loopback host·별도 port·전용 user·owner·marker 중 하나라도 다르면 실행이 차단됩니다. 전용 DB에 접속할 수 없거나 health polling이 실패해도 기존 개발 DB로 전환하지 않으며, `finally`는 `docker run --cidfile`에서 성공적으로 확인한 해당 container ID만 정리합니다. 이름이 이미 사용 중이면 시작 전에 중단하고 그 container는 건드리지 않습니다.
+검증 CLI는 production migration 명령보다 먼저 read-only identity guard를 실행합니다. expected DB name, loopback host, 5432가 아닌 전용 port, 전용 user와 database owner 일치, validation marker를 확인한 뒤에만 production migration 및 검증을 진행합니다. 어느 조건이든 불일치하거나 DB 연결이 실패하면 migration 전에 중단하며 개발 DB fallback은 없습니다. `finally`는 `docker run --cidfile`에서 성공적으로 확인한 해당 container ID만 정리합니다. 이름이 이미 사용 중이면 시작 전에 중단하고 그 container는 건드리지 않습니다.
 
 ## 결과
 
