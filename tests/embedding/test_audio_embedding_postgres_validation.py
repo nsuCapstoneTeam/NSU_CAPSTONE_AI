@@ -380,29 +380,64 @@ def test_live_mismatch_blocks_migration_and_generator(validation_env, monkeypatc
     generator.assert_not_called()
 
 
-def test_measurement_failure_still_verifies_fresh_connection_rollback(monkeypatch):
+@pytest.mark.parametrize(('failure_stage', 'rollback_failure'), [
+    ('schema_evidence', False),
+    ('database_measurements', False),
+    ('database_measurements', True),
+])
+def test_primary_failure_stage_survives_rollback_verification(monkeypatch, failure_stage, rollback_failure):
     probe, work, fresh = MagicMock(), MagicMock(), MagicMock()
     probe.execute.return_value.fetchone.side_effect = [('0.8.6',), (None,)]
     work.execute.return_value.fetchone.return_value = (0,)
     fresh.execute.return_value.fetchone.return_value = (0,)
+    if rollback_failure:
+        fresh.execute.side_effect = tool.psycopg.OperationalError('rollback verification connection lost')
     connections = iter([probe, work, fresh])
     monkeypatch.setattr(tool, 'connect_validation', lambda expected: (next(connections), {'identity_verified': True}))
     monkeypatch.setattr(tool, 'apply_validated_migrations', lambda expected: [])
     monkeypatch.setattr(tool, 'cache_identity', lambda path: {'microsoft--msclap': {'revision': 'synthetic', 'files': {'CLAP_weights_2023.pth': {'sha256': 'c'*64}}}})
     monkeypatch.setattr(tool, 'audio_file_sha256', lambda path: 'c'*64)
-    monkeypatch.setattr(tool, 'schema_evidence', lambda conn: {})
+    def inspect_schema(connection):
+        if failure_stage == 'schema_evidence':
+            raise tool.CheckFailed('schema evidence failure')
+        return {}
+    monkeypatch.setattr(tool, 'schema_evidence', inspect_schema)
     result = tool.synthetic_result([1, 0, 0], 'rollback', tool.PREPROCESSING_VERSION)
     result.metadata['checkpoint_path'] = __file__
     generator = MagicMock()
     generator.generate.return_value = result
     monkeypatch.setattr(tool, 'AudioEmbeddingGenerator', lambda: generator)
-    def failed(*args):
-        raise tool.CheckFailed('measurement failure')
-    monkeypatch.setattr(tool, 'measure_transaction', failed)
+    def measure(*args):
+        if failure_stage == 'database_measurements':
+            raise tool.CheckFailed('measurement failure')
+        return {'status': 'PASS'}
+    monkeypatch.setattr(tool, 'measure_transaction', measure)
     report = {'execution': {}}
-    with pytest.raises(tool.CheckFailed, match='measurement failure'):
+    expected_error = tool.psycopg.OperationalError if rollback_failure else tool.CheckFailed
+    expected_message = 'rollback verification connection lost' if rollback_failure else (
+        'schema evidence failure' if failure_stage == 'schema_evidence' else 'measurement failure')
+    with pytest.raises(expected_error, match=expected_message):
         tool.execute_validation('audio_embedding_validation', [{'track_id': 'x', 'path': 'unused', 'sha256': 'a'*64}], report)
     work.rollback.assert_called_once()
     work.close.assert_called_once()
-    assert report['rollback']['fresh_connection'] and report['rollback']['remaining_validation_rows'] == 0
+    assert report['execution']['failed_stage'] == failure_stage
+    assert report['execution']['primary_failure']['stage'] == failure_stage
+    if rollback_failure:
+        assert report['rollback']['status'] == 'FAIL'
+        assert report['execution']['rollback_verification'] == 'FAILED'
+        tool._record_failure(report, status='FAIL', stage='rollback_verification',
+                             reason_code='database_connection_lost_during_validation',
+                             message='rollback verification DB 연결 실패')
+        assert report['failure']['stage'] == failure_stage
+        assert report['failure']['rollback_failure']['stage'] == 'rollback_verification'
+        assert 'rollback verification도 실패' in report['reason']
+    else:
+        assert report['rollback']['status'] == 'PASS'
+        assert report['execution']['rollback_verification'] == 'PASS'
+        assert report['execution']['current_stage'] == failure_stage
+        assert report['rollback']['remaining_validation_rows'] == 0
+        tool._record_failure(report, status='FAIL', stage=report['execution']['current_stage'],
+                             reason_code='validation_check_failed', message=expected_message)
+        assert report['failure']['stage'] == failure_stage
+        assert report['failure']['message'] == expected_message
     fresh.close.assert_called_once()

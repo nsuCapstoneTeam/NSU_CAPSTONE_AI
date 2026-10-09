@@ -471,6 +471,65 @@ def environment_evidence():
                 'msclap', 'numpy', 'soundfile', 'transformers')}, 'device': 'cpu'}
 
 
+def _error_message(error):
+    if isinstance(error, psycopg.Error):
+        return 'DB 실행 실패; 민감한 원본 오류는 출력하지 않음'
+    return str(error)
+
+
+def _rollback_and_close(connection, report):
+    errors = []
+    for action in (connection.rollback, connection.close):
+        try:
+            action()
+        except Exception as error:
+            errors.append(error)
+    if errors:
+        if len(errors) > 1:
+            report.setdefault('rollback', {}).setdefault('cleanup_errors', []).extend(
+                _error_message(error) for error in errors[1:])
+        raise errors[0]
+
+
+def _rollback_and_verify(connection, expected_database, report):
+    execution = report['execution']
+    execution['current_stage'] = 'rollback_verification'
+    execution['rollback_verification'] = 'STARTED'
+    report['rollback'] = {'status': 'STARTED'}
+    fresh = None
+    try:
+        _rollback_and_close(connection, report)
+        fresh, identity = connect_validation(expected_database)
+        count = fresh.execute('SELECT count(*) FROM ai_embeddings.audio_embeddings').fetchone()[0]
+        require(count == 0, 'rollback 후 validation row가 남았습니다')
+        report['rollback'] = {'fresh_connection': True, 'remaining_validation_rows': count,
+                              'identity': identity, 'status': 'PASS'}
+        _rollback_and_close(fresh, report)
+        fresh = None
+    except Exception as error:
+        # 오류를 삼키지 않는다. 상태를 기록한 뒤 호출부로 그대로 전달한다.
+        message = _error_message(error)
+        report['rollback'] = {**report.get('rollback', {}), 'status': 'FAIL', 'reason': message}
+        execution['rollback_verification'] = 'FAILED'
+        execution.setdefault('rollback_failure', {'stage': 'rollback_verification',
+                                                   'reason_code': 'rollback_or_cleanup_failed',
+                                                   'message': message})
+        execution.setdefault('failed_stage', 'rollback_verification')
+        raise
+    finally:
+        if fresh is not None:
+            try:
+                _rollback_and_close(fresh, report)
+            except Exception as cleanup_error:
+                # 이미 활성화된 측정/검증 오류를 유지하고 cleanup 오류도 별도로 기록한다.
+                if sys.exc_info()[0] is not None:
+                    report.setdefault('rollback', {}).setdefault('cleanup_errors', []).append(
+                        _error_message(cleanup_error))
+                else:
+                    raise
+    execution['rollback_verification'] = 'PASS'
+
+
 def execute_validation(expected_database, inputs, report, *, run_tests=False):
     # migration·모델 로드 전에 실제 접속 identity를 확인한다.
     connection, identity = connect_validation(expected_database)
@@ -529,29 +588,28 @@ def execute_validation(expected_database, inputs, report, *, run_tests=False):
             '6곡 generation profile 불일치')
     execution['new_msclap_generation'] = 'EXECUTED'
     prefix = 'validation-'+uuid.uuid4().hex+'-'
-    execution['current_stage'] = 'database_measurements'
+    execution['current_stage'] = 'database_measurements_connection'
     connection, identity = connect_validation(expected_database)
+    execution['current_stage'] = 'schema_evidence'
     try:
         report['schema'] = schema_evidence(connection)
+        execution['current_stage'] = 'database_measurements'
         require(connection.execute('SELECT count(*) FROM ai_embeddings.audio_embeddings').fetchone()[0] == 0,
                 '시작 시 validation table이 비어 있지 않습니다')
         report['measurements'] = measure_transaction(connection, embeddings, prefix)
+    except Exception as error:
+        # finally에서 rollback을 수행해도 최초 원인과 stage를 보존한다.
+        failed_stage = execution['current_stage']
+        execution['failed_stage'] = failed_stage
+        execution['primary_failure'] = {'stage': failed_stage,
+            'reason_code': 'database_operation_failed' if isinstance(error, psycopg.Error) else 'validation_check_failed',
+            'message': _error_message(error)}
+        raise
     finally:
-        execution['current_stage'] = 'rollback_verification'
-        try:
-            connection.rollback()
-        finally:
-            connection.close()
-        # 측정 실패 시에도 새 guarded connection에서 잔여 행을 확인한다.
-        fresh, final_identity = connect_validation(expected_database)
-        try:
-            count = fresh.execute('SELECT count(*) FROM ai_embeddings.audio_embeddings').fetchone()[0]
-            report['rollback'] = {'fresh_connection': True, 'remaining_validation_rows': count,
-                                  'identity': final_identity, 'status': 'PASS' if count == 0 else 'FAIL'}
-            require(count == 0, 'rollback 후 validation row가 남았습니다')
-        finally:
-            fresh.rollback()
-            fresh.close()
+        failed_stage = execution.get('failed_stage')
+        _rollback_and_verify(connection, expected_database, report)
+        if failed_stage:
+            execution['current_stage'] = failed_stage
     execution['current_stage'] = 'input_integrity_verification'
     report['input_sha_after_execution_unchanged'] = all(audio_file_sha256(ROOT/r['path']) == r['sha256']
                                                      and audio_file_sha256(ROOT/r['original_mp3_path']) == r['original_mp3_sha256'] for r in inputs)
@@ -567,15 +625,26 @@ def _execution_has_started(report):
 
 
 def _record_failure(report, *, status, stage, reason_code, message, details=None):
+    execution = report.setdefault('execution', {})
+    primary = execution.get('primary_failure')
+    rollback_failed = execution.get('rollback_verification') == 'FAILED'
+    failure_stage = primary['stage'] if primary else stage
+    failure_message = primary['message'] if primary else message
+    if primary and rollback_failed:
+        failure_message = f"{failure_message}; rollback verification도 실패했습니다"
     report['status'] = status
-    report['reason'] = message
-    failure = {'stage': stage, 'reason_code': reason_code, 'message': message}
+    report['reason'] = failure_message
+    failure = {'stage': failure_stage,
+               'reason_code': primary['reason_code'] if primary else reason_code,
+               'message': failure_message}
     if details:
         failure.update(details)
+    if primary:
+        failure['primary_failure'] = primary
+    if rollback_failed:
+        failure['rollback_failure'] = execution.get('rollback_failure')
     report['failure'] = failure
-    execution = report.setdefault('execution', {})
-    if execution.get('current_stage'):
-        execution['failed_stage'] = execution['current_stage']
+    execution.setdefault('failed_stage', failure_stage)
     for key in ('db_validation', 'new_msclap_generation'):
         if execution.get(key) == 'STARTED':
             execution[key] = 'FAILED'
