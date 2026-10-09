@@ -276,6 +276,73 @@ def test_blocked_cli_does_not_migrate_or_infer(tmp_path, monkeypatch):
     execute.assert_not_called()
     data = json.loads(report.read_text(encoding='utf-8'))
     assert data['status'] == 'BLOCKED' and data['execution']['db_validation'] == 'NOT_EXECUTED'
+    assert data['failed_count'] == 0 and data['exit_code'] == 4
+
+
+@pytest.mark.parametrize(('error_kind', 'started', 'stage', 'expected_status', 'expected_exit'), [
+    ('operational', False, 'preflight', 'BLOCKED', 4),
+    ('operational', True, 'migration', 'FAIL', 1),
+    ('operational', True, 'msclap_generation', 'FAIL', 1),
+    ('operational', True, 'database_measurements', 'FAIL', 1),
+    ('operational', True, 'rollback_verification', 'FAIL', 1),
+    ('safety', False, 'preflight', 'BLOCKED', 4),
+    ('safety', True, 'database_preflight', 'FAIL', 1),
+    ('database', False, 'preflight', 'FAIL', 1),
+    ('database', True, 'integration_tests', 'FAIL', 1),
+])
+def test_cli_db_error_status_tracks_whether_execution_started(
+        tmp_path, validation_env, monkeypatch, capsys, error_kind, started, stage, expected_status, expected_exit):
+    monkeypatch.setattr(tool, 'ROOT', tmp_path)
+    monkeypatch.setattr(tool, 'audio_file_sha256', lambda path: 'a'*64)
+    monkeypatch.setattr(tool, 'environment_evidence', lambda: {})
+    monkeypatch.setattr(tool, 'input_evidence', lambda: ([], {}))
+    error_type = {'operational': tool.psycopg.OperationalError,
+                  'safety': tool.SafetyBlocked,
+                  'database': tool.psycopg.DatabaseError}[error_kind]
+    error_message = '전용 validation DB identity guard 거부' if error_kind == 'safety' else 'password=must-not-be-printed'
+
+    def fail_during_execution(expected_database, inputs, report, *, run_tests=False):
+        if started:
+            report['execution']['db_validation'] = 'STARTED'
+            report['execution']['current_stage'] = stage
+            if stage == 'msclap_generation':
+                report['execution']['new_msclap_generation'] = 'STARTED'
+        raise error_type(error_message)
+
+    monkeypatch.setattr(tool, 'execute_validation', fail_during_execution)
+    report_path = tmp_path/'datasets/db-error.json'
+    result = tool.main(['--expected-database', 'audio_embedding_validation', '--report', str(report_path)])
+
+    data = json.loads(report_path.read_text(encoding='utf-8'))
+    cli_output = json.loads(capsys.readouterr().out)
+    assert result == expected_exit == data['exit_code']
+    assert data['status'] == expected_status
+    assert data['failed_count'] == int(expected_status == 'FAIL')
+    assert (cli_output['status'], cli_output['exit_code'], cli_output['failed_count']) == (
+        data['status'], data['exit_code'], data['failed_count'])
+    assert data['failure']['stage'] == stage
+    assert 'must-not-be-printed' not in json.dumps(data)
+    if started:
+        assert data['execution']['db_validation'] == 'FAILED'
+        assert data['execution']['failed_stage'] == stage
+        if stage == 'msclap_generation':
+            assert data['execution']['new_msclap_generation'] == 'FAILED'
+    else:
+        assert data['execution']['db_validation'] == 'NOT_EXECUTED'
+
+
+def test_successful_identity_guard_marks_execution_started_before_db_preflight(validation_env, monkeypatch):
+    connection = MagicMock()
+    connection.execute.side_effect = tool.psycopg.OperationalError('connection lost during preflight')
+    monkeypatch.setattr(tool, 'connect_validation', lambda expected: (connection, {'identity_verified': True}))
+    report = {'execution': {'db_validation': 'NOT_EXECUTED', 'new_msclap_generation': 'NOT_EXECUTED'}}
+
+    with pytest.raises(tool.psycopg.OperationalError):
+        tool.execute_validation('audio_embedding_validation', [], report)
+
+    assert report['execution']['db_validation'] == 'STARTED'
+    assert report['execution']['current_stage'] == 'database_preflight'
+    assert report['isolation']['identity_verified'] is True
 
 
 def test_cli_invalid_expected_db_nonzero_and_secret_not_printed(tmp_path):

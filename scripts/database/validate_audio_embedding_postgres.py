@@ -474,6 +474,11 @@ def environment_evidence():
 def execute_validation(expected_database, inputs, report, *, run_tests=False):
     # migration·모델 로드 전에 실제 접속 identity를 확인한다.
     connection, identity = connect_validation(expected_database)
+    execution = report.setdefault('execution', {})
+    execution['db_validation'] = 'STARTED'
+    execution['current_stage'] = 'database_preflight'
+    report['isolation'] = dict(identity, existing_database_connection_attempted=False,
+                               basis='explicit loopback/dedicated port/user/name + live identity/owner/marker guard')
     try:
         extension = connection.execute("SELECT extversion FROM pg_extension WHERE extname='vector'").fetchone()
         if extension is None:
@@ -486,17 +491,18 @@ def execute_validation(expected_database, inputs, report, *, run_tests=False):
     finally:
         connection.rollback()
         connection.close()
-    report['isolation'] = dict(identity, existing_database_connection_attempted=False,
-                               basis='explicit loopback/dedicated port/user/name + live identity/owner/marker guard')
-    report['execution']['db_validation'] = 'STARTED'
+    execution['current_stage'] = 'migration'
     report['migration_applied'] = apply_validated_migrations(expected_database)
     if run_tests:
+        execution['current_stage'] = 'integration_tests'
         report['integration_tests'] = run_guarded_integration_tests(expected_database)
         require(report['integration_tests']['status'] == 'PASS', '전용 DB integration tests 실패')
     os.environ.update(HF_HUB_OFFLINE='1', TRANSFORMERS_OFFLINE='1',
                       HF_HOME=str(ROOT/'datasets/fma/huggingface'))
+    execution['current_stage'] = 'model_cache_preflight'
     report['cache'] = cache_identity(ROOT/'datasets/fma/huggingface')
-    report['execution']['new_msclap_generation'] = 'STARTED'
+    execution['current_stage'] = 'msclap_generation'
+    execution['new_msclap_generation'] = 'STARTED'
     generator = AudioEmbeddingGenerator()
     embeddings = []
     report['generation'] = []
@@ -521,8 +527,9 @@ def execute_validation(expected_database, inputs, report, *, run_tests=False):
         embeddings.append((row, result))
     require(all(r['generation_profile'] == report['generation'][0]['generation_profile'] for r in report['generation']),
             '6곡 generation profile 불일치')
-    report['execution']['new_msclap_generation'] = 'EXECUTED'
+    execution['new_msclap_generation'] = 'EXECUTED'
     prefix = 'validation-'+uuid.uuid4().hex+'-'
+    execution['current_stage'] = 'database_measurements'
     connection, identity = connect_validation(expected_database)
     try:
         report['schema'] = schema_evidence(connection)
@@ -530,8 +537,11 @@ def execute_validation(expected_database, inputs, report, *, run_tests=False):
                 '시작 시 validation table이 비어 있지 않습니다')
         report['measurements'] = measure_transaction(connection, embeddings, prefix)
     finally:
-        connection.rollback()
-        connection.close()
+        execution['current_stage'] = 'rollback_verification'
+        try:
+            connection.rollback()
+        finally:
+            connection.close()
         # 측정 실패 시에도 새 guarded connection에서 잔여 행을 확인한다.
         fresh, final_identity = connect_validation(expected_database)
         try:
@@ -542,10 +552,33 @@ def execute_validation(expected_database, inputs, report, *, run_tests=False):
         finally:
             fresh.rollback()
             fresh.close()
+    execution['current_stage'] = 'input_integrity_verification'
     report['input_sha_after_execution_unchanged'] = all(audio_file_sha256(ROOT/r['path']) == r['sha256']
                                                      and audio_file_sha256(ROOT/r['original_mp3_path']) == r['original_mp3_sha256'] for r in inputs)
     require(report['input_sha_after_execution_unchanged'], '입력 Audio SHA가 실행 중 변경됐습니다')
+    execution['current_stage'] = 'complete'
     return aggregate_status([report['measurements'], report['rollback']])
+
+
+def _execution_has_started(report):
+    execution = report.get('execution', {})
+    return any(execution.get(key) in ('STARTED', 'EXECUTED', 'FAILED')
+               for key in ('db_validation', 'new_msclap_generation'))
+
+
+def _record_failure(report, *, status, stage, reason_code, message, details=None):
+    report['status'] = status
+    report['reason'] = message
+    failure = {'stage': stage, 'reason_code': reason_code, 'message': message}
+    if details:
+        failure.update(details)
+    report['failure'] = failure
+    execution = report.setdefault('execution', {})
+    if execution.get('current_stage'):
+        execution['failed_stage'] = execution['current_stage']
+    for key in ('db_validation', 'new_msclap_generation'):
+        if execution.get(key) == 'STARTED':
+            execution[key] = 'FAILED'
 
 
 def main(argv=None):
@@ -575,34 +608,60 @@ def main(argv=None):
         'status': 'BLOCKED', 'limitations': ['전체 vector는 tracked evidence에 저장하지 않음',
             'cosine numerical tolerance는 Python/PostgreSQL parity 비교에만 적용; ranking 및 calibration 기준이 아님',
             'revision lifecycle·ACTIVE 후보 정책·검색 품질·calibration은 검증 대상 아님'],
-        'unresolved': [], 'execution': {'db_validation': 'NOT_EXECUTED', 'new_msclap_generation': 'NOT_EXECUTED'}}
+        'unresolved': [], 'execution': {'db_validation': 'NOT_EXECUTED', 'new_msclap_generation': 'NOT_EXECUTED',
+                                        'current_stage': 'preflight'}}
     try:
         inputs, manifest = input_evidence()
         report.update(inputs=inputs, phase_a_manifest=manifest)
         validation_settings(args.expected_database)
         report['status'] = execute_validation(args.expected_database, inputs, report, run_tests=args.run_integration_tests)
-        report['execution'] = {'db_validation': 'EXECUTED', 'new_msclap_generation': 'EXECUTED'}
+        report['execution']['db_validation'] = 'EXECUTED'
+        report['execution']['new_msclap_generation'] = 'EXECUTED'
+        report['execution']['current_stage'] = None
     except SafetyBlocked as error:
-        report['reason'] = str(error)
-        report['isolation']['status'] = 'BLOCKED'
-        report['unresolved'].append('안전한 전용 validation PostgreSQL provision 필요')
+        if _execution_has_started(report):
+            _record_failure(report, status='FAIL', stage=report['execution'].get('current_stage') or 'database_validation',
+                            reason_code='validation_precondition_failed_after_start', message=str(error))
+        else:
+            _record_failure(report, status='BLOCKED', stage='preflight',
+                            reason_code='validation_database_preflight_blocked', message=str(error))
+            report['isolation']['status'] = 'BLOCKED'
+            report['unresolved'].append('안전한 전용 validation PostgreSQL provision 필요')
     except MigrationFailure as error:
-        report['status'] = 'FAIL'
-        report['reason'] = error.message
-        report['failure'] = error.to_report()
+        _record_failure(report, status='FAIL', stage='migration', reason_code=error.reason_code,
+                        message=error.message, details=error.to_report())
     except psycopg.OperationalError:
-        report['reason'] = '전용 validation DB 접속 불가; 개발 DB fallback 없음'
+        if _execution_has_started(report):
+            _record_failure(report, status='FAIL', stage=report['execution'].get('current_stage') or 'database_validation',
+                            reason_code='database_connection_lost_during_validation',
+                            message='validation DB 연결이 검증 실행 중 끊겼습니다; 민감한 원본 오류는 출력하지 않음')
+        else:
+            _record_failure(report, status='BLOCKED', stage='preflight',
+                            reason_code='validation_database_unavailable_before_start',
+                            message='전용 validation DB 접속 불가; 개발 DB fallback 없음')
+            report['isolation']['status'] = 'BLOCKED'
+            report['unresolved'].append('안전한 전용 validation PostgreSQL provision 필요')
     except (CheckFailed, ValidationError, DatasetError, AudioEmbeddingError, OSError, psycopg.Error) as error:
-        report['status'] = 'FAIL'
-        report['reason'] = error.reason if isinstance(error, AudioEmbeddingError) else (
+        stage = report['execution'].get('current_stage') or 'preflight'
+        message = error.reason if isinstance(error, AudioEmbeddingError) else (
             'DB 실행 실패; 민감한 원본 오류는 출력하지 않음' if isinstance(error, psycopg.Error) else str(error))
+        _record_failure(report, status='FAIL', stage=stage,
+                        reason_code='database_operation_failed' if isinstance(error, psycopg.Error) else 'validation_check_failed',
+                        message=message)
+    report['failed_count'] = (report.get('integration_tests', {}).get('counts', {}).get('failed', 0)
+                              if report['status'] == 'FAIL' else 0)
+    if report['status'] == 'FAIL' and report['failed_count'] == 0:
+        report['failed_count'] = 1
+    report['exit_code'] = {'PASS': 0, 'FAIL': 1, 'REVIEW_REQUIRED': 3, 'BLOCKED': 4}[report['status']]
     report['finished_at_utc'] = datetime.now(timezone.utc).isoformat()
     output.parent.mkdir(parents=True, exist_ok=True)
     with output.open('x', encoding='utf-8') as target:
         json.dump(report, target, ensure_ascii=False, indent=2, allow_nan=False)
         target.write('\n')
-    print(json.dumps({'status': report['status'], 'reason': report.get('reason'), 'report': str(output.relative_to(ROOT))}, ensure_ascii=False))
-    return {'PASS': 0, 'FAIL': 1, 'REVIEW_REQUIRED': 3, 'BLOCKED': 4}[report['status']]
+    print(json.dumps({'status': report['status'], 'reason': report.get('reason'),
+                      'failed_count': report['failed_count'], 'exit_code': report['exit_code'],
+                      'report': str(output.relative_to(ROOT))}, ensure_ascii=False))
+    return report['exit_code']
 
 
 if __name__ == '__main__':
