@@ -38,44 +38,57 @@ $container = 'audio-embedding-validation-postgres'
 $database = 'audio_embedding_validation'
 $dbUser = 'audio_validation'
 $dbPort = '55432'
+$existing = docker ps --all --quiet --filter "name=^/$container$"
+if ($LASTEXITCODE -ne 0) { throw 'docker ps failed; refusing to proceed.' }
+if ($existing) { throw "Container '$container' already exists; refusing to reuse or remove it." }
 $env:VALIDATION_DB_PASSWORD = [guid]::NewGuid().ToString('N')
-docker run --detach --name $container --publish 127.0.0.1:55432:5432 --tmpfs /var/lib/postgresql:rw,size=268435456 --env "POSTGRES_DB=audio_embedding_validation" --env "POSTGRES_USER=audio_validation" --env "POSTGRES_PASSWORD=$env:VALIDATION_DB_PASSWORD" --health-cmd "pg_isready -U audio_validation -d audio_embedding_validation" --health-interval 2s --health-timeout 3s --health-retries 30 pgvector/pgvector:0.8.6-pg18
-do {
-  Start-Sleep -Seconds 2
-  $health = docker inspect --format '{{.State.Health.Status}}' $container
-} until ($health -eq 'healthy')
-docker exec $container psql -v ON_ERROR_STOP=1 -U $dbUser -d $database -c "COMMENT ON DATABASE audio_embedding_validation IS 'nsu-capstone-ai:audio-embedding-postgres-validation:v1';"
-docker exec $container psql -v ON_ERROR_STOP=1 -U $dbUser -d $database -c 'CREATE EXTENSION IF NOT EXISTS vector;'
-$env:DB_HOST = '127.0.0.1'
-$env:DB_PORT = $dbPort
-$env:DB_NAME = $database
-$env:DB_USER = $dbUser
-$env:DB_PASSWORD = $env:VALIDATION_DB_PASSWORD
-~~~
+$containerMayExist = $false
+try {
+  $containerMayExist = $true
+  docker run --detach --name $container --publish 127.0.0.1:55432:5432 --tmpfs /var/lib/postgresql:rw,size=268435456 --env "POSTGRES_DB=audio_embedding_validation" --env "POSTGRES_USER=audio_validation" --env "POSTGRES_PASSWORD=$env:VALIDATION_DB_PASSWORD" --health-cmd "pg_isready -U audio_validation -d audio_embedding_validation" --health-interval 2s --health-timeout 3s --health-retries 30 pgvector/pgvector:0.8.6-pg18
+  if ($LASTEXITCODE -ne 0) { throw 'docker run failed to start the dedicated validation container.' }
 
-검증 CLI는 실제 연결에서 database name, 접속 user와 database owner 일치, 위 ownership marker를 확인한 뒤에만 쓰기와 migration을 허용합니다. 이름·loopback host·별도 port·전용 user·owner·marker 중 하나라도 다르면 실행이 차단됩니다. 환경 변수는 같은 PowerShell 세션에서만 지정하고 비밀번호나 connection string을 로그/evidence에 복사하지 마세요.
+  $deadline = (Get-Date).AddMinutes(2)
+  while ($true) {
+    $health = docker inspect --format '{{.State.Health.Status}}' $container 2>$null
+    if ($LASTEXITCODE -ne 0) { throw 'docker inspect failed while checking container health.' }
+    $health = "$health".Trim()
+    if ($health -eq 'healthy') { break }
+    if ($health -eq 'unhealthy') { throw 'Validation PostgreSQL container became unhealthy.' }
+    if ($health -ne 'starting') { throw "Unexpected container health status: '$health'." }
+    if ((Get-Date) -ge $deadline) { throw 'Timed out waiting for validation PostgreSQL container to become healthy.' }
+    Start-Sleep -Seconds 2
+  }
 
-전용 DB identity를 확인한 같은 PowerShell 세션에서 production migration runner를 실행합니다. schema를 수동으로 만들지 마세요.
+  docker exec $container psql -v ON_ERROR_STOP=1 -U $dbUser -d $database -c "COMMENT ON DATABASE audio_embedding_validation IS 'nsu-capstone-ai:audio-embedding-postgres-validation:v1';"
+  if ($LASTEXITCODE -ne 0) { throw 'Failed to set the validation database ownership marker.' }
+  docker exec $container psql -v ON_ERROR_STOP=1 -U $dbUser -d $database -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+  if ($LASTEXITCODE -ne 0) { throw 'Failed to enable pgvector in the validation database.' }
+  $env:DB_HOST = '127.0.0.1'
+  $env:DB_PORT = $dbPort
+  $env:DB_NAME = $database
+  $env:DB_USER = $dbUser
+  $env:DB_PASSWORD = $env:VALIDATION_DB_PASSWORD
+# Guard database identity before migration/write; never fall back to a development DB.
+# Keep credentials in this PowerShell process and out of logs/evidence.
+  # Apply the production migration path; schema is not created by hand.
+  python -m scripts.database.migrate_embeddings
+  if ($LASTEXITCODE -ne 0) { throw 'Production migration failed.' }
 
-~~~powershell
-python -m scripts.database.migrate_embeddings
-~~~
-
-실제 Phase A 입력, MSCLAP generation 및 PostgreSQL 통합 tests를 실행하는 validation CLI 전체 명령입니다. 매 실행마다 새 report 경로를 사용하세요.
-
-~~~powershell
+  # Run actual Phase A input validation, MSCLAP generation and PostgreSQL integration tests.
 $runId = Get-Date -Format 'yyyyMMdd-HHmmss'
-python -m scripts.database.validate_audio_embedding_postgres --expected-database audio_embedding_validation --run-integration-tests --report "docs/experiments/audio-embedding-postgres-validation/validation-result-$runId.json"
+  python -m scripts.database.validate_audio_embedding_postgres --expected-database audio_embedding_validation --run-integration-tests --report "docs/experiments/audio-embedding-postgres-validation/validation-result-$runId.json"
+  if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL/MSCLAP validation failed; inspect the report before cleanup.' }
+} finally {
+  if ($containerMayExist) {
+    docker rm --force $container 2>$null
+    if ($LASTEXITCODE -ne 0) { Write-Warning 'Could not remove the dedicated validation container automatically.' }
+  }
+  Remove-Item Env:VALIDATION_DB_PASSWORD, Env:DB_PASSWORD, Env:DB_HOST, Env:DB_PORT, Env:DB_NAME, Env:DB_USER -ErrorAction SilentlyContinue
+}
 ~~~
 
-CLI가 접속 불가 또는 identity 불일치로 실패하면 기존 개발 DB로 전환하지 마세요. 전용 container의 health, identity, migration을 바로잡고 새 report 경로로 다시 실행합니다. 검증 종료 후 container를 제거하면 tmpfs 데이터도 폐기됩니다.
-
-정상 또는 실패 종료 후에는 위에서 만든 이름의 validation container만 제거하고 현재 PowerShell 세션의 임시 비밀번호를 지웁니다.
-
-~~~powershell
-docker rm --force audio-embedding-validation-postgres
-Remove-Item Env:VALIDATION_DB_PASSWORD, Env:DB_PASSWORD, Env:DB_HOST, Env:DB_PORT, Env:DB_NAME, Env:DB_USER -ErrorAction SilentlyContinue
-~~~
+검증 CLI는 실제 연결에서 database name, 접속 user와 database owner 일치, 위 ownership marker를 확인한 뒤에만 쓰기와 migration을 허용합니다. 이름·loopback host·별도 port·전용 user·owner·marker 중 하나라도 다르면 실행이 차단됩니다. 전용 DB에 접속할 수 없거나 health polling이 실패해도 기존 개발 DB로 전환하지 않으며, `finally`에서 이번에 만든 전용 container와 임시 환경 변수를 정리합니다.
 
 ## 결과
 
