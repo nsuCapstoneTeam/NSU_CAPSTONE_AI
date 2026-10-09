@@ -1,8 +1,10 @@
 # FMA Historical PoC 안내
 
 FMA는 과거 모델·언어·점수 변환 탐색에 사용한 Historical PoC입니다.
-2026-10-09 Cleanup에서 원본 30초 Audio·ZIP·metadata·manifest·상세 CSV/JSON·Embedding·청취 UI·로컬 평가 도구를 삭제합니다.
+2026-10-09 Cleanup에서 원본 30초 Audio·ZIP·metadata·manifest·상세 CSV/JSON·Embedding·청취 UI·로컬 평가 도구를 삭제했습니다.
 완전 재현은 지원하지 않으며 핵심 방법·조건·수치·한계와 ADR의 판단 근거만 보존합니다.
+
+FMA 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거 Embedding은 Cleanup에서 의도적으로 제거했습니다. 현재 checkout에는 핵심 실험 조건·집계 결과·결론·한계의 Historical Markdown 요약만 남아 있어 개별 데이터 수준의 재계산/audit이나 완전 재현을 지원하지 않습니다. 이는 현재 checkout의 보존 범위이며 과거 Git history 자체를 삭제했다는 의미는 아닙니다.
 
 ## 보존한 실험 근거
 
@@ -21,6 +23,8 @@ FMA는 과거 모델·언어·점수 변환 탐색에 사용한 Historical PoC�
 별도 음악 6곡의 정확히 60초 fixture·PCM 동일성·재현성 및 Phase A 범위 출처·라이선스 확인은 완료됐습니다.
 실제 MSCLAP real-music Embedding 검증과 새 정책 PostgreSQL 통합 검증은 아직 미완료입니다.
 후속 순서는 [Roadmap](../AI_DEVELOPMENT_ROADMAP.md)을 따릅니다. 30초 FMA를 반복·padding하여 새 검증에 사용하지 않습니다.
+
+FMA Historical 집계는 과거 의사결정 설명용이며 향후 calibration input으로 사용하지 않습니다. 향후 calibration은 ADR-0007 generation policy에 따라 새로 생성한 Embedding·새 similarity distribution·새 evaluation evidence를 기반으로 수행하고, 해당 evidence는 별도로 생성·보존합니다.
 
 ## 유지하는 코드와 공유 캐시
 

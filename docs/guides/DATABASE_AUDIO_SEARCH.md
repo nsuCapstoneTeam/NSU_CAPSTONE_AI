@@ -140,22 +140,15 @@ docker compose run --rm --no-deps -e RUN_EMBEDDING_DB_TESTS=1 ai python -m pytes
 당시 실제 `reference.mp3`와 FMA 6곡을 기존 단일 crop 공통 생성기로 임베딩한 뒤 DB에 후보를 저장했습니다.
 아래는 과거 검증 기록이며 현재 살아 있는 DB 행을 다시 조회한 결과가 아닙니다.
 이 30초 FMA 원본들은 새 최소 60초 validation에서 실패하므로 새 방식 재생성 원본으로 사용할 수 없습니다.
-검색 입력은 1024차원이며 동일 파일인 기존 `dev-reference-001`은 제외되었습니다.
-호환 후보 6곡에서 반환된 Top5는 아래와 같습니다.
-
-| 순위 | 개발 검증용 음악 ID | 원본 코사인 | 임시 표시 점수 |
-| --- | --- | ---: | ---: |
-| 1 | dev-fma-136276 | 0.64270633 | 64.270633 |
-| 2 | dev-fma-148212 | 0.59344288 | 59.344288 |
-| 3 | dev-fma-086679 | 0.57773249 | 57.773249 |
-| 4 | dev-fma-064079 | 0.57508888 | 57.508888 |
-| 5 | dev-fma-125161 | 0.56377301 | 56.377301 |
-
-여섯 번째 후보는 `dev-fma-015770`입니다. 같은 벡터를 Torch로 비교한 순위와 모두
-일치하며 원본 코사인의 최대 차이는 약 `1.4543e-7`입니다.
+검색 입력은 1024차원이며 동일 파일 후보는 제외되었습니다.
+호환 후보 6곡 pilot에서 DB와 Torch의 Top5 순위가 모두 일치했고 당시 측정된 원본 코사인의 최대 차이는 약 `1.4543e-7`입니다.
 이번 검증은 저장·검색 경로의 수치 일치 확인이며 새로운 추천 품질 평가가 아닙니다.
 전체 FMA를 검색하거나 큰 DB의 성능을 측정한 것은 아닙니다.
 검증용 후보 6개는 DB에 남겼으며 원본 음악은 Git에 포함하지 않습니다.
 [Historical DB 경로 검증 요약](../experiments/audio-search-phase2/README.md#당시-공통-생성기db-경로-검증)을 보존하며 상세 JSON은 삭제했습니다. Cleanup에서 기존 DB 행은 변경하지 않습니다.
+
+FMA 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거 Embedding은 Cleanup에서 의도적으로 제거했습니다. 현재 checkout에는 핵심 실험 조건·집계 결과·결론·한계의 Historical Markdown 요약만 남아 있어 개별 데이터 수준의 재계산/audit이나 완전 재현을 지원하지 않습니다. 이는 현재 checkout의 보존 범위이며 과거 Git history 자체를 삭제했다는 의미는 아닙니다.
+
+FMA Historical 집계는 과거 의사결정 설명용이며 향후 calibration input으로 사용하지 않습니다. 향후 calibration은 ADR-0007 generation policy에 따라 새로 생성한 Embedding·새 similarity distribution·새 evaluation evidence를 기반으로 수행하고, 해당 evidence는 별도로 생성·보존합니다.
 
 구현 근거: [pgvector 공식 문서](https://github.com/pgvector/pgvector)의 코사인 거리·정확 검색 규칙.

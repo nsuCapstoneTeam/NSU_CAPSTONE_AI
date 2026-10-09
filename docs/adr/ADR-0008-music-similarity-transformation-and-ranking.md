@@ -66,11 +66,16 @@ ADR-0005는 개발용 임시 변환 구간과 초기 실험 근거를 기록했�
 - **Alternative / Trade-off:** 별도 식별 없이 현재 설정만 보관하면 과거 결과를 해석·재현하기 어렵다. 추적에는 정의·보관·버전 간 검증 비용이 추가된다. 통합 외부 버전과 내부 구성요소 버전의 연결 방식은 이 ADR에서 확정하지 않는다.
 - **변경 영향:** transformation만 변경되었다고 Embedding이 변경된 것으로 간주하지 않는다. preprocessing version 변경이나 전체 Embedding 재생성을 자동 결정하지 않는다. 모델/Embedding/preprocessing 조건 변경 시에는 기존 calibration의 유효성을 재검증해야 할 수 있다.
 
+## Historical evidence의 보존 수준
+
+R8은 당시 의사결정을 설명하는 보존된 Historical 집계 요약이며 현재 재계산 가능한 raw evidence가 아니다. D3의 historical evidence 보존은 이 Markdown 요약으로 유지한다. 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거 Embedding은 의도적으로 제거했으며 현재 checkout에서 개별 데이터 수준의 재계산/audit이나 완전 재현을 지원하지 않는다. 과거 Git history 자체를 삭제했다는 의미는 아니다.
+
 ## Consequences / Future Work
 
 - ADR-0005의 임시 기준·초기 근거는 유지하고 이 ADR은 향후 설계·검증 원칙을 확장한다. 최종 변환을 실제 채택할 때 대체하는 임시 기준과 검증 근거를 명시해야 한다.
 - 현재 수식·CLI Top5·코드·테스트·DB 결과는 변경하지 않는다. D1·후보 독립 임시 변환은 기존 구현에서 확인했지만, 최종 calibration과 전용 변환 버전 체계 구현 완료를 뜻하지 않는다.
 - ADR-0007 적용 후 새 Embedding 생성 조건으로 cosine 분포를 다시 측정한다. 기존 단일 crop·30초 FMA PoC를 새 생성 정책의 calibration 검증으로 간주하지 않는다. 새 검증 입력 선행조건은 Roadmap/Guide를 따른다.
+- 향후 calibration은 삭제된 FMA raw evidence나 Historical 집계를 입력으로 사용하지 않는다. ADR-0007 generation policy에 따라 새로 생성한 Embedding·새 similarity distribution·새 evaluation evidence를 기반으로 수행하고, 해당 evidence는 별도로 생성·보존한다.
 - 비교 유형별 calibration 표본과 별도 검증 표본, 음악 중복·평가자 구성·평가 기준·검증 통과 기준을 설계하고 기록한다. 이번 ADR은 구체 표본 수·threshold를 확정하지 않는다.
 - 후보 집합 변경에도 동일 입력·변환 버전의 점수가 유지되는지, 표시 점수 동점에서도 raw cosine 순위를 유지하는지, 버전별 결과를 추적할 수 있는지 후속 구현에서 검증한다.
 - 모델·preprocessing 변경 시 기존 변환의 유효성을 재검증하고 변환 변경 시에는 과거 표시값 해석과 재현 조건을 구분한다. 과거 결과 재계산·저장·migration은 별도 계약/설계다.
@@ -101,7 +106,7 @@ ADR-0005는 개발용 임시 변환 구간과 초기 실험 근거를 기록했�
 | R5 | [FMA 측정](../../scripts/fma/validate_fma.py), [쌍별 측정](../../scripts/matching/validate_audio_similarity.py) | Context·D3: raw cosine과 배율 출력 구분, 임시 변환 사용 위치 |
 | R6 | [공통 Audio 생성기](../../app/embedding/audio_embedding.py) | D5: 모델·checkpoint·preprocessing·seed·패키지 metadata |
 | R7 | [검색 테스트](../../tests/matching/test_audio_search.py), [변환 테스트](../../tests/matching/test_normalization.py) | D1·D3: 표시값 동점의 raw 순위·임시 구간 검사. 이번 문서 작업에서 테스트를 실행하지 않음 |
-| R8 | [변환 탐색](../experiments/audio-search-phase2/README.md#음악텍스트-기준-탐색), [쌍별 분포](../experiments/audio-search-phase2/README.md#새-음악-표본-및-쌍별-측정), [청취 평가](../experiments/audio-search-phase2/README.md#청취-평가), [실험 조건](../experiments/audio-search-phase2/README.md#공통-실험-조건) | D2~D4: 오프라인 표본 분석·분포 차이·215/276 포화 진단·평가/표본 재사용 한계 |
+| R8 | [변환 탐색](../experiments/audio-search-phase2/README.md#음악텍스트-기준-탐색), [쌍별 분포](../experiments/audio-search-phase2/README.md#새-음악-표본-및-쌍별-측정), [청취 평가](../experiments/audio-search-phase2/README.md#청취-평가), [실험 조건](../experiments/audio-search-phase2/README.md#공통-실험-조건) | D2~D4: Historical 집계 요약에 남은 오프라인 표본 분석·분포 차이·215/276 포화 진단·평가/표본 재사용 한계. 현재 재계산/audit 가능한 raw evidence가 아님 |
 | R9 | [Linear 011](https://linear.app/nsu-capstone/document/011-ai-항목-점수의-전달-형식-43fcf42521b7), [Linear 012 §4.3](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba), [서버 협의 목록](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3) | D1·D2·D5의 외부 수치·버전 기록, 011 Superseded·012 전체 Proposed와 부분 동의 구분. 서버/API/UX 정책을 새로 승인하는 근거가 아님 |
 | R10 | [ADR-0007](ADR-0007-audio-highlight-embedding-strategy.md), [Roadmap](../AI_DEVELOPMENT_ROADMAP.md), [입력 검증 Guide](../guides/FMA_VALIDATION.md) | D4·Future Work: 새 생성 조건 분포·검증 필요, 과거 FMA와 새 적격 Dataset 구분 |
 

@@ -1,7 +1,9 @@
 # 음악 파일 검색 및 임시 점수 검증 — Historical PoC
 
 2026-10-02 KST의 로컬 Docker CPU 실험입니다. 핵심 조건·수치·한계를 Markdown으로 보존합니다.
-2026-10-09 Cleanup에서 원본·상세 CSV/JSON·manifest·Embedding·청취 UI를 삭제하며 완전 재현은 지원하지 않습니다.
+2026-10-09 Cleanup에서 원본·상세 CSV/JSON·manifest·Embedding·청취 UI를 삭제했습니다.
+
+FMA 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거 Embedding은 Cleanup에서 의도적으로 제거했습니다. 현재 checkout에는 핵심 실험 조건·집계 결과·결론·한계의 Historical Markdown 요약만 남아 있어 개별 데이터 수준의 재계산/audit이나 완전 재현을 지원하지 않습니다. 이는 현재 checkout의 보존 범위이며 과거 Git history 자체를 삭제했다는 의미는 아닙니다.
 
 ## 공통 실험 조건
 
@@ -68,7 +70,7 @@ FMA small의 공식 validation split에서 seed 43으로 장르별 3곡, 총 24�
 상대적인 평균 차이는 있지만 범위가 겹치며, 적합 확률이나 최종 서비스 품질을
 보장하지 않습니다. 24개 평가는 같은 음악이 반복되는 소규모 표본입니다. 276쌍도 24곡을 공유하므로 독립 관측 276개가 아닙니다. 장르 일치는 진단 proxy이며 인간 유사도의 정답이 아닙니다.
 비슷함 점수 범위 48.16~93.94와 다름 31.94~65.45도 겹칩니다.
-추가 기준 조정에 이 평가를 사용하면 별도 표본으로 다시 검증해야 합니다.
+FMA Historical 집계는 과거 의사결정 설명용이며 향후 calibration input으로 사용하지 않습니다. 향후 calibration은 ADR-0007 generation policy에 따라 새로 생성한 Embedding·새 similarity distribution·새 evaluation evidence를 기반으로 수행하고, 해당 evidence는 별도로 생성·보존합니다.
 
 ## 검색 실행 검증
 
@@ -76,10 +78,8 @@ FMA small의 공식 validation split에서 seed 43으로 장르별 3곡, 총 24�
 생성합니다. 입력과 같은 바이트의 파일은 제외하며 원본 코사인 내림차순으로 정렬합니다.
 원본 cosine similarity가 같으면 정수 track ID 오름차순으로 순위를 안정화합니다.
 
-- 공개 FMA 곡 `015770` 입력: 동일 곡 제외 후 23곡 비교, TOP 5 JSON 반환 성공.
+- 공개 FMA 곡 입력: 동일 곡 제외 후 23곡 비교, TOP 5 JSON 반환 성공.
 - 사용자 `reference.mp3` 입력: 24곡 비교, TOP 5 JSON 반환 성공.
-- 사용자 검색 1위 `136276`의 코사인 0.642706, 표시 점수 64.27.
-  사용자는 다소 비슷하지만 애매하다고 판단했습니다. 정식 평가 표본에는 합산하지 않았습니다.
 - 검색은 SHA-256 seed, 쌍별 실험은 곡 ID seed를 사용하므로 crop과 결과가 다를 수 있습니다.
   쌍별 실험의 청취 평가를 검색 CLI 자체의 정확도 평가로 취급하지 않습니다.
 

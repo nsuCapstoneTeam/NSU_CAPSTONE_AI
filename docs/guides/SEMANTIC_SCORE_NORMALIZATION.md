@@ -64,6 +64,7 @@ A는 세 후보 중 제한된 극단 점수에 몰리는 개수가 가장 적어
 
 [Historical 변환 탐색](../experiments/audio-search-phase2/README.md#음악텍스트-기준-탐색)과
 [음악 간 측정·평가](../experiments/audio-search-phase2/README.md)에 핵심 근거를 보존했습니다. 상세 산출물은 삭제했습니다.
+FMA 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거 Embedding은 Cleanup에서 의도적으로 제거했습니다. 현재 checkout에는 핵심 실험 조건·집계 결과·결론·한계의 Historical Markdown 요약만 남아 있어 개별 데이터 수준의 재계산/audit이나 완전 재현을 지원하지 않습니다. 이는 현재 checkout의 보존 범위이며 과거 Git history 자체를 삭제했다는 의미는 아닙니다.
 음악 파일 검색 CLI의 음악↔음악 변환과 Audio 임베딩 저장·DB 검색 CLI는 구현되어 있습니다.
 업무 HTTP API·Text 저장·번역·곡별 설명은 후속 작업입니다.
 여기 수식과 FMA 분포는 기존 단일 crop 개발용 기준입니다. ADR-0007 새 검증은 다른 Dataset의
@@ -74,6 +75,8 @@ Phase A에서 준비한 별도 60초 적격 입력을 사용하며 [Roadmap](../
 현재 CLI 수식·실측 결과와 향후 인터페이스 구현·검증은 별도로 관리합니다.
 
 ## 향후 transformation 설계 원칙
+
+FMA Historical 집계는 과거 의사결정 설명용이며 향후 calibration input으로 사용하지 않습니다. 향후 calibration은 ADR-0007 generation policy에 따라 새로 생성한 Embedding·새 similarity distribution·새 evaluation evidence를 기반으로 수행하고, 해당 evidence는 별도로 생성·보존합니다.
 
 [ADR-0008](../adr/ADR-0008-music-similarity-transformation-and-ranking.md)은 ADR-0005의 후속·확장으로 raw cosine ranking과 후보 독립 transformation·실험 기반 calibration·버전 추적 원칙을 기록합니다.
 순위는 transformed 표시/전달 점수가 아니라 raw cosine에 의존합니다. 이는 논리적 관계이며 현재 모든 코드 경로가 문자 그대로 정렬 후 변환한다는 뜻은 아닙니다.
