@@ -38,19 +38,24 @@ $container = 'audio-embedding-validation-postgres'
 $database = 'audio_embedding_validation'
 $dbUser = 'audio_validation'
 $dbPort = '55432'
+$cidFile = Join-Path $env:TEMP ("audio-validation-" + [guid]::NewGuid().ToString('N') + '.cid')
 $existing = docker ps --all --quiet --filter "name=^/$container$"
 if ($LASTEXITCODE -ne 0) { throw 'docker ps failed; refusing to proceed.' }
 if ($existing) { throw "Container '$container' already exists; refusing to reuse or remove it." }
 $env:VALIDATION_DB_PASSWORD = [guid]::NewGuid().ToString('N')
-$containerMayExist = $false
+$containerId = $null
+$containerOwned = $false
 try {
-  $containerMayExist = $true
-  docker run --detach --name $container --publish 127.0.0.1:55432:5432 --tmpfs /var/lib/postgresql:rw,size=268435456 --env "POSTGRES_DB=audio_embedding_validation" --env "POSTGRES_USER=audio_validation" --env "POSTGRES_PASSWORD=$env:VALIDATION_DB_PASSWORD" --health-cmd "pg_isready -U audio_validation -d audio_embedding_validation" --health-interval 2s --health-timeout 3s --health-retries 30 pgvector/pgvector:0.8.6-pg18
+  docker run --cidfile $cidFile --detach --name $container --publish 127.0.0.1:55432:5432 --tmpfs /var/lib/postgresql:rw,size=268435456 --env "POSTGRES_DB=audio_embedding_validation" --env "POSTGRES_USER=audio_validation" --env "POSTGRES_PASSWORD=$env:VALIDATION_DB_PASSWORD" --health-cmd "pg_isready -U audio_validation -d audio_embedding_validation" --health-interval 2s --health-timeout 3s --health-retries 30 pgvector/pgvector:0.8.6-pg18
   if ($LASTEXITCODE -ne 0) { throw 'docker run failed to start the dedicated validation container.' }
+  if (-not (Test-Path -LiteralPath $cidFile)) { throw 'docker run succeeded but did not create the requested container ID file.' }
+  $containerId = (Get-Content -LiteralPath $cidFile -Raw).Trim()
+  if (-not $containerId) { throw 'The container ID file is empty; ownership cannot be established safely.' }
+  $containerOwned = $true
 
   $deadline = (Get-Date).AddMinutes(2)
   while ($true) {
-    $health = docker inspect --format '{{.State.Health.Status}}' $container 2>$null
+    $health = docker inspect --format '{{.State.Health.Status}}' $containerId 2>$null
     if ($LASTEXITCODE -ne 0) { throw 'docker inspect failed while checking container health.' }
     $health = "$health".Trim()
     if ($health -eq 'healthy') { break }
@@ -60,9 +65,9 @@ try {
     Start-Sleep -Seconds 2
   }
 
-  docker exec $container psql -v ON_ERROR_STOP=1 -U $dbUser -d $database -c "COMMENT ON DATABASE audio_embedding_validation IS 'nsu-capstone-ai:audio-embedding-postgres-validation:v1';"
+  docker exec $containerId psql -v ON_ERROR_STOP=1 -U $dbUser -d $database -c "COMMENT ON DATABASE audio_embedding_validation IS 'nsu-capstone-ai:audio-embedding-postgres-validation:v1';"
   if ($LASTEXITCODE -ne 0) { throw 'Failed to set the validation database ownership marker.' }
-  docker exec $container psql -v ON_ERROR_STOP=1 -U $dbUser -d $database -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+  docker exec $containerId psql -v ON_ERROR_STOP=1 -U $dbUser -d $database -c 'CREATE EXTENSION IF NOT EXISTS vector;'
   if ($LASTEXITCODE -ne 0) { throw 'Failed to enable pgvector in the validation database.' }
   $env:DB_HOST = '127.0.0.1'
   $env:DB_PORT = $dbPort
@@ -80,15 +85,16 @@ $runId = Get-Date -Format 'yyyyMMdd-HHmmss'
   python -m scripts.database.validate_audio_embedding_postgres --expected-database audio_embedding_validation --run-integration-tests --report "docs/experiments/audio-embedding-postgres-validation/validation-result-$runId.json"
   if ($LASTEXITCODE -ne 0) { throw 'PostgreSQL/MSCLAP validation failed; inspect the report before cleanup.' }
 } finally {
-  if ($containerMayExist) {
-    docker rm --force $container 2>$null
-    if ($LASTEXITCODE -ne 0) { Write-Warning 'Could not remove the dedicated validation container automatically.' }
+  if ($containerOwned) {
+    docker rm --force $containerId 2>$null
+    if ($LASTEXITCODE -ne 0) { Write-Warning "Could not remove validation container ID $containerId automatically." }
   }
+  Remove-Item -LiteralPath $cidFile -Force -ErrorAction SilentlyContinue
   Remove-Item Env:VALIDATION_DB_PASSWORD, Env:DB_PASSWORD, Env:DB_HOST, Env:DB_PORT, Env:DB_NAME, Env:DB_USER -ErrorAction SilentlyContinue
 }
 ~~~
 
-검증 CLI는 실제 연결에서 database name, 접속 user와 database owner 일치, 위 ownership marker를 확인한 뒤에만 쓰기와 migration을 허용합니다. 이름·loopback host·별도 port·전용 user·owner·marker 중 하나라도 다르면 실행이 차단됩니다. 전용 DB에 접속할 수 없거나 health polling이 실패해도 기존 개발 DB로 전환하지 않으며, `finally`에서 이번에 만든 전용 container와 임시 환경 변수를 정리합니다.
+검증 CLI는 실제 연결에서 database name, 접속 user와 database owner 일치, 위 ownership marker를 확인한 뒤에만 쓰기와 migration을 허용합니다. 이름·loopback host·별도 port·전용 user·owner·marker 중 하나라도 다르면 실행이 차단됩니다. 전용 DB에 접속할 수 없거나 health polling이 실패해도 기존 개발 DB로 전환하지 않으며, `finally`는 `docker run --cidfile`에서 성공적으로 확인한 해당 container ID만 정리합니다. 이름이 이미 사용 중이면 시작 전에 중단하고 그 container는 건드리지 않습니다.
 
 ## 결과
 
