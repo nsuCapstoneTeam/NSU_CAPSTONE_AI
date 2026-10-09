@@ -1943,7 +1943,10 @@
   "previous_blocked_run": {
     "path": "validation-result-blocked-initial.json",
     "status": "BLOCKED",
-    "sha256": "616c3184cca4d0849f82b8b92f165354149c7f9fc3abf3508384164b84bdcfc3",
+    "sha256": "8668584f7c581b92472d32582b18cc04149fb39d7d3327682655e433f0fb0eeb",
+    "sha256_scope": "SHA-256 of the committed Git blob bytes (LF) for validation-result-blocked-initial.json",
+    "execution_working_tree_sha256": "616c3184cca4d0849f82b8b92f165354149c7f9fc3abf3508384164b84bdcfc3",
+    "execution_working_tree_sha256_scope": "SHA-256 of the original Windows working-tree bytes (CRLF) when the BLOCKED report was generated",
     "record_preserved": true
   },
   "production_migration_execution": {

@@ -14,6 +14,10 @@
 
 `validation-result.json`에는 이번 전체 재실행의 환경, 실제 generation, migration, 정책 및 측정값이 기록되어 있습니다. 최초 Docker 차단 시도는 [validation-result-blocked-initial.json](validation-result-blocked-initial.json)에 별도 보존합니다.
 
+### 최초 BLOCKED evidence의 hash
+
+`validation-result.json`의 `previous_blocked_run.sha256`은 현재 Git에 보존된 `validation-result-blocked-initial.json` blob bytes(LF)의 SHA-256입니다: `8668584f7c581b92472d32582b18cc04149fb39d7d3327682655e433f0fb0eeb`. `execution_working_tree_sha256`은 최초 실행 당시 Windows working tree의 CRLF bytes를 가리킵니다: `616c3184cca4d0849f82b8b92f165354149c7f9fc3abf3508384164b84bdcfc3`. Git의 줄바꿈 정규화로 두 값은 다르지만 JSON 내용은 줄바꿈 정규화 후 동일합니다. 이 두 값은 BLOCKED 결과 파일의 hash이며, validator 소스 파일을 식별하는 최상위 `tool_sha256`과 별개입니다.
+
 ## 범위와 판정 기준
 
 이번 검증은 ADR-0007의 실제 representative `[1,D]` vector를 production migration 및 repository/search 경로로 저장·검색하는 기술 검증입니다. `[8,D]` chunk vector는 저장하지 않습니다. 이번 실행에서 관측한 `D=1024`는 사용한 MSCLAP 2023 모델의 결과이며 영구 차원 규칙이 아닙니다.
