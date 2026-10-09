@@ -2,9 +2,9 @@
 
 ## 새 ADR-0007 개발/검증의 입력 선행조건
 
-2026-10-07 사용자 결정에 따라 기존 30초 FMA 음원·manifest·실험 결과는 과거 PoC로 보존한다.
+FMA Historical PoC의 핵심 실험 근거는 Markdown으로 보존하고, 원본·manifest·상세 결과는 2026-10-09 Cleanup에서 삭제한다.
 새 개발/검증에는 **FMA와 다른 Dataset의 60~80초(양 경계 포함) 입력**을 사용한다.
-Dataset 이름·권리/접근 조건·표본 구성은 아직 선정하지 않았다. 이번 문서 작업에서 음원을 준비하거나 변경하지 않는다.
+[Phase A](../experiments/audio-highlight-phase-a/README.md)의 6곡·60초 fixture와 Phase A 범위 출처·라이선스 확인은 완료됐다. 실제 MSCLAP real-music 검증과 새 정책 PostgreSQL 통합 검증은 아직 미완료다.
 기존 FMA를 임의 반복·padding해서 새 검증 입력으로 바꾸지 않는다.
 
 다른 Dataset의 권리·길이 확인 → 새 생성 규칙/metadata 검증 → 개발 벡터 대상·새 입력 매핑 확인 →
@@ -22,34 +22,24 @@ ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide�
 
 ## Historical PoC / 과거 검증
 
-다음 명령과 FMA 목록은 당시 single-crop generation을 사용한 약 30초 입력의 과거 PoC 기록입니다.
-기존 FMA 파일·manifest·결과는 역사적 근거로 보존합니다. 현재 generator는 최소 60초를
-검증하므로 이 입력을 아래 명령으로 그대로 다시 실행하면 validation에 실패합니다.
-이 자료를 새 8-Chunk 정책의 검증으로 간주하지 마세요. 30초 파일을 반복·연결·padding하지 않습니다.
-아래 명령은 당시 실행 기록이며 현재 실행 방법이 아닙니다.
-
-Compose 설정을 위해 `.env`의 `DB_PASSWORD`가 필요했지만 당시 검색도 DB에 접속하지 않았습니다.
-
-```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio samples/reference.mp3 --manifest docs/experiments/audio-search-phase2/manifest24.json --output datasets/fma/results/search-reference-new.json
-```
-
-결과 JSON의 `results`에 `track_id`, `audio_path`, `cosine_similarity`,
-`audio_similarity_score`, `rank`가 기록됩니다. 출력 파일은 덮어쓰지 않습니다.
-동일 파일은 이름이 달라도 SHA-256으로 제외합니다. 누락·디코딩 실패 등은 오류로
-중단하며 불완전한 결과를 정상 검색 결과로 저장하지 않습니다.
+당시 30초 FMA·단일 crop 검색의 [조건·결과·한계](../experiments/audio-search-phase2/README.md)를 Markdown으로 보존합니다.
+원본·manifest·상세 결과는 삭제했으며 완전 재현 명령은 제공하지 않습니다. 이를 현재 8-Chunk 정책 검증으로 간주하지 않습니다.
 
 ## Current Usage / 현재 실행
 
 현재 `search_audio.py`는 `AudioEmbeddingGenerator`의 generation policy를 사용합니다.
 입력은 60~80초(양 경계 포함)여야 하며, 처음 56초에서 7초 × 8개 Chunk를 생성해
-하나의 대표 벡터로 집계합니다. 실제 권리 확인 60~80초 Dataset/fixture 준비와 음악 품질 평가는 후속 단계입니다.
+하나의 대표 벡터로 집계합니다. Phase A fixture 준비는 완료됐고 실제 MSCLAP 음악 품질 평가는 후속 단계입니다. Phase A manifest는 이 검색 CLI의 후보 manifest와 형식이 다르므로 직접 전달하지 않습니다.
 적격 query Audio와 각 후보 Audio를 준비해야 합니다. manifest의 모든 후보도 현재 60~80초
 validation을 통과해야 합니다. Dataset/fixture 준비 후 아래 placeholder 경로를 실제 경로로 바꿔 실행합니다.
 
 ```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio samples/eligible-highlight.wav --manifest samples/eligible-candidates.json --output datasets/fma/results/search-eligible-new.json
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio samples/eligible-highlight.wav --manifest samples/eligible-candidates.json --output /workspace/datasets/audio-search-results/search-eligible-new.json
 ```
+
+이 예제의 `compose.fma.yaml`은 host의 `./datasets`를 `/workspace/datasets`에 쓰기 가능하게 mount합니다.
+결과는 host의 `datasets/audio-search-results/`에 저장되어 `run --rm` 종료 후에도 남습니다.
+CLI가 결과 폴더를 생성하며, 이 로컬 결과 디렉터리는 Git에서 제외됩니다.
 
 `--top-k` 기본값은 5이며 후보가 적으면 남은 후보 수만 반환합니다.
 검색 생성은 고정 8 chunk 방식이며 random crop seed를 사용하지 않습니다. 기존 출력 파일이 있으면 새 파일명을 사용하세요.

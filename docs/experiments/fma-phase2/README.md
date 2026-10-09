@@ -1,8 +1,10 @@
-# Phase 2 — FMA 실험 기록
+# Phase 2 — FMA Historical PoC
 
 실험일: 2026-10-02 KST. 관련 작업: NSUAI-1, NSUAI-2.
-측정은 로컬 Docker에서 수행했고, 아래 공유 자료는 실제 결과에서 추출했다.
-원음·가중치·개인 청취 평가 원문은 포함하지 않는다.
+측정은 로컬 Docker에서 수행했다. 이 문서는 당시 방법·핵심 결과·의사결정 근거를 보존한다.
+2026-10-09 Cleanup에서 원본 Audio·ZIP·상세 CSV/JSON·Embedding·청취 UI를 삭제했다.
+
+FMA 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거 Embedding은 Cleanup에서 의도적으로 제거했습니다. 현재 checkout에는 핵심 실험 조건·집계 결과·결론·한계의 Historical Markdown 요약만 남아 있어 개별 데이터 수준의 재계산/audit이나 완전 재현을 지원하지 않습니다. 이는 현재 checkout의 보존 범위이며 과거 Git history 자체를 삭제했다는 의미는 아닙니다.
 
 ## 목적과 조건
 
@@ -12,7 +14,11 @@ MSCLAP 자체의 정상 동작, 장르·분위기 설명의 검색 결과, 한�
 - 모델: Microsoft MSCLAP 2023, CPU, Audio/Text 1024차원.
 - 체크포인트: microsoft/msclap, revision `c47d441165daa21986ead0850660917636a81775`.
 - Python 3.11, msclap 1.3.3, torch/torchaudio 2.1.2+cpu, transformers 4.35.2.
-- FMA small의 공식 test split, seed 42. crop/pad는 모델 기본값, 오디오 resample=True.
+- Dataset: FMA small의 30초 MP3, 공식 test split, 표본 선정 seed 42.
+- 장르: Electronic, Experimental, Folk, Hip-Hop, Instrumental, International, Pop, Rock.
+- 공식 메타데이터와 로컬 파일을 대조하고 장르별 ID 정렬 후보에서 seed로 표본을 선정했다. 장르 진단은 장르별 2곡(16곡) 및 10곡(80곡)이다.
+- 사용자 설명 비교 16곡은 80곡 목록에서 장르별 첫 2곡을 선택했다. 유사도 점수로 곡이나 문구를 선정하지 않았다.
+- 당시 모델 기본 단일 7초 random crop/pad, resample=True. 전체 30초를 집계한 벡터가 아니며 현재 8-Chunk 방식과 다르다.
 - 곡별 seed는 42 + track_id. 플랫폼·패키지가 달라지면 완전히 같은 값을 보장하지 않는다.
 - ZIP의 공식 SHA-1 확인 후 8,000곡 추출.
 
@@ -30,8 +36,8 @@ MSCLAP 1.3.3의 전처리는 max_length padding을 사용하지만 truncation을
 긴 입력을 잘라 주지 않는다. 검증 스크립트는 tokenizer truncation을 명시하고 원래/유지
 토큰 수와 실제 입력을 기록하도록 수정했다. 원문 측정의 0건 실패는 이 수정 후 실행 기준이다.
 
-원문 10382번의 영어 설명은 한국어 포크 설명과 달리 힙합이었으므로 수정본에서 정정했다.
-한국어·영어를 같은 의미의 짧은 설명으로 정리하고 원문·이전 결과는 로컬에 보존했다.
+원문의 일부 영어 설명은 한국어 설명과 장르 의미가 달라 수정본에서 정정했다.
+한국어·영어를 같은 의미의 짧은 설명으로 정리했다. 원문·이전 결과는 당시 로컬에 보존했으며 이번 Cleanup에서 삭제했다.
 
 ## 수정본 검색 결과
 
@@ -43,9 +49,9 @@ MSCLAP 1.3.3의 전처리는 max_length padding을 사용하지만 truncation을
 | 원곡 상위 3위 | 3/16 | 13/16 |
 | 상위 후보에 등장한 서로 다른 곡 | 3 | 15 |
 
-한국어 16개 설명 모두 84057, 111153, 145777 세 곡을 상위 후보로 선택했다.
-각 설명의 전체 입력과 모델 출력은 `manifest16-descriptions.json`, `similarities.csv`,
-`rankings.csv`로 확인한다. 원곡 1위 비율은 진단용 지표이며 음악 적합도의 정답률이 아니다.
+한국어 16개 설명 모두 동일한 세 곡을 상위 후보로 선택했다.
+원곡 1위 비율은 진단용 지표이며 음악 적합도의 정답률이 아니다.
+순위는 L2 정규화 벡터 내적의 raw cosine으로 계산했고 MSCLAP 배율 적용 출력을 별도 기록했다. 장르 일치는 진단 proxy이며 행사 적합성의 정답이 아니다.
 
 ## 사용자 청취 평가
 
@@ -62,8 +68,7 @@ MSCLAP 1.3.3의 전처리는 max_length padding을 사용하지만 truncation을
 | 모델 1위 후보를 잘 맞음으로 평가 | 1/1 | 14/16 |
 
 영어의 잘 맞음 비율은 42/48=87.5%이다. 전체 16개 영어 설명에서 상위 후보 중
-잘 맞음인 곡이 하나 이상 있었다. 크리스마스 설명의 1위 곡 111153과 3위 곡 10382는
-안 맞음으로 평가됐다. 실험 음악 설명의 1위는 애매함이었다.
+잘 맞음인 곡이 하나 이상 있었다.
 
 한국어는 첫 설명만 평가했으므로 청취 평가 결과로 언어 간 직접 비교를 하지 않는다.
 평가자는 설명을 작성한 사용자이기도 하며 독립적인 다수 평가자 검증이 아니다.
@@ -76,41 +81,20 @@ MSCLAP 1.3.3의 전처리는 max_length padding을 사용하지만 truncation을
 영어 설명은 사람이 작성·수정했다. 따라서 자동 번역 품질, 새로운 음악·요청에 대한
 추천 성능, 서비스 전체 적합성 또는 최종 0–100 수식이 검증됐다고 볼 수 없다.
 후속 작업은 번역 모델/API 선택, 의미·부정 조건 보존, 77토큰 제한 처리 및 실패 처리다.
-정규화 조정에는 validation split을 사용하고 test 결과에 수식을 맞추지 않는다.
+당시 정규화 조정에는 validation split을 사용하고 test 결과에 수식을 맞추지 않도록 했다.
 
-## 공유 파일과 재현
+FMA Historical 집계는 과거 의사결정 설명용이며 향후 calibration input으로 사용하지 않습니다. 향후 calibration은 ADR-0007 generation policy에 따라 새로 생성한 Embedding·새 similarity distribution·새 evaluation evidence를 기반으로 수행하고, 해당 evidence는 별도로 생성·보존합니다.
 
-| 파일 | 내용 |
-| --- | --- |
-| manifest16-descriptions.json | 16곡 ID·라이선스·상대 음원 경로와 한영 32문장 |
-| similarities.csv | 수정본의 실제 512개 cosine 및 MSCLAP 배율 적용 출력 |
-| rankings.csv | 설명별 원곡 순위·상위 3곡 |
-| summary.json | 실험별 집계, 패키지, 로컬 원본 SHA-256, 청취 평가 집계 |
+## 보존 범위와 현재 검증
 
-프로젝트 루트에서 FMA 다운로드·추출을 먼저 수행한다.
+단일 평가자, 16곡·수작업 설명, 상위 후보 선정 편향이 있는 소규모 탐색이다.
+당시 공유 자료 준비 때 512개 비교를 재측정하여 오류·잘림 0건과 원측정 값 일치를 확인했고 자동 테스트 13개가 통과했다. 이는 당시 기록이며 현재 정책의 품질 검증이 아니다.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/fma/download_fma.ps1
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.fma.validate_fma run --manifest docs/experiments/fma-phase2/manifest16-descriptions.json --output datasets/fma/results/listening-reproduced
-```
+현재 입력·생성 기준은 [ADR-0007](../../adr/ADR-0007-audio-highlight-embedding-strategy.md)과 [Phase A](../audio-highlight-phase-a/README.md)다.
+Phase A에서는 별도 실제 음악 6곡의 정확히 60초 fixture, PCM 동일성·재현성 및 Phase A 범위 출처·라이선스 확인을 완료했다.
+실제 MSCLAP real-music Embedding 검증과 새 정책의 PostgreSQL 통합 검증은 아직 미완료다.
+FMA 30초 입력을 반복·padding하여 현재 검증으로 사용하지 않는다.
 
-report.json의 SHA-256은 해당 로컬 실행 원본을 식별한다. report에는 절대 경로 등이
-포함되므로 재실행 시 파일 SHA-256이 같아야 한다는 의미는 아니다.
-현재 스크립트는 similarities/distributions/report를 생성한다. 공유용 rankings는
-similarities를 prompt_genre·language별로 묶고 cosine으로 내림차순 정렬해 원곡 순위와
-상위 3곡을 추출했다. `same_genre`와 장르별 distributions는 사용자 설명 평가 지표로 쓰지 않는다.
-
-80곡 장르 검증 재현은 [FMA 실행 가이드](../../guides/FMA_VALIDATION.md)의 prepare에서
-`--per-genre 10`을 사용한다. 다운로드한 데이터와 로컬 페이지·개인 평가는 datasets/에
-보관되어 Git에서 제외된다.
-
-## 업로드 전 확인
-
-- 최신 main `bc5665b`를 반영해 CPU 의존성 고정과 Docker 검사 코드를 유지했다.
-- 자동 테스트 13개 통과, Starlette TestClient deprecation warning 1건.
-- 위 공유 상대경로 manifest로 16곡·32문장을 재측정해 512개 비교, 오류 0건·잘림 0건 확인.
-- 재측정 similarities.csv의 SHA-256이 로컬 실행 원본과 정확히 일치했다:
-  `e6a3f93d024c413714d8f2477e517f86afcb2cc5f93a2c5f3e9d9714a6925a84`.
-- Git 공유 파일은 LF 줄바꿈으로 정규화했다. 따라서 위 원시 실행 파일과 바이트 해시는
-  다를 수 있으며 공유 파일의 해시는 summary.json의 published_artifacts_sha256에 별도 기록했다.
-- 실제 DB 연결·서버 endpoint와 전체 Docker 이미지 빌드는 이번 준비 단계에서 재검증하지 않았다.
+[점수 변환·Audio↔Audio 후속 PoC](../audio-search-phase2/README.md)에 분포·평가 결과와 한계를 보존한다.
+다운로드·측정 코드와 helper는 별도 퇴역 전까지 유지하지만 삭제한 입력·결과를 이용하는 재현 명령은 제공하지 않는다.
+공유 MSCLAP/GPT-2 모델 캐시는 유지한다.

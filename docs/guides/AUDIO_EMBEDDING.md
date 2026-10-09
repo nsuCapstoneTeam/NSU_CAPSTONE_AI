@@ -2,7 +2,7 @@
 
 ## 새 ADR-0007 개발/검증의 입력 선행조건
 
-2026-10-07 사용자 결정에 따라 기존 30초 FMA 음원·manifest·실험 결과는 과거 PoC로 보존한다.
+FMA Historical PoC의 핵심 실험 근거는 Markdown으로 보존하고, 원본·manifest·상세 결과는 2026-10-09 Cleanup에서 삭제한다.
 새 개발/검증에는 **FMA와 다른 Dataset의 60~80초(양 경계 포함) 입력**을 사용한다.
 2026-10-08 Phase A에서는 로컬 Kevin MacLeod 음원 6곡의 지정 구간으로 정확히 60초 WAV fixture를 준비했다.
 기술 검증과 반복 재현성은 통과했다. 공식 곡의 CC BY 4.0 및 로컬 원본의 공식 Incompetech 사이트 직접 다운로드는 각각 confirmed_by_user다. Phase A 종합 verification_status=verified, rights_cleared=true는 로컬 MSCLAP 기술 검증용 Dataset의 출처·라이선스 확인 완료만 뜻한다. 공식 서버 파일과 SHA-256 비교는 not_performed이며 모든 향후 서비스/배포 용도의 권리 검토 완료를 뜻하지 않는다.
@@ -108,7 +108,7 @@ chunk 길이·수·overlap, pooling/normalization, resampling과 channel 정책�
 분류하고 원본 예외를 보존합니다. 오류를 DB에 기록하고 재처리하는
 부분은 저장 계층 구현에서 연결합니다.
 
-기존 FMA 측정 스크립트는 과거 실험 재현을 위해 변경하지 않았습니다.
+기존 FMA 측정 스크립트와 공용으로 import되는 helper는 별도 코드 퇴역 전까지 유지합니다. 상세 산출물 삭제 후 과거 실험의 완전 재현은 지원하지 않습니다.
 검색 출력에는 `query_embedding_metadata`, `candidate_embedding_metadata`가 추가됩니다.
 기존 유사도·점수·순위 필드는 유지합니다.
 
@@ -120,4 +120,4 @@ deprecation 경고 1개를 확인했습니다. 입력 복사·벡터 오류·차
 실제 `reference.mp3`와 후보 24곡으로 실행한 TOP 5 ID·원본 유사도·점수는
 기존 검색 결과와 모두 정확히 같았습니다. 실제 출력 차원은 1024이며 메타데이터는
 입력 1개와 후보 24개 모두 기록되었습니다.
-로컬 재측정 결과: `datasets/fma/results/search-reference-common-embedding.json`.
+[Historical 공통 생성기 검증 요약](../experiments/audio-search-phase2/README.md#당시-공통-생성기db-경로-검증)에 근거를 보존하며 상세 JSON은 삭제했습니다.
