@@ -197,7 +197,7 @@ Cosine Similarity
 현재 Audio 공통 생성·테이블·동기 저장·DB 후보 검색 CLI를 구현했습니다.
 Audio 공통 생성기는 승인된 [ADR-0007](adr/ADR-0007-audio-highlight-embedding-strategy.md)의
 60~80초 validation 및 고정 8 chunk 대표 벡터 생성 정책을 적용합니다.
-실제 권리 확인 Phase A 6곡의 MSCLAP 생성 경로 기술 검증은 완료했습니다. PostgreSQL 통합 검증·검색/음악 품질 평가·개발 벡터 재생성은 미완료입니다.
+실제 권리 확인 Phase A 6곡의 MSCLAP 생성 경로 기술 검증과 [전용 PostgreSQL/pgvector 통합 검증](experiments/audio-embedding-postgres-validation/README.md)은 완료했습니다. 검색/음악 품질 평가와 개발 벡터 재생성은 별도 후속 단계입니다.
 음악 입력은 동기로 처리하며 AI에서 연동 계약 초안을 먼저 작성합니다.
 [저장 안내](guides/EMBEDDING_STORAGE.md), [DB 검색 검증](guides/DATABASE_AUDIO_SEARCH.md)을 참고합니다.
 Text 생성·번역, 백엔드 ID/FK·수정/삭제 계약, 오류 기록·자동 재처리는 미완료입니다.
@@ -228,7 +228,7 @@ Audio 정책 적용 순서:
 완료: ADR-0007 generator·generation metadata 구현, synthetic Audio 단위 검증, MSCLAP batch smoke validation.
 완료 단계: Phase A Dataset 준비·60초 입력 기술 검증·Phase A 로컬 MSCLAP 기술 검증용 출처·라이선스 확인.
 완료 단계: 2026-10-09 [실제 6곡 MSCLAP 생성 경로 검증](experiments/audio-highlight-msclap-validation/README.md). 같은 process 반복과 별도 process/model reload에서 [8,1024]→[1,1024] 및 exact 재현성 확인.
-다음 순서: PostgreSQL 통합 검증 (NEXT) → 재생성 대상/새 입력 매핑 확인 및 기존 dev/test Audio Embedding 재생성 → 새 generation 기반 저장·검색 검증 → Similarity 분포 검증 → Calibration. 음악/검색 품질 평가는 별도 미완료이며 이번 생성 경로 통과가 품질이나 이후 단계의 완료를 뜻하지 않는다.
+완료: 2026-10-09 전용 PostgreSQL/pgvector 통합 검증. 저장 round-trip, cosine 수치 parity(`abs=1e-6`, `rtol=0`), 정확한 ranking parity 및 격리/rollback 결과는 [실험 기록](experiments/audio-embedding-postgres-validation/README.md)을 참고한다. 다음은 재생성 대상·입력 mapping·소유권 확인과 별도 승인이다. 기존 dev/test Embedding은 이번 단계에서 삭제하거나 재생성하지 않았다. 이후 새 generation 저장·검색, similarity 분포·품질 평가, calibration은 각각 후속 검증이다.
 기존 30초 FMA의 핵심 조건·결과·한계는 Historical Markdown으로 보존하고 원본·상세 산출물은 삭제하며 임의 반복/padding으로 FMA를 새 fixture로 바꾸지 않는다.
 2026-10-08 [Phase A](experiments/audio-highlight-phase-a/README.md)에서 Kevin MacLeod 음원 6곡의 지정 60초 WAV 생성·기술 검증·반복 재현성을 완료했다. 공식 곡의 CC BY 4.0과 원본 MP3의 공식 Incompetech 직접 다운로드는 각각 confirmed_by_user다. Phase A 종합 verification_status=verified, rights_cleared=true로 로컬 MSCLAP 기술 검증용 출처·라이선스 확인을 완료했다. 공식 서버 파일과 SHA-256 비교는 not_performed이며 모든 향후 서비스/배포 용도의 포괄적인 권리 검토 완료를 뜻하지 않는다. 실제 MSCLAP/DB 평가·벡터 삭제/재생성은 수행하지 않았다.
 Dataset 선행조건은 Roadmap과 [FMA 안내](guides/FMA_VALIDATION.md)·[DB 검증 안내](guides/DATABASE_AUDIO_SEARCH.md)에서 관리하고 ADR-0007은 변경하지 않는다.
@@ -605,9 +605,8 @@ Duplicate:
 # 5. 현재 다음 작업
 
 MSCLAP PoC·Audio/Text 차원·실제 Similarity 측정과 Audio 저장/검색 CLI는 이미 수행한 단계다.
-Phase A 입력 준비와 ADR-0007 생성 규칙의 실제 6곡 MSCLAP 기술 검증을 완료했다. 다음은 PostgreSQL 통합 검증이며 검색 품질·similarity 분포/calibration은 별도 후속 작업이다.
-60~80초 적격 입력과 재생성 대상 매핑을 검증하기 전 기존 개발 벡터를 삭제하지 않는다.
-길이 경계·8 Chunk·L2/Mean·재현성 검증 후 재생성·저장/검색 확인으로 진행한다.
+Phase A 입력 준비, ADR-0007 실제 6곡 MSCLAP 생성 경로 검증 및 전용 PostgreSQL/pgvector 통합 검증을 완료했다. DB 통합 결과는 [실험 기록](experiments/audio-embedding-postgres-validation/README.md)에 있다. 검색 품질·similarity 분포/calibration은 미완료다.
+다음은 재생성 대상·새 입력 mapping·소유권 확인이다. 기존 개발 벡터를 삭제·재생성하는 작업은 별도 승인을 받은 뒤에만 진행한다.
 
 ## 2026-10-07 정합화 이력
 
