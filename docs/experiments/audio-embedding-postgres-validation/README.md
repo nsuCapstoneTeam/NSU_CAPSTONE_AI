@@ -47,11 +47,18 @@ $containerId = $null
 $containerOwned = $false
 try {
   docker run --cidfile $cidFile --detach --name $container --publish 127.0.0.1:55432:5432 --tmpfs /var/lib/postgresql:rw,size=268435456 --env "POSTGRES_DB=audio_embedding_validation" --env "POSTGRES_USER=audio_validation" --env "POSTGRES_PASSWORD=$env:VALIDATION_DB_PASSWORD" --health-cmd "pg_isready -U audio_validation -d audio_embedding_validation" --health-interval 2s --health-timeout 3s --health-retries 30 pgvector/pgvector:0.8.6-pg18
-  if ($LASTEXITCODE -ne 0) { throw 'docker run failed to start the dedicated validation container.' }
-  if (-not (Test-Path -LiteralPath $cidFile)) { throw 'docker run succeeded but did not create the requested container ID file.' }
-  $containerId = (Get-Content -LiteralPath $cidFile -Raw).Trim()
-  if (-not $containerId) { throw 'The container ID file is empty; ownership cannot be established safely.' }
-  $containerOwned = $true
+  $dockerRunExitCode = $LASTEXITCODE
+  if (Test-Path -LiteralPath $cidFile) {
+    $candidateId = (Get-Content -LiteralPath $cidFile -Raw).Trim()
+    if ($candidateId -match '^[0-9a-f]{12,64}$') {
+      $containerId = $candidateId
+      $containerOwned = $true
+    } else {
+      throw 'The cidfile does not contain a valid Docker container ID; refusing name-based cleanup.'
+    }
+  }
+  if ($dockerRunExitCode -ne 0) { throw 'docker run failed to start the dedicated validation container.' }
+  if (-not $containerOwned) { throw 'docker run succeeded but did not create a valid container ID file.' }
 
   $deadline = (Get-Date).AddMinutes(2)
   while ($true) {
