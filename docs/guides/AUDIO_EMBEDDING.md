@@ -7,6 +7,7 @@ FMA Historical PoC의 핵심 실험 근거는 Markdown으로 보존하고, 원�
 2026-10-08 Phase A에서는 로컬 Kevin MacLeod 음원 6곡의 지정 구간으로 정확히 60초 WAV fixture를 준비했다.
 기술 검증과 반복 재현성은 통과했다. 공식 곡의 CC BY 4.0 및 로컬 원본의 공식 Incompetech 사이트 직접 다운로드는 각각 confirmed_by_user다. Phase A 종합 verification_status=verified, rights_cleared=true는 로컬 MSCLAP 기술 검증용 Dataset의 출처·라이선스 확인 완료만 뜻한다. 공식 서버 파일과 SHA-256 비교는 not_performed이며 모든 향후 서비스/배포 용도의 권리 검토 완료를 뜻하지 않는다.
 구간·manifest·실행 결과는 [Phase A 실험 기록](../experiments/audio-highlight-phase-a/README.md)을 참고한다.
+2026-10-09 [실제 6곡 MSCLAP 검증](../experiments/audio-highlight-msclap-validation/README.md)에서 production generator의 24회 batch 추론·[8,1024]→[1,1024] 생성 경로·metadata 및 같은/별도 process exact 재현성을 확인했다. 이는 생성 경로 기술 검증이며 PostgreSQL 통합 검증·검색/음악 품질 평가·similarity 분포/calibration은 미완료다.
 기존 FMA를 임의 반복·padding해서 새 검증 입력으로 바꾸지 않는다.
 
 다른 Dataset의 권리·길이 확인 → 새 생성 규칙/metadata 검증 → 개발 벡터 대상·새 입력 매핑 확인 →
