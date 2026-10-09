@@ -84,6 +84,68 @@ def test_production_migration_reuses_guarded_connection(monkeypatch):
     assert tool.migrations.connect_database is original
 
 
+@pytest.mark.parametrize(('migration_error', 'reason_code', 'migration_name'), [
+    ('vector_extension_missing', 'vector_extension_missing', None),
+    ('unknown_applied_migration', 'unknown_applied_migration', None),
+    ('migration_checksum_mismatch: 0001_audio_embeddings.sql',
+     'migration_checksum_mismatch', '0001_audio_embeddings.sql'),
+])
+def test_expected_migration_runtime_errors_are_structured_and_sanitized(
+        monkeypatch, migration_error, reason_code, migration_name):
+    monkeypatch.setattr(tool, 'connect_validation', lambda expected: (MagicMock(), {}))
+
+    def fail_migration():
+        raise RuntimeError(migration_error)
+
+    monkeypatch.setattr(tool.migrations, 'apply_migrations', fail_migration)
+    with pytest.raises(tool.MigrationFailure) as raised:
+        tool.apply_validated_migrations('audio_embedding_validation')
+    report = raised.value.to_report()
+    assert report['stage'] == 'migration'
+    assert report['reason_code'] == reason_code
+    assert report.get('migration_name') == migration_name
+    assert migration_error not in report['message']
+
+
+def test_unrecognized_migration_runtime_error_is_not_hidden(monkeypatch):
+    monkeypatch.setattr(tool, 'connect_validation', lambda expected: (MagicMock(), {}))
+    monkeypatch.setattr(tool.migrations, 'apply_migrations',
+                        lambda: (_ for _ in ()).throw(RuntimeError('unexpected defect')))
+    with pytest.raises(RuntimeError, match='unexpected defect'):
+        tool.apply_validated_migrations('audio_embedding_validation')
+
+
+def test_cli_writes_structured_migration_failure_without_credentials(
+        tmp_path, validation_env, monkeypatch, capsys):
+    monkeypatch.setattr(tool, 'ROOT', tmp_path)
+    monkeypatch.setattr(tool, 'audio_file_sha256', lambda path: 'a' * 64)
+    monkeypatch.setattr(tool, 'environment_evidence', lambda: {})
+    monkeypatch.setattr(tool, 'input_evidence', lambda: ([], {}))
+    monkeypatch.setattr(tool, 'validation_settings', lambda expected: object())
+    monkeypatch.setattr(
+        tool, 'execute_validation',
+        lambda *args, **kwargs: (_ for _ in ()).throw(tool.MigrationFailure(
+            'unknown_applied_migration',
+            'DB migration 이력에 현재 repository에서 찾을 수 없는 migration이 있습니다')))
+    report_path = tmp_path/'docs/experiments/audio-embedding-postgres-validation/failure.json'
+
+    assert tool.main([
+        '--expected-database', 'audio_embedding_validation',
+        '--report', str(report_path),
+    ]) == 1
+
+    report = json.loads(report_path.read_text(encoding='utf-8'))
+    output = capsys.readouterr().out
+    assert report['status'] == 'FAIL'
+    assert report['failure'] == {
+        'stage': 'migration',
+        'reason_code': 'unknown_applied_migration',
+        'message': 'DB migration 이력에 현재 repository에서 찾을 수 없는 migration이 있습니다',
+    }
+    assert 'unit-test-secret' not in output
+    assert 'unit-test-secret' not in report_path.read_text(encoding='utf-8')
+
+
 def test_nonzero_roundtrip_difference_requires_review():
     before = torch.tensor([[1.0, 0.5]])
     after = torch.tensor([[1.0, 0.5000001]])

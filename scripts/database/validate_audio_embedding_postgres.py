@@ -51,6 +51,26 @@ class CheckFailed(ValueError):
     """수치 허용 오차와 무관한 명확한 검증 조건 위반."""
 
 
+class MigrationFailure(ValueError):
+    """예상된 production migration 거부를 안전한 구조화 오류로 전달한다."""
+
+    def __init__(self, reason_code, message, migration_name=None):
+        super().__init__(message)
+        self.reason_code = reason_code
+        self.message = message
+        self.migration_name = migration_name
+
+    def to_report(self):
+        failure = {
+            'stage': 'migration',
+            'reason_code': self.reason_code,
+            'message': self.message,
+        }
+        if self.migration_name is not None:
+            failure['migration_name'] = self.migration_name
+        return failure
+
+
 def require(condition, reason):
     if not condition:
         raise CheckFailed(reason)
@@ -102,7 +122,29 @@ def apply_validated_migrations(expected_database):
         return connect_validation(expected_database)[0]
     # production SQL·checksum 처리를 재사용하고 추가 연결도 매번 guard를 통과시킨다.
     with patch.object(migrations, 'connect_database', guarded_factory):
-        return migrations.apply_migrations()
+        try:
+            return migrations.apply_migrations()
+        except RuntimeError as error:
+            message = str(error)
+            if message == 'vector_extension_missing':
+                raise MigrationFailure(
+                    'vector_extension_missing',
+                    '전용 validation DB에 pgvector extension이 없어 migration을 적용하지 못했습니다',
+                ) from None
+            if message == 'unknown_applied_migration':
+                raise MigrationFailure(
+                    'unknown_applied_migration',
+                    'DB migration 이력에 현재 repository에서 찾을 수 없는 migration이 있습니다',
+                ) from None
+            mismatch = re.fullmatch(r'migration_checksum_mismatch: ([A-Za-z0-9_.-]+)', message)
+            if mismatch:
+                raise MigrationFailure(
+                    'migration_checksum_mismatch',
+                    '이미 적용된 migration의 checksum이 현재 파일과 다릅니다',
+                    migration_name=mismatch.group(1),
+                ) from None
+            # 새롭거나 예상하지 못한 RuntimeError는 프로그래밍 오류일 수 있으므로 노출해 조사한다.
+            raise
 
 
 def schema_evidence(connection):
@@ -505,6 +547,10 @@ def main(argv=None):
         report['reason'] = str(error)
         report['isolation']['status'] = 'BLOCKED'
         report['unresolved'].append('안전한 전용 validation PostgreSQL provision 필요')
+    except MigrationFailure as error:
+        report['status'] = 'FAIL'
+        report['reason'] = error.message
+        report['failure'] = error.to_report()
     except psycopg.OperationalError:
         report['reason'] = '전용 validation DB 접속 불가; 개발 DB fallback 없음'
     except (CheckFailed, ValidationError, DatasetError, AudioEmbeddingError, OSError, psycopg.Error) as error:

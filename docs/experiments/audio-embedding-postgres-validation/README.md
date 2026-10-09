@@ -2,9 +2,17 @@
 
 ## 현재 결과: PASS
 
-2026-10-09 Phase A 실제 음악 6곡을 production `AudioEmbeddingGenerator`로 새로 처리하고, 격리된 PostgreSQL/pgvector에 저장·검색했습니다. 최초 실행 판정은 cosine 수치 차이에 대한 기준이 승인되지 않아 `REVIEW_REQUIRED`였습니다. 승인된 numerical parity 기준 `absolute tolerance = 1e-6`, `relative tolerance = 0`을 30개 보존된 비교값에 적용해 재판정했으며 30/30이 기준 이내입니다. DB나 MSCLAP 재실행은 하지 않았습니다.
+2026-10-09 전체 재실행: 현재 validator로 전용 PostgreSQL/pgvector instance에서 production migration을 적용하고 Phase A 실제 6곡의 MSCLAP Embedding을 새로 생성하여 통합 검증했다. 결과는 `validation-result.json`에 기록했으며 최초 BLOCKED 실행은 `validation-result-blocked-initial.json`에 그대로 보존했다.
 
-`validation-result.json`에는 원 실행 상태와 재판정 근거, 정책, 측정값이 함께 기록되어 있습니다. 초기 Docker 차단 시도는 [validation-result-blocked-initial.json](validation-result-blocked-initial.json)에 별도 보존합니다.
+이번 실행은 Windows CPU에서 수행했다. 전용 `pgvector/pgvector:0.8.6-pg18` 컨테이너, `audio_embedding_validation` database, 전용 validation owner, `127.0.0.1:55432` loopback port 및 임시 저장소를 사용했으며 기존 `backend-postgres-1`, 개발 database와 volume은 사용하지 않았다. Production migration `0001_audio_embeddings.sql` 적용 후 검증했고, 전용 컨테이너는 실행 종료 시 정리했다.
+
+여섯 입력 모두 SHA 확인 전후 일치했고 새 [1,1024] 대표 Embedding을 생성했다. 저장 round-trip은 6/6 exact equality, cosine은 승인 기준 `abs=1e-6`, `rtol=0`에서 30/30 PASS (최대 절대 차이 `1.1920928955078125e-07`), 전체 ranking은 6/6 exact match였으며 TopK 1/2/5도 일치했다. Tie-break, generation compatibility, duplicate/conflict, 명시적 rollback 및 새 connection에서 잔여 row 0건도 통과했다. 실제 통합 관련 테스트는 19 passed였다.
+
+실행 보고의 `tool_sha256`은 당시 사용한 `scripts/database/validate_audio_embedding_postgres.py`의 SHA-256과 일치한다. 이 재실행은 실제 MSCLAP generation과 실제 PostgreSQL 검증을 포함한다. 전체 vector는 tracked evidence에 저장하지 않았다.
+
+2026-10-09 전체 실행은 현재 validator로 Phase A 실제 음악 6곡을 production `AudioEmbeddingGenerator`와 실제 MSCLAP으로 새로 처리하고, 격리된 PostgreSQL/pgvector에 저장·검색했습니다. 승인된 numerical parity 기준 `absolute tolerance = 1e-6`, `relative tolerance = 0`을 실제 30개 directional comparison에 적용해 모두 통과했습니다. 이전 실행의 `REVIEW_REQUIRED` 재판정은 이 새 전체 실행으로 대체되며, 최초 `BLOCKED` 시도는 별도 파일로 보존합니다.
+
+`validation-result.json`에는 이번 전체 재실행의 환경, 실제 generation, migration, 정책 및 측정값이 기록되어 있습니다. 최초 Docker 차단 시도는 [validation-result-blocked-initial.json](validation-result-blocked-initial.json)에 별도 보존합니다.
 
 ## 범위와 판정 기준
 
@@ -20,6 +28,55 @@
 
 검증 transaction을 명시적으로 rollback했고 새 connection에서 validation row 0개를 확인했습니다. 전용 container와 ephemeral storage도 정리했습니다. 기존 개발 DB에 연결하거나 이를 변경하지 않았습니다.
 
+## 재현 가능한 실행 절차 (PowerShell)
+
+아래 절차는 기존 개발/업무 DB와 분리된 일회성 PostgreSQL을 준비합니다. Docker Engine이 응답하는지 먼저 확인하고 기존 backend-postgres-1, Compose container, named volume 또는 5432 port를 재사용하지 마세요.
+
+~~~powershell
+docker version
+$container = 'audio-embedding-validation-postgres'
+$database = 'audio_embedding_validation'
+$dbUser = 'audio_validation'
+$dbPort = '55432'
+$env:VALIDATION_DB_PASSWORD = [guid]::NewGuid().ToString('N')
+docker run --detach --name $container --publish 127.0.0.1:55432:5432 --tmpfs /var/lib/postgresql:rw,size=268435456 --env "POSTGRES_DB=audio_embedding_validation" --env "POSTGRES_USER=audio_validation" --env "POSTGRES_PASSWORD=$env:VALIDATION_DB_PASSWORD" --health-cmd "pg_isready -U audio_validation -d audio_embedding_validation" --health-interval 2s --health-timeout 3s --health-retries 30 pgvector/pgvector:0.8.6-pg18
+do {
+  Start-Sleep -Seconds 2
+  $health = docker inspect --format '{{.State.Health.Status}}' $container
+} until ($health -eq 'healthy')
+docker exec $container psql -v ON_ERROR_STOP=1 -U $dbUser -d $database -c "COMMENT ON DATABASE audio_embedding_validation IS 'nsu-capstone-ai:audio-embedding-postgres-validation:v1';"
+docker exec $container psql -v ON_ERROR_STOP=1 -U $dbUser -d $database -c 'CREATE EXTENSION IF NOT EXISTS vector;'
+$env:DB_HOST = '127.0.0.1'
+$env:DB_PORT = $dbPort
+$env:DB_NAME = $database
+$env:DB_USER = $dbUser
+$env:DB_PASSWORD = $env:VALIDATION_DB_PASSWORD
+~~~
+
+검증 CLI는 실제 연결에서 database name, 접속 user와 database owner 일치, 위 ownership marker를 확인한 뒤에만 쓰기와 migration을 허용합니다. 이름·loopback host·별도 port·전용 user·owner·marker 중 하나라도 다르면 실행이 차단됩니다. 환경 변수는 같은 PowerShell 세션에서만 지정하고 비밀번호나 connection string을 로그/evidence에 복사하지 마세요.
+
+전용 DB identity를 확인한 같은 PowerShell 세션에서 production migration runner를 실행합니다. schema를 수동으로 만들지 마세요.
+
+~~~powershell
+python -m scripts.database.migrate_embeddings
+~~~
+
+실제 Phase A 입력, MSCLAP generation 및 PostgreSQL 통합 tests를 실행하는 validation CLI 전체 명령입니다. 매 실행마다 새 report 경로를 사용하세요.
+
+~~~powershell
+$runId = Get-Date -Format 'yyyyMMdd-HHmmss'
+python -m scripts.database.validate_audio_embedding_postgres --expected-database audio_embedding_validation --run-integration-tests --report "docs/experiments/audio-embedding-postgres-validation/validation-result-$runId.json"
+~~~
+
+CLI가 접속 불가 또는 identity 불일치로 실패하면 기존 개발 DB로 전환하지 마세요. 전용 container의 health, identity, migration을 바로잡고 새 report 경로로 다시 실행합니다. 검증 종료 후 container를 제거하면 tmpfs 데이터도 폐기됩니다.
+
+정상 또는 실패 종료 후에는 위에서 만든 이름의 validation container만 제거하고 현재 PowerShell 세션의 임시 비밀번호를 지웁니다.
+
+~~~powershell
+docker rm --force audio-embedding-validation-postgres
+Remove-Item Env:VALIDATION_DB_PASSWORD, Env:DB_PASSWORD, Env:DB_HOST, Env:DB_PORT, Env:DB_NAME, Env:DB_USER -ErrorAction SilentlyContinue
+~~~
+
 ## 결과
 
 - Phase A 6개 입력 manifest identity·SHA 확인 및 실행 전후 SHA 보존: 6/6 통과.
@@ -29,7 +86,7 @@
 - Ranking parity: 6/6 query에서 전체 candidate 순서 일치. TopK 1/2/5 일치.
 - Synthetic cosine 의미(동일/직교/반대), production `music_id COLLATE "C"` tie-break, generation mismatch 제외 및 compatible control 유지, duplicate 재사용/conflict와 원본 보존, rollback 및 새 연결 row 0개: 모두 통과.
 
-세부 입력 SHA, checkpoint/package 환경, 생성 profile, 각 comparison, 순위, migration, 격리 결과는 [validation-result.json](validation-result.json)에 있습니다. 전체 vector는 Git evidence에 포함하지 않습니다.
+세부 입력 SHA, checkpoint/package 환경, 생성 profile, 각 comparison, 순위, migration, 격리 결과는 [validation-result.json](validation-result.json)에 있습니다. evidence의 `tool_sha256`은 실제 전체 PostgreSQL/MSCLAP 실행에 사용한 validator 파일의 SHA-256이며 실행 source와 일치합니다. 전체 vector는 Git evidence에 포함하지 않습니다.
 
 ## 한계와 제외 범위
 

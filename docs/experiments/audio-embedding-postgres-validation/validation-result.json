@@ -1,11 +1,11 @@
 {
   "schema_version": 1,
-  "tool_version": "production-audio-postgres-validation-v1",
-  "repository_commit": "267e7c847ce4f386785ac2a41982edd6f5b9559f",
-  "tool_sha256": "4d02b84056353f095b16169fc20109425b4a805b0d3b88d78317a611c8fc4c4b",
+  "tool_version": "production-audio-postgres-validation-v2",
+  "repository_commit": "a3a6feca6c4e8a13841697af691ffcdee9c19ba5",
+  "tool_sha256": "f850f62d34b09c03374ca8f66fdf400443fd2cb31e8f0e1af76f93d8db35807a",
   "generator_sha256": "5497b902b397ea3e2d881f08f40f317a329d9ef52f013f8ad7b41894951aa620",
   "repository_sha256": "a20e07733e8b73eeb009b4113a5f6a3741359c2ca1960b0f253481fcb14052d7",
-  "started_at_utc": "2026-10-09T07:18:46.460687+00:00",
+  "started_at_utc": "2026-10-09T08:26:08.334009+00:00",
   "environment": {
     "python": "3.11.16",
     "platform": "Windows-10-10.0.26200-SP0",
@@ -23,16 +23,22 @@
       "soundfile": "0.14.0",
       "transformers": "4.35.2"
     },
-    "device": "cpu",
-    "docker_engine": "29.8.1"
+    "device": "cpu"
+  },
+  "numerical_parity_policy": {
+    "absolute_tolerance": 1e-06,
+    "relative_tolerance": 0.0,
+    "scope": "Python cosine similarity versus PostgreSQL 1 - cosine_distance cosine similarity",
+    "ranking_is_independent": true,
+    "ranking_rule": "candidate ID full order must match exactly; no epsilon/tolerance",
+    "not_a_calibration_threshold": true
   },
   "docker": {
     "available": true,
     "server_version": "29.8.1",
     "reason": null,
-    "provisioning_performed": true,
-    "development_db_fallback": false,
-    "provisioned_container": "audio-embedding-validation-postgres"
+    "provisioning_performed": false,
+    "development_db_fallback": false
   },
   "isolation": {
     "database": "audio_embedding_validation",
@@ -47,16 +53,12 @@
     "development_db_fallback": false,
     "production_defaults_used": false,
     "existing_db_contents_audited": false,
-    "scope": "전용 DB만 허용; 기존 DB 내용 비교는 수행하지 않음",
-    "existing_development_db_connection_attempted": false,
-    "existing_development_db_modified": false,
-    "existing_development_db_contents_audited": false,
-    "basis": "?? CLI target? safety guard? ??? 127.0.0.1:55432/audio_embedding_validation??? ?? 5432 DB? ???? ???; ?? DB snapshot? ?? ???"
+    "scope": "전용 DB만 허용; 기존 DB 내용 비교는 수행하지 않음"
   },
   "status": "PASS",
   "limitations": [
     "전체 vector는 tracked evidence에 저장하지 않음",
-    "The approved abs=1e-6, rtol=0 rule applies only to Python/PostgreSQL cosine numerical parity, not ranking or 0-100 calibration.",
+    "cosine numerical tolerance는 Python/PostgreSQL parity 비교에만 적용; ranking 및 calibration 기준이 아님",
     "revision lifecycle·ACTIVE 후보 정책·검색 품질·calibration은 검증 대상 아님"
   ],
   "unresolved": [],
@@ -73,7 +75,7 @@
       "original_mp3_path": "datasets/audio-highlight-validation/source/The Britons.mp3",
       "original_mp3_sha256": "00e766ef7a2635b1e7c116bfff794cb3485c17730ec26c114a9b3fb21d7a837d",
       "decoded_frames": 2646000,
-      "duration_seconds": 60,
+      "duration_seconds": 60.0,
       "sample_rate": 44100,
       "channels": 2,
       "format": "WAV",
@@ -88,7 +90,7 @@
       "original_mp3_path": "datasets/audio-highlight-validation/source/Dentaneosuchus Hunt.mp3",
       "original_mp3_sha256": "9db6b36ce1f47769a4f3b5c36c4a06981dea0e7a8fa9d44d7d30ddf180760ace",
       "decoded_frames": 2880000,
-      "duration_seconds": 60,
+      "duration_seconds": 60.0,
       "sample_rate": 48000,
       "channels": 2,
       "format": "WAV",
@@ -103,7 +105,7 @@
       "original_mp3_path": "datasets/audio-highlight-validation/source/Cretaceous Dawn.mp3",
       "original_mp3_sha256": "a3f7bc1b0e0947d9b2a00c4faaeec55c73458b13b97d7fcb5d20e830da6e9226",
       "decoded_frames": 2880000,
-      "duration_seconds": 60,
+      "duration_seconds": 60.0,
       "sample_rate": 48000,
       "channels": 2,
       "format": "WAV",
@@ -118,7 +120,7 @@
       "original_mp3_path": "datasets/audio-highlight-validation/source/That Zen Moment.mp3",
       "original_mp3_sha256": "d796b819607ebb2b9c04a5b5a838d0e167ed66b765ecacf9423fb6c0953853dc",
       "decoded_frames": 2646000,
-      "duration_seconds": 60,
+      "duration_seconds": 60.0,
       "sample_rate": 44100,
       "channels": 2,
       "format": "WAV",
@@ -133,7 +135,7 @@
       "original_mp3_path": "datasets/audio-highlight-validation/source/Boogie Party.mp3",
       "original_mp3_sha256": "738c7cf5b142bca6f249f731d1f7c5a5025d17b7a05ba649319b0c512c229643",
       "decoded_frames": 2646000,
-      "duration_seconds": 60,
+      "duration_seconds": 60.0,
       "sample_rate": 44100,
       "channels": 2,
       "format": "WAV",
@@ -148,7 +150,7 @@
       "original_mp3_path": "datasets/audio-highlight-validation/source/All This.mp3",
       "original_mp3_sha256": "15aa40f76bf114748e23452e4659fed30cfb88745efa5d13c7279ea2fc370f12",
       "decoded_frames": 2880000,
-      "duration_seconds": 60,
+      "duration_seconds": 60.0,
       "sample_rate": 48000,
       "channels": 2,
       "format": "WAV",
@@ -227,7 +229,7 @@
       ],
       "finite": true,
       "nonzero": true,
-      "norm": 1,
+      "norm": 1.0,
       "digest": "bac0adec609a0ef2fb7123d9252b92be2973ef34b0b3c046118d64dba9fb6ccf",
       "checkpoint_sha256": "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6",
       "generation_version": "msclap2023-audio-first56s-8x7s-nonoverlap-chunk-l2-mean-final-l2-v2",
@@ -311,7 +313,7 @@
       ],
       "finite": true,
       "nonzero": true,
-      "norm": 1,
+      "norm": 1.0,
       "digest": "d33e082de00b3d8faca149155f37a95f819337151b5a695450d75503018e4324",
       "checkpoint_sha256": "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6",
       "generation_version": "msclap2023-audio-first56s-8x7s-nonoverlap-chunk-l2-mean-final-l2-v2",
@@ -353,7 +355,7 @@
       ],
       "finite": true,
       "nonzero": true,
-      "norm": 1,
+      "norm": 1.0,
       "digest": "f7b2f22e1b8c693aa55566d72c37fde10d8fe50f1bdbb472d19681f02a65472e",
       "checkpoint_sha256": "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6",
       "generation_version": "msclap2023-audio-first56s-8x7s-nonoverlap-chunk-l2-mean-final-l2-v2",
@@ -437,7 +439,7 @@
       ],
       "finite": true,
       "nonzero": true,
-      "norm": 1,
+      "norm": 1.0,
       "digest": "ff9fcfcd3583e178971653178014b111c2627553ca047d5357088c3aa6b210c2",
       "checkpoint_sha256": "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6",
       "generation_version": "msclap2023-audio-first56s-8x7s-nonoverlap-chunk-l2-mean-final-l2-v2",
@@ -528,11 +530,11 @@
         "exact_equal": true,
         "before_digest": "bac0adec609a0ef2fb7123d9252b92be2973ef34b0b3c046118d64dba9fb6ccf",
         "after_digest": "bac0adec609a0ef2fb7123d9252b92be2973ef34b0b3c046118d64dba9fb6ccf",
-        "max_absolute_difference": 0,
-        "rms_difference": 0,
-        "l2_difference": 0,
+        "max_absolute_difference": 0.0,
+        "rms_difference": 0.0,
+        "l2_difference": 0.0,
         "status": "PASS",
-        "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons"
+        "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons"
       },
       {
         "dimension": 1024,
@@ -547,11 +549,11 @@
         "exact_equal": true,
         "before_digest": "510e9e8d1602039f75abd5a13d9f66ebe1ded30d0223b7cafa18b379dc64a6d9",
         "after_digest": "510e9e8d1602039f75abd5a13d9f66ebe1ded30d0223b7cafa18b379dc64a6d9",
-        "max_absolute_difference": 0,
-        "rms_difference": 0,
-        "l2_difference": 0,
+        "max_absolute_difference": 0.0,
+        "rms_difference": 0.0,
+        "l2_difference": 0.0,
         "status": "PASS",
-        "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt"
+        "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt"
       },
       {
         "dimension": 1024,
@@ -566,11 +568,11 @@
         "exact_equal": true,
         "before_digest": "d33e082de00b3d8faca149155f37a95f819337151b5a695450d75503018e4324",
         "after_digest": "d33e082de00b3d8faca149155f37a95f819337151b5a695450d75503018e4324",
-        "max_absolute_difference": 0,
-        "rms_difference": 0,
-        "l2_difference": 0,
+        "max_absolute_difference": 0.0,
+        "rms_difference": 0.0,
+        "l2_difference": 0.0,
         "status": "PASS",
-        "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn"
+        "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn"
       },
       {
         "dimension": 1024,
@@ -585,11 +587,11 @@
         "exact_equal": true,
         "before_digest": "f7b2f22e1b8c693aa55566d72c37fde10d8fe50f1bdbb472d19681f02a65472e",
         "after_digest": "f7b2f22e1b8c693aa55566d72c37fde10d8fe50f1bdbb472d19681f02a65472e",
-        "max_absolute_difference": 0,
-        "rms_difference": 0,
-        "l2_difference": 0,
+        "max_absolute_difference": 0.0,
+        "rms_difference": 0.0,
+        "l2_difference": 0.0,
         "status": "PASS",
-        "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment"
+        "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment"
       },
       {
         "dimension": 1024,
@@ -604,11 +606,11 @@
         "exact_equal": true,
         "before_digest": "4499c32bed391f3c45bb5dfb5d6736da73bae08bd7a7a3588a842a6e12633347",
         "after_digest": "4499c32bed391f3c45bb5dfb5d6736da73bae08bd7a7a3588a842a6e12633347",
-        "max_absolute_difference": 0,
-        "rms_difference": 0,
-        "l2_difference": 0,
+        "max_absolute_difference": 0.0,
+        "rms_difference": 0.0,
+        "l2_difference": 0.0,
         "status": "PASS",
-        "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party"
+        "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party"
       },
       {
         "dimension": 1024,
@@ -623,11 +625,11 @@
         "exact_equal": true,
         "before_digest": "ff9fcfcd3583e178971653178014b111c2627553ca047d5357088c3aa6b210c2",
         "after_digest": "ff9fcfcd3583e178971653178014b111c2627553ca047d5357088c3aa6b210c2",
-        "max_absolute_difference": 0,
-        "rms_difference": 0,
-        "l2_difference": 0,
+        "max_absolute_difference": 0.0,
+        "rms_difference": 0.0,
+        "l2_difference": 0.0,
         "status": "PASS",
-        "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this"
+        "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this"
       }
     ],
     "cosine_comparisons": [
@@ -637,18 +639,18 @@
         "postgresql_raw_cosine_distance": 0.31520424232495525,
         "sql_cosine_similarity": 0.6847957576750447,
         "repository_cosine_similarity": 0.6847957576750447,
-        "signed_difference": 3.919614055547527e-8,
-        "absolute_difference": 3.919614055547527e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+        "signed_difference": 3.919614055547527e-08,
+        "absolute_difference": 3.919614055547527e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt"
       },
       {
         "python_before_storage": 0.621823787689209,
@@ -656,18 +658,18 @@
         "postgresql_raw_cosine_distance": 0.37817615270614624,
         "sql_cosine_similarity": 0.6218238472938538,
         "repository_cosine_similarity": 0.6218238472938538,
-        "signed_difference": -5.960464477539063e-8,
-        "absolute_difference": 5.960464477539063e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+        "signed_difference": -5.960464477539063e-08,
+        "absolute_difference": 5.960464477539063e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn"
       },
       {
         "python_before_storage": 0.701360821723938,
@@ -675,18 +677,18 @@
         "postgresql_raw_cosine_distance": 0.298639178276062,
         "sql_cosine_similarity": 0.701360821723938,
         "repository_cosine_similarity": 0.701360821723938,
-        "signed_difference": 0,
-        "absolute_difference": 0,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+        "signed_difference": 0.0,
+        "absolute_difference": 0.0,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment"
       },
       {
         "python_before_storage": 0.6540474891662598,
@@ -694,18 +696,18 @@
         "postgresql_raw_cosine_distance": 0.34595245122909546,
         "sql_cosine_similarity": 0.6540475487709045,
         "repository_cosine_similarity": 0.6540475487709045,
-        "signed_difference": -5.960464477539063e-8,
-        "absolute_difference": 5.960464477539063e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+        "signed_difference": -5.960464477539063e-08,
+        "absolute_difference": 5.960464477539063e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party"
       },
       {
         "python_before_storage": 0.6802718043327332,
@@ -713,18 +715,18 @@
         "postgresql_raw_cosine_distance": 0.31972813606262207,
         "sql_cosine_similarity": 0.6802718639373779,
         "repository_cosine_similarity": 0.6802718639373779,
-        "signed_difference": -5.960464477539063e-8,
-        "absolute_difference": 5.960464477539063e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+        "signed_difference": -5.960464477539063e-08,
+        "absolute_difference": 5.960464477539063e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this"
       },
       {
         "python_before_storage": 0.6847957968711853,
@@ -732,18 +734,18 @@
         "postgresql_raw_cosine_distance": 0.31520424232495525,
         "sql_cosine_similarity": 0.6847957576750447,
         "repository_cosine_similarity": 0.6847957576750447,
-        "signed_difference": 3.919614055547527e-8,
-        "absolute_difference": 3.919614055547527e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+        "signed_difference": 3.919614055547527e-08,
+        "absolute_difference": 3.919614055547527e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons"
       },
       {
         "python_before_storage": 0.9587352871894836,
@@ -751,18 +753,18 @@
         "postgresql_raw_cosine_distance": 0.041264743842623464,
         "sql_cosine_similarity": 0.9587352561573765,
         "repository_cosine_similarity": 0.9587352561573765,
-        "signed_difference": 3.103210710619919e-8,
-        "absolute_difference": 3.103210710619919e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+        "signed_difference": 3.103210710619919e-08,
+        "absolute_difference": 3.103210710619919e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn"
       },
       {
         "python_before_storage": 0.7790615558624268,
@@ -770,18 +772,18 @@
         "postgresql_raw_cosine_distance": 0.2209384209197286,
         "sql_cosine_similarity": 0.7790615790802714,
         "repository_cosine_similarity": 0.7790615790802714,
-        "signed_difference": -2.3217844646872265e-8,
-        "absolute_difference": 2.3217844646872265e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+        "signed_difference": -2.3217844646872265e-08,
+        "absolute_difference": 2.3217844646872265e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment"
       },
       {
         "python_before_storage": 0.7905335426330566,
@@ -789,18 +791,18 @@
         "postgresql_raw_cosine_distance": 0.20946655301649997,
         "sql_cosine_similarity": 0.7905334469835,
         "repository_cosine_similarity": 0.7905334469835,
-        "signed_difference": 9.564955660845698e-8,
-        "absolute_difference": 9.564955660845698e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+        "signed_difference": 9.564955660845698e-08,
+        "absolute_difference": 9.564955660845698e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party"
       },
       {
         "python_before_storage": 0.6952057480812073,
@@ -808,18 +810,18 @@
         "postgresql_raw_cosine_distance": 0.304794231200046,
         "sql_cosine_similarity": 0.695205768799954,
         "repository_cosine_similarity": 0.695205768799954,
-        "signed_difference": -2.071874671827345e-8,
-        "absolute_difference": 2.071874671827345e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+        "signed_difference": -2.071874671827345e-08,
+        "absolute_difference": 2.071874671827345e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this"
       },
       {
         "python_before_storage": 0.621823787689209,
@@ -827,18 +829,18 @@
         "postgresql_raw_cosine_distance": 0.37817615270614624,
         "sql_cosine_similarity": 0.6218238472938538,
         "repository_cosine_similarity": 0.6218238472938538,
-        "signed_difference": -5.960464477539063e-8,
-        "absolute_difference": 5.960464477539063e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+        "signed_difference": -5.960464477539063e-08,
+        "absolute_difference": 5.960464477539063e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons"
       },
       {
         "python_before_storage": 0.9587352871894836,
@@ -846,18 +848,18 @@
         "postgresql_raw_cosine_distance": 0.041264743842623464,
         "sql_cosine_similarity": 0.9587352561573765,
         "repository_cosine_similarity": 0.9587352561573765,
-        "signed_difference": 3.103210710619919e-8,
-        "absolute_difference": 3.103210710619919e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+        "signed_difference": 3.103210710619919e-08,
+        "absolute_difference": 3.103210710619919e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt"
       },
       {
         "python_before_storage": 0.7681367993354797,
@@ -865,18 +867,18 @@
         "postgresql_raw_cosine_distance": 0.23186320066452026,
         "sql_cosine_similarity": 0.7681367993354797,
         "repository_cosine_similarity": 0.7681367993354797,
-        "signed_difference": 0,
-        "absolute_difference": 0,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+        "signed_difference": 0.0,
+        "absolute_difference": 0.0,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment"
       },
       {
         "python_before_storage": 0.756943941116333,
@@ -884,18 +886,18 @@
         "postgresql_raw_cosine_distance": 0.24305617809295654,
         "sql_cosine_similarity": 0.7569438219070435,
         "repository_cosine_similarity": 0.7569438219070435,
-        "signed_difference": 1.1920928955078125e-7,
-        "absolute_difference": 1.1920928955078125e-7,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+        "signed_difference": 1.1920928955078125e-07,
+        "absolute_difference": 1.1920928955078125e-07,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party"
       },
       {
         "python_before_storage": 0.7219641208648682,
@@ -903,18 +905,18 @@
         "postgresql_raw_cosine_distance": 0.27803587913513184,
         "sql_cosine_similarity": 0.7219641208648682,
         "repository_cosine_similarity": 0.7219641208648682,
-        "signed_difference": 0,
-        "absolute_difference": 0,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+        "signed_difference": 0.0,
+        "absolute_difference": 0.0,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this"
       },
       {
         "python_before_storage": 0.701360821723938,
@@ -922,18 +924,18 @@
         "postgresql_raw_cosine_distance": 0.298639178276062,
         "sql_cosine_similarity": 0.701360821723938,
         "repository_cosine_similarity": 0.701360821723938,
-        "signed_difference": 0,
-        "absolute_difference": 0,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+        "signed_difference": 0.0,
+        "absolute_difference": 0.0,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons"
       },
       {
         "python_before_storage": 0.7790615558624268,
@@ -941,18 +943,18 @@
         "postgresql_raw_cosine_distance": 0.2209384209197286,
         "sql_cosine_similarity": 0.7790615790802714,
         "repository_cosine_similarity": 0.7790615790802714,
-        "signed_difference": -2.3217844646872265e-8,
-        "absolute_difference": 2.3217844646872265e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+        "signed_difference": -2.3217844646872265e-08,
+        "absolute_difference": 2.3217844646872265e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt"
       },
       {
         "python_before_storage": 0.7681367993354797,
@@ -960,18 +962,18 @@
         "postgresql_raw_cosine_distance": 0.23186320066452026,
         "sql_cosine_similarity": 0.7681367993354797,
         "repository_cosine_similarity": 0.7681367993354797,
-        "signed_difference": 0,
-        "absolute_difference": 0,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+        "signed_difference": 0.0,
+        "absolute_difference": 0.0,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn"
       },
       {
         "python_before_storage": 0.6604266166687012,
@@ -979,18 +981,18 @@
         "postgresql_raw_cosine_distance": 0.3395734429359436,
         "sql_cosine_similarity": 0.6604265570640564,
         "repository_cosine_similarity": 0.6604265570640564,
-        "signed_difference": 5.960464477539063e-8,
-        "absolute_difference": 5.960464477539063e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+        "signed_difference": 5.960464477539063e-08,
+        "absolute_difference": 5.960464477539063e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party"
       },
       {
         "python_before_storage": 0.7773795127868652,
@@ -998,18 +1000,18 @@
         "postgresql_raw_cosine_distance": 0.22262054681777954,
         "sql_cosine_similarity": 0.7773794531822205,
         "repository_cosine_similarity": 0.7773794531822205,
-        "signed_difference": 5.960464477539063e-8,
-        "absolute_difference": 5.960464477539063e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+        "signed_difference": 5.960464477539063e-08,
+        "absolute_difference": 5.960464477539063e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this"
       },
       {
         "python_before_storage": 0.6540474891662598,
@@ -1017,18 +1019,18 @@
         "postgresql_raw_cosine_distance": 0.34595245122909546,
         "sql_cosine_similarity": 0.6540475487709045,
         "repository_cosine_similarity": 0.6540475487709045,
-        "signed_difference": -5.960464477539063e-8,
-        "absolute_difference": 5.960464477539063e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+        "signed_difference": -5.960464477539063e-08,
+        "absolute_difference": 5.960464477539063e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons"
       },
       {
         "python_before_storage": 0.7905335426330566,
@@ -1036,18 +1038,18 @@
         "postgresql_raw_cosine_distance": 0.20946655301649997,
         "sql_cosine_similarity": 0.7905334469835,
         "repository_cosine_similarity": 0.7905334469835,
-        "signed_difference": 9.564955660845698e-8,
-        "absolute_difference": 9.564955660845698e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+        "signed_difference": 9.564955660845698e-08,
+        "absolute_difference": 9.564955660845698e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt"
       },
       {
         "python_before_storage": 0.756943941116333,
@@ -1055,18 +1057,18 @@
         "postgresql_raw_cosine_distance": 0.24305617809295654,
         "sql_cosine_similarity": 0.7569438219070435,
         "repository_cosine_similarity": 0.7569438219070435,
-        "signed_difference": 1.1920928955078125e-7,
-        "absolute_difference": 1.1920928955078125e-7,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+        "signed_difference": 1.1920928955078125e-07,
+        "absolute_difference": 1.1920928955078125e-07,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn"
       },
       {
         "python_before_storage": 0.6604266166687012,
@@ -1074,18 +1076,18 @@
         "postgresql_raw_cosine_distance": 0.3395734429359436,
         "sql_cosine_similarity": 0.6604265570640564,
         "repository_cosine_similarity": 0.6604265570640564,
-        "signed_difference": 5.960464477539063e-8,
-        "absolute_difference": 5.960464477539063e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+        "signed_difference": 5.960464477539063e-08,
+        "absolute_difference": 5.960464477539063e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment"
       },
       {
         "python_before_storage": 0.586929202079773,
@@ -1093,18 +1095,18 @@
         "postgresql_raw_cosine_distance": 0.4130708575248718,
         "sql_cosine_similarity": 0.5869291424751282,
         "repository_cosine_similarity": 0.5869291424751282,
-        "signed_difference": 5.960464477539063e-8,
-        "absolute_difference": 5.960464477539063e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+        "signed_difference": 5.960464477539063e-08,
+        "absolute_difference": 5.960464477539063e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this"
       },
       {
         "python_before_storage": 0.6802718639373779,
@@ -1112,18 +1114,18 @@
         "postgresql_raw_cosine_distance": 0.31972813606262207,
         "sql_cosine_similarity": 0.6802718639373779,
         "repository_cosine_similarity": 0.6802718639373779,
-        "signed_difference": 0,
-        "absolute_difference": 0,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+        "signed_difference": 0.0,
+        "absolute_difference": 0.0,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons"
       },
       {
         "python_before_storage": 0.6952057480812073,
@@ -1131,18 +1133,18 @@
         "postgresql_raw_cosine_distance": 0.304794231200046,
         "sql_cosine_similarity": 0.695205768799954,
         "repository_cosine_similarity": 0.695205768799954,
-        "signed_difference": -2.071874671827345e-8,
-        "absolute_difference": 2.071874671827345e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+        "signed_difference": -2.071874671827345e-08,
+        "absolute_difference": 2.071874671827345e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt"
       },
       {
         "python_before_storage": 0.7219642400741577,
@@ -1150,18 +1152,18 @@
         "postgresql_raw_cosine_distance": 0.27803587913513184,
         "sql_cosine_similarity": 0.7219641208648682,
         "repository_cosine_similarity": 0.7219641208648682,
-        "signed_difference": 1.1920928955078125e-7,
-        "absolute_difference": 1.1920928955078125e-7,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+        "signed_difference": 1.1920928955078125e-07,
+        "absolute_difference": 1.1920928955078125e-07,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn"
       },
       {
         "python_before_storage": 0.77737957239151,
@@ -1169,18 +1171,18 @@
         "postgresql_raw_cosine_distance": 0.22262054681777954,
         "sql_cosine_similarity": 0.7773794531822205,
         "repository_cosine_similarity": 0.7773794531822205,
-        "signed_difference": 1.1920928955078125e-7,
-        "absolute_difference": 1.1920928955078125e-7,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+        "signed_difference": 1.1920928955078125e-07,
+        "absolute_difference": 1.1920928955078125e-07,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment"
       },
       {
         "python_before_storage": 0.586929202079773,
@@ -1188,61 +1190,61 @@
         "postgresql_raw_cosine_distance": 0.4130708575248718,
         "sql_cosine_similarity": 0.5869291424751282,
         "repository_cosine_similarity": 0.5869291424751282,
-        "signed_difference": 5.960464477539063e-8,
-        "absolute_difference": 5.960464477539063e-8,
-        "storage_cosine_difference": 0,
-        "repository_sql_difference": 0,
-        "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-        "candidate_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+        "signed_difference": 5.960464477539063e-08,
+        "absolute_difference": 5.960464477539063e-08,
+        "storage_cosine_difference": 0.0,
+        "repository_sql_difference": 0.0,
+        "allowed_absolute_difference": 1e-06,
         "numerical_parity_tolerance": {
-          "absolute": 0.000001,
-          "relative": 0
+          "absolute": 1e-06,
+          "relative": 0.0
         },
-        "allowed_absolute_difference": 0.000001
+        "status": "PASS",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+        "candidate_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party"
       }
     ],
     "rankings": [
       {
         "python_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-          "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-          "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-          "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-          "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn"
         ],
         "postgresql_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-          "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-          "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-          "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-          "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn"
         ],
         "adjacent_candidate_gaps": [
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
             "python_gap": 0.016565024852752686
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
             "python_gap": 0.0045239925384521484
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
             "python_gap": 0.02622431516647339
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
             "python_gap": 0.03222370147705078
           }
         ],
         "match": true,
         "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
         "top_k_checks": [
           {
             "top_k": 1,
@@ -1259,77 +1261,77 @@
         ],
         "scores": [
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
             "python": 0.6847957968711853,
             "postgresql": 0.6847957576750447,
-            "difference": 3.919614055547527e-8
+            "difference": 3.919614055547527e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
             "python": 0.621823787689209,
             "postgresql": 0.6218238472938538,
-            "difference": -5.960464477539063e-8
+            "difference": -5.960464477539063e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
             "python": 0.701360821723938,
             "postgresql": 0.701360821723938,
-            "difference": 0
+            "difference": 0.0
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
             "python": 0.6540474891662598,
             "postgresql": 0.6540475487709045,
-            "difference": -5.960464477539063e-8
+            "difference": -5.960464477539063e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
             "python": 0.6802718043327332,
             "postgresql": 0.6802718639373779,
-            "difference": -5.960464477539063e-8
+            "difference": -5.960464477539063e-08
           }
         ]
       },
       {
         "python_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-          "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-          "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-          "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-          "validation-947877f94735457485d4b5e2d2bf1f01-the-britons"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons"
         ],
         "postgresql_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-          "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-          "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-          "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-          "validation-947877f94735457485d4b5e2d2bf1f01-the-britons"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons"
         ],
         "adjacent_candidate_gaps": [
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
             "python_gap": 0.168201744556427
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
             "python_gap": 0.011471986770629883
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
             "python_gap": 0.08385580778121948
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
             "python_gap": 0.010409951210021973
           }
         ],
         "match": true,
         "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
         "top_k_checks": [
           {
             "top_k": 1,
@@ -1346,77 +1348,77 @@
         ],
         "scores": [
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
             "python": 0.6847957968711853,
             "postgresql": 0.6847957576750447,
-            "difference": 3.919614055547527e-8
+            "difference": 3.919614055547527e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
             "python": 0.9587352871894836,
             "postgresql": 0.9587352561573765,
-            "difference": 3.103210710619919e-8
+            "difference": 3.103210710619919e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
             "python": 0.7790615558624268,
             "postgresql": 0.7790615790802714,
-            "difference": -2.3217844646872265e-8
+            "difference": -2.3217844646872265e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
             "python": 0.7905335426330566,
             "postgresql": 0.7905334469835,
-            "difference": 9.564955660845698e-8
+            "difference": 9.564955660845698e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
             "python": 0.6952057480812073,
             "postgresql": 0.695205768799954,
-            "difference": -2.071874671827345e-8
+            "difference": -2.071874671827345e-08
           }
         ]
       },
       {
         "python_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-          "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-          "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-          "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-          "validation-947877f94735457485d4b5e2d2bf1f01-the-britons"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons"
         ],
         "postgresql_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-          "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-          "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-          "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-          "validation-947877f94735457485d4b5e2d2bf1f01-the-britons"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons"
         ],
         "adjacent_candidate_gaps": [
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
             "python_gap": 0.1905984878540039
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
             "python_gap": 0.011192858219146729
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
             "python_gap": 0.034979820251464844
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
             "python_gap": 0.10014033317565918
           }
         ],
         "match": true,
         "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
         "top_k_checks": [
           {
             "top_k": 1,
@@ -1433,77 +1435,77 @@
         ],
         "scores": [
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
             "python": 0.621823787689209,
             "postgresql": 0.6218238472938538,
-            "difference": -5.960464477539063e-8
+            "difference": -5.960464477539063e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
             "python": 0.9587352871894836,
             "postgresql": 0.9587352561573765,
-            "difference": 3.103210710619919e-8
+            "difference": 3.103210710619919e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
             "python": 0.7681367993354797,
             "postgresql": 0.7681367993354797,
-            "difference": 0
+            "difference": 0.0
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
             "python": 0.756943941116333,
             "postgresql": 0.7569438219070435,
-            "difference": 1.1920928955078125e-7
+            "difference": 1.1920928955078125e-07
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
             "python": 0.7219641208648682,
             "postgresql": 0.7219641208648682,
-            "difference": 0
+            "difference": 0.0
           }
         ]
       },
       {
         "python_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-          "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-          "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-          "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-          "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party"
         ],
         "postgresql_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-          "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-          "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-          "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-          "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party"
         ],
         "adjacent_candidate_gaps": [
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
             "python_gap": 0.0016820430755615234
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
             "python_gap": 0.009242713451385498
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
             "python_gap": 0.06677597761154175
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
             "python_gap": 0.040934205055236816
           }
         ],
         "match": true,
         "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
         "top_k_checks": [
           {
             "top_k": 1,
@@ -1520,77 +1522,77 @@
         ],
         "scores": [
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
             "python": 0.701360821723938,
             "postgresql": 0.701360821723938,
-            "difference": 0
+            "difference": 0.0
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
             "python": 0.7790615558624268,
             "postgresql": 0.7790615790802714,
-            "difference": -2.3217844646872265e-8
+            "difference": -2.3217844646872265e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
             "python": 0.7681367993354797,
             "postgresql": 0.7681367993354797,
-            "difference": 0
+            "difference": 0.0
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
             "python": 0.6604266166687012,
             "postgresql": 0.6604265570640564,
-            "difference": 5.960464477539063e-8
+            "difference": 5.960464477539063e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
             "python": 0.7773795127868652,
             "postgresql": 0.7773794531822205,
-            "difference": 5.960464477539063e-8
+            "difference": 5.960464477539063e-08
           }
         ]
       },
       {
         "python_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-          "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-          "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-          "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-          "validation-947877f94735457485d4b5e2d2bf1f01-all-this"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-all-this"
         ],
         "postgresql_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-          "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-          "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-          "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-          "validation-947877f94735457485d4b5e2d2bf1f01-all-this"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-all-this"
         ],
         "adjacent_candidate_gaps": [
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
             "python_gap": 0.03358960151672363
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
             "python_gap": 0.09651732444763184
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
             "python_gap": 0.006379127502441406
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
             "python_gap": 0.06711828708648682
           }
         ],
         "match": true,
         "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
         "top_k_checks": [
           {
             "top_k": 1,
@@ -1607,77 +1609,77 @@
         ],
         "scores": [
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
             "python": 0.6540474891662598,
             "postgresql": 0.6540475487709045,
-            "difference": -5.960464477539063e-8
+            "difference": -5.960464477539063e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
             "python": 0.7905335426330566,
             "postgresql": 0.7905334469835,
-            "difference": 9.564955660845698e-8
+            "difference": 9.564955660845698e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
             "python": 0.756943941116333,
             "postgresql": 0.7569438219070435,
-            "difference": 1.1920928955078125e-7
+            "difference": 1.1920928955078125e-07
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
             "python": 0.6604266166687012,
             "postgresql": 0.6604265570640564,
-            "difference": 5.960464477539063e-8
+            "difference": 5.960464477539063e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
             "python": 0.586929202079773,
             "postgresql": 0.5869291424751282,
-            "difference": 5.960464477539063e-8
+            "difference": 5.960464477539063e-08
           }
         ]
       },
       {
         "python_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-          "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-          "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-          "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-          "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party"
         ],
         "postgresql_ranking": [
-          "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-          "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-          "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-          "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-          "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party"
+          "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+          "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party"
         ],
         "adjacent_candidate_gaps": [
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
             "python_gap": 0.055415332317352295
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
             "python_gap": 0.02675849199295044
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
             "python_gap": 0.014933884143829346
           },
           {
-            "first": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
-            "second": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+            "first": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
+            "second": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
             "python_gap": 0.09334266185760498
           }
         ],
         "match": true,
         "status": "PASS",
-        "query_id": "validation-947877f94735457485d4b5e2d2bf1f01-all-this",
+        "query_id": "validation-4a4a92869b1c47459a6602b5012c3a15-all-this",
         "top_k_checks": [
           {
             "top_k": 1,
@@ -1694,34 +1696,34 @@
         ],
         "scores": [
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-the-britons",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-the-britons",
             "python": 0.6802718639373779,
             "postgresql": 0.6802718639373779,
-            "difference": 0
+            "difference": 0.0
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-dentaneosuchus-hunt",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-dentaneosuchus-hunt",
             "python": 0.6952057480812073,
             "postgresql": 0.695205768799954,
-            "difference": -2.071874671827345e-8
+            "difference": -2.071874671827345e-08
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-cretaceous-dawn",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-cretaceous-dawn",
             "python": 0.7219642400741577,
             "postgresql": 0.7219641208648682,
-            "difference": 1.1920928955078125e-7
+            "difference": 1.1920928955078125e-07
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-that-zen-moment",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-that-zen-moment",
             "python": 0.77737957239151,
             "postgresql": 0.7773794531822205,
-            "difference": 1.1920928955078125e-7
+            "difference": 1.1920928955078125e-07
           },
           {
-            "music_id": "validation-947877f94735457485d4b5e2d2bf1f01-boogie-party",
+            "music_id": "validation-4a4a92869b1c47459a6602b5012c3a15-boogie-party",
             "python": 0.586929202079773,
             "postgresql": 0.5869291424751282,
-            "difference": 5.960464477539063e-8
+            "difference": 5.960464477539063e-08
           }
         ]
       }
@@ -1729,20 +1731,20 @@
     "synthetic_checks": [
       {
         "case": "same",
-        "distance": 0,
-        "similarity": 1,
+        "distance": 0.0,
+        "similarity": 1.0,
         "status": "PASS"
       },
       {
         "case": "orthogonal",
-        "distance": 1,
-        "similarity": 0,
+        "distance": 1.0,
+        "similarity": 0.0,
         "status": "PASS"
       },
       {
         "case": "opposite",
-        "distance": 2,
-        "similarity": -1,
+        "distance": 2.0,
+        "similarity": -1.0,
         "status": "PASS"
       },
       {
@@ -1756,10 +1758,10 @@
               "A"
             ],
             "ranking": [
-              "validation-947877f94735457485d4b5e2d2bf1f01-fixture-tie-10",
-              "validation-947877f94735457485d4b5e2d2bf1f01-fixture-tie-2",
-              "validation-947877f94735457485d4b5e2d2bf1f01-fixture-tie-A",
-              "validation-947877f94735457485d4b5e2d2bf1f01-fixture-tie-z"
+              "validation-4a4a92869b1c47459a6602b5012c3a15-fixture-tie-10",
+              "validation-4a4a92869b1c47459a6602b5012c3a15-fixture-tie-2",
+              "validation-4a4a92869b1c47459a6602b5012c3a15-fixture-tie-A",
+              "validation-4a4a92869b1c47459a6602b5012c3a15-fixture-tie-z"
             ],
             "status": "PASS"
           },
@@ -1771,10 +1773,10 @@
               "z"
             ],
             "ranking": [
-              "validation-947877f94735457485d4b5e2d2bf1f01-fixture-tie-10",
-              "validation-947877f94735457485d4b5e2d2bf1f01-fixture-tie-2",
-              "validation-947877f94735457485d4b5e2d2bf1f01-fixture-tie-A",
-              "validation-947877f94735457485d4b5e2d2bf1f01-fixture-tie-z"
+              "validation-4a4a92869b1c47459a6602b5012c3a15-fixture-tie-10",
+              "validation-4a4a92869b1c47459a6602b5012c3a15-fixture-tie-2",
+              "validation-4a4a92869b1c47459a6602b5012c3a15-fixture-tie-A",
+              "validation-4a4a92869b1c47459a6602b5012c3a15-fixture-tie-z"
             ],
             "status": "PASS"
           }
@@ -1917,16 +1919,7 @@
         "status": "PASS"
       }
     ],
-    "status": "PASS",
-    "numerical_parity_policy": {
-      "absolute_tolerance": 0.000001,
-      "relative_tolerance": 0,
-      "comparison": "Python cosine similarity versus PostgreSQL 1 - cosine_distance cosine similarity",
-      "scope": "only numerical parity for the 30 directional comparisons in this PostgreSQL integration run",
-      "ranking_parity": "independent; exact full candidate ID order required, with no tolerance or epsilon",
-      "calibration": "unrelated to user-facing 0-100 calibration thresholds",
-      "approval_basis": "user-approved validation criterion"
-    }
+    "status": "PASS"
   },
   "rollback": {
     "fresh_connection": true,
@@ -1941,129 +1934,46 @@
     "status": "PASS"
   },
   "input_sha_after_execution_unchanged": true,
-  "finished_at_utc": "2026-10-09T07:21:18.891737+00:00",
-  "run_id": "audio-embedding-postgres-validation-2026-10-09-c1301ffdc4a3460bb46803b54734124e",
-  "postgresql_version": "18.6",
-  "postgresql_version_full": "PostgreSQL 18.6 (Debian 18.6-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
-  "pgvector_version": "0.8.6",
-  "database_instance": {
+  "finished_at_utc": "2026-10-09T08:27:16.933365+00:00",
+  "run_id": "audio-embedding-postgres-validation-review-p1-rerun-20261009-172602",
+  "previous_blocked_run": {
+    "path": "validation-result-blocked-initial.json",
+    "status": "BLOCKED",
+    "sha256": "616c3184cca4d0849f82b8b92f165354149c7f9fc3abf3508384164b84bdcfc3",
+    "record_preserved": true,
+    "reason": "Initial safety guard stopped before database use because dedicated validation DB settings were not explicitly supplied; no development DB fallback."
+  },
+  "production_migration_execution": {
+    "command": "python -m scripts.database.migrate_embeddings",
+    "status": "PASS",
+    "applied": [
+      "0001_audio_embeddings.sql"
+    ],
+    "applied_to_dedicated_validation_database_only": true,
+    "checksum": "e1d6a553d8e5d059f8fa3f71cfc117a45b2ca4a20ed151efb00356ff3f366061",
+    "schema_and_constraints_verified_by_validation_cli": true
+  },
+  "dedicated_database_instance": {
     "container_name": "audio-embedding-validation-postgres",
     "image": "pgvector/pgvector:0.8.6-pg18",
     "image_id": "sha256:2ba9ca5f2e7daa0f0e7723cba1ee9167bab54efd3640516a44ac1a928dd67e7a",
     "database": "audio_embedding_validation",
-    "user": "audio_validation",
+    "owner_and_user": "audio_validation",
     "host_binding": "127.0.0.1:55432->5432/tcp",
-    "postgres_data_storage": "tmpfs (268435456 bytes)",
-    "docker_named_or_bind_volume_used": false,
+    "storage": "ephemeral tmpfs; no named or bind volume",
     "existing_compose_or_volume_reused": false,
-    "provisioned_for_this_validation": true,
     "cleanup": {
       "status": "PASS",
-      "container_stopped": true,
       "container_removed": true,
-      "ephemeral_tmpfs_discarded": true
-    },
-    "container_id": "514a1cf94b046abd61f13e56ab8d9975e29924250b5da638eb240d5c1294d012"
-  },
-  "migration_validation": {
-    "status": "PASS",
-    "production_migration_directory": "app/repository/migrations",
-    "migration_applied_during_validation_session": [
-      "0001_audio_embeddings.sql"
-    ],
-    "final_cli_migration_apply_result": [],
-    "final_schema_history": {
-      "0001_audio_embeddings.sql": "e1d6a553d8e5d059f8fa3f71cfc117a45b2ca4a20ed151efb00356ff3f366061"
-    },
-    "checksum_verified_against_current_files": true,
-    "schema_columns_and_constraints_verified": true
-  },
-  "checks": {
-    "phase_a_input_identity": "PASS",
-    "new_production_generator_runs": "PASS",
-    "vector_roundtrip": "PASS",
-    "python_postgresql_ranking": "PASS",
-    "top_k": "PASS",
-    "production_tie_break": "PASS",
-    "generation_compatibility": "PASS",
-    "duplicate_reuse_and_conflict": "PASS",
-    "explicit_rollback_and_fresh_connection_zero_rows": "PASS",
-    "existing_development_database_connection": "NOT_ATTEMPTED",
-    "python_postgresql_cosine_numerical_parity": "PASS"
-  },
-  "previous_blocked_run": {
-    "path": "validation-result-blocked-initial.json",
-    "status": "BLOCKED",
-    "started_at_utc": "2026-10-09T04:29:09.359212+00:00",
-    "finished_at_utc": "2026-10-09T04:29:09.785631+00:00",
-    "reason": "전용 validation DB의 DB_HOST/PORT/NAME/USER/PASSWORD를 모두 명시해야 합니다; 개발 DB fallback 없음",
-    "preserved_original_sha256": "616c3184cca4d0849f82b8b92f165354149c7f9fc3abf3508384164b84bdcfc3"
-  },
-  "prior_attempts_in_this_validation_session": [
-    {
-      "status": "FAIL",
-      "integration_tests": {
-        "passed": 18,
-        "failed": 1,
-        "skipped": 0
-      },
-      "migration_applied": [
-        "0001_audio_embeddings.sql"
-      ],
-      "new_msclap_generation": "NOT_EXECUTED",
-      "disposition": "?? fixture profile ??? ??? validation helper? ?? ????, ?? ?? ? live DB tests 19/19 ??"
+      "tmpfs_discarded": true
     }
-  ],
-  "publication_verification": {
-    "unit_and_related_non_db_tests": {
-      "passed": 110,
-      "skipped": 19
-    },
-    "live_postgresql_integration_tests": {
-      "passed": 19,
-      "failed": 0,
-      "skipped": 0
-    },
-    "py_compile": "PASS",
-    "source_and_highlight_sha_preflight": "PASS 6/6",
-    "source_and_highlight_sha_after_execution": "PASS 6/6",
-    "full_vector_stored_in_tracked_evidence": false,
-    "existing_development_database_used": false,
-    "dedicated_container_cleanup": "PASS",
-    "git_diff_check": "PASS",
-    "markdown_local_links": "PENDING",
-    "markdown_local_links_checked": 37,
-    "markdown_broken_links": 0,
-    "blocked_report_hash_preserved": "PASS",
-    "tool_hash_matches_executed_script": "PASS"
   },
-  "numerical_parity_policy": {
-    "absolute_tolerance": 0.000001,
-    "relative_tolerance": 0,
-    "comparison": "Python cosine similarity versus PostgreSQL 1 - cosine_distance cosine similarity",
-    "scope": "only numerical parity for the 30 directional comparisons in this PostgreSQL integration run",
-    "ranking_parity": "independent; exact full candidate ID order required, with no tolerance or epsilon",
-    "calibration": "unrelated to user-facing 0-100 calibration thresholds",
-    "approval_basis": "user-approved validation criterion"
-  },
-  "status_before_reassessment": "REVIEW_REQUIRED",
-  "reassessment": {
-    "previous_status": "REVIEW_REQUIRED",
-    "status": "PASS",
-    "execution_repeated": false,
-    "comparison_count": 30,
-    "comparisons_within_tolerance": 30,
-    "maximum_absolute_difference": 1.1920928955078125e-7,
-    "approved_policy": {
-      "absolute_tolerance": 0.000001,
-      "relative_tolerance": 0,
-      "comparison": "Python cosine similarity versus PostgreSQL 1 - cosine_distance cosine similarity",
-      "scope": "only numerical parity for the 30 directional comparisons in this PostgreSQL integration run",
-      "ranking_parity": "independent; exact full candidate ID order required, with no tolerance or epsilon",
-      "calibration": "unrelated to user-facing 0-100 calibration thresholds",
-      "approval_basis": "user-approved validation criterion"
-    },
-    "assessment_tool_sha256": "ecf9f8a239af8682d8bd3744578ef8aa709ff95f455cdf82de75059e053b98c8",
-    "assessment_tool_version": "production-audio-postgres-validation-v2"
+  "review_followup": {
+    "purpose": "Codex PR review P1: execute full PostgreSQL/pgvector validation using the exact current validator source",
+    "full_postgresql_and_msclap_validation_reexecuted": true,
+    "validator_sha256_matches_source_bytes": true,
+    "source_sha256": "f850f62d34b09c03374ca8f66fdf400443fd2cb31e8f0e1af76f93d8db35807a",
+    "initial_blocked_record_preserved": true,
+    "existing_development_database_used": false
   }
 }
