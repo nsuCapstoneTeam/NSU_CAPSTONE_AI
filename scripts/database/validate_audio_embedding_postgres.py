@@ -386,6 +386,35 @@ def docker_availability():
             'provisioning_performed': False, 'development_db_fallback': False}
 
 
+class IntegrationTestCounts:
+    """pytest의 setup/call/teardown 결과를 테스트당 한 번 집계한다."""
+
+    def __init__(self):
+        self.outcomes = {}
+
+    def pytest_runtest_logreport(self, report):
+        self.outcomes.setdefault(report.nodeid, []).append((report.when, report.outcome))
+
+    def summarize(self, pytest_exit_code):
+        counts = dict(passed=0, failed=0, skipped=0)
+        for reports in self.outcomes.values():
+            outcomes = {outcome for _, outcome in reports}
+            if 'failed' in outcomes:
+                counts['failed'] += 1
+            elif 'skipped' in outcomes:
+                counts['skipped'] += 1
+            elif ('call', 'passed') in reports:
+                counts['passed'] += 1
+
+        suite_failure = pytest_exit_code != 0 and counts['failed'] == 0
+        if suite_failure:
+            # pytest collection/session failure도 report의 failed count에 드러낸다.
+            counts['failed'] = 1
+        effective_exit_code = pytest_exit_code if pytest_exit_code != 0 else int(counts['failed'] > 0)
+        return {'counts': counts, 'pytest_exit_code': int(pytest_exit_code),
+                'exit_code': effective_exit_code, 'suite_failure': suite_failure}
+
+
 def run_guarded_integration_tests(expected_database):
     # 기존 테스트도 접속 factory를 guard로 감싼 별도 process에서만 실행한다.
     probe, _ = connect_validation(expected_database)
@@ -396,29 +425,39 @@ from scripts.database import validate_audio_embedding_postgres as tool
 import pytest, json
 expected = sys.argv[1]
 database.connect_database = lambda: tool.connect_validation(expected)[0]
-class Counts:
-    def __init__(self):
-        self.counts = dict(passed=0, failed=0, skipped=0)
-    def pytest_runtest_logreport(self, report):
-        if report.when == 'call' or (report.when == 'setup' and report.skipped):
-            self.counts[report.outcome] += 1
-counts = Counts()
+counts = tool.IntegrationTestCounts()
 exit_code = pytest.main(['tests/embedding/test_embedding_database.py',
 'tests/matching/test_database_audio_search_integration.py',
  'tests/embedding/test_audio_embedding_postgres_validation_integration.py',
  '-q', '-p', 'no:cacheprovider'], plugins=[counts])
-print('VALIDATION_TEST_COUNTS='+json.dumps(counts.counts))
-raise SystemExit(exit_code)
+summary = counts.summarize(exit_code)
+print('VALIDATION_TEST_RESULT='+json.dumps(summary))
+raise SystemExit(summary['exit_code'])
 '''
     environment = dict(os.environ, RUN_EMBEDDING_DB_TESTS='1', RUN_AUDIO_POSTGRES_VALIDATION_TESTS='1',
                        AUDIO_VALIDATION_EXPECTED_DATABASE=expected_database)
     result = subprocess.run([sys.executable, '-X', 'utf8', '-B', '-c', code, expected_database],
                             cwd=ROOT, env=environment, capture_output=True, text=True, encoding='utf-8')
     # 예외 원문은 DB credentials를 포함할 수 있으므로 child 출력은 자동 publication하지 않는다.
-    counts = [line.removeprefix('VALIDATION_TEST_COUNTS=') for line in result.stdout.splitlines()
-              if line.startswith('VALIDATION_TEST_COUNTS=')]
-    return {'counts': json.loads(counts[-1]) if counts else None,
-            'exit_code': result.returncode, 'status': 'PASS' if result.returncode == 0 else 'FAIL',
+    summaries = [line.removeprefix('VALIDATION_TEST_RESULT=') for line in result.stdout.splitlines()
+                 if line.startswith('VALIDATION_TEST_RESULT=')]
+    count_collection_error = not summaries
+    summary = json.loads(summaries[-1]) if summaries else None
+    counts = summary['counts'] if summary else dict(passed=0, failed=1, skipped=0)
+    pytest_exit_code = summary['pytest_exit_code'] if summary else result.returncode
+    effective_exit_code = summary['exit_code'] if summary else (result.returncode or 1)
+    if result.returncode != effective_exit_code:
+        if counts['failed'] == 0:
+            counts['failed'] = 1
+        effective_exit_code = result.returncode or 1
+    if counts['failed'] > 0 and effective_exit_code == 0:
+        effective_exit_code = 1
+    if effective_exit_code != 0 and counts['failed'] == 0:
+        counts['failed'] = 1
+    return {'counts': counts, 'pytest_exit_code': pytest_exit_code,
+            'exit_code': effective_exit_code, 'suite_failure': summary['suite_failure'] if summary else True,
+            'count_collection_error': count_collection_error,
+            'status': 'PASS' if effective_exit_code == 0 and counts['failed'] == 0 else 'FAIL',
             'tests': ['test_embedding_database.py', 'test_database_audio_search_integration.py',
                       'test_audio_embedding_postgres_validation_integration.py']}
 

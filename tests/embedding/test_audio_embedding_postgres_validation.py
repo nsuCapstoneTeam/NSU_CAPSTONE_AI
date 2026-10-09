@@ -20,6 +20,61 @@ def validation_env(monkeypatch):
         monkeypatch.setenv(key, value)
 
 
+@pytest.mark.parametrize(('phases', 'pytest_exit_code', 'expected'), [
+    ([('setup', 'passed'), ('call', 'passed'), ('teardown', 'passed')], 0,
+     {'passed': 1, 'failed': 0, 'skipped': 0}),
+    ([('setup', 'failed'), ('teardown', 'passed')], 1,
+     {'passed': 0, 'failed': 1, 'skipped': 0}),
+    ([('setup', 'passed'), ('call', 'passed'), ('teardown', 'failed')], 1,
+     {'passed': 0, 'failed': 1, 'skipped': 0}),
+    ([('setup', 'skipped'), ('teardown', 'passed')], 0,
+     {'passed': 0, 'failed': 0, 'skipped': 1}),
+    ([('setup', 'passed'), ('call', 'failed'), ('teardown', 'failed')], 1,
+     {'passed': 0, 'failed': 1, 'skipped': 0}),
+])
+def test_integration_test_counts_aggregate_all_phases_once(phases, pytest_exit_code, expected):
+    counts = tool.IntegrationTestCounts()
+    for phase, outcome in phases:
+        counts.pytest_runtest_logreport(MagicMock(nodeid='test_fixture_case', when=phase, outcome=outcome))
+
+    result = counts.summarize(pytest_exit_code)
+
+    assert result['counts'] == expected
+    assert result['exit_code'] == pytest_exit_code
+    assert result['suite_failure'] is False
+
+
+def test_integration_test_counts_turn_nonzero_exit_without_test_failure_into_failed():
+    result = tool.IntegrationTestCounts().summarize(2)
+
+    assert result['counts'] == {'passed': 0, 'failed': 1, 'skipped': 0}
+    assert result['suite_failure'] is True
+    assert result['exit_code'] == 2
+
+
+@pytest.mark.parametrize(('process_exit_code', 'summary_exit_code', 'summary_failed', 'expected_exit', 'expected_status'), [
+    (0, 0, 0, 0, 'PASS'),
+    (1, 1, 0, 1, 'FAIL'),
+    (0, 0, 1, 1, 'FAIL'),
+])
+def test_guarded_runner_keeps_report_failure_and_process_exit_consistent(
+        monkeypatch, process_exit_code, summary_exit_code, summary_failed, expected_exit, expected_status):
+    monkeypatch.setattr(tool, 'connect_validation', lambda expected: (MagicMock(), {}))
+    summary = {'counts': {'passed': 1, 'failed': summary_failed, 'skipped': 0},
+               'pytest_exit_code': summary_exit_code, 'exit_code': summary_exit_code,
+               'suite_failure': False}
+    completed = subprocess.CompletedProcess(
+        args=[], returncode=process_exit_code,
+        stdout='VALIDATION_TEST_RESULT='+json.dumps(summary)+'\n', stderr='')
+    monkeypatch.setattr(tool.subprocess, 'run', lambda *args, **kwargs: completed)
+
+    result = tool.run_guarded_integration_tests('audio_embedding_validation')
+
+    assert result['exit_code'] == expected_exit
+    assert result['status'] == expected_status
+    assert (result['counts']['failed'] >= 1) is (expected_status == 'FAIL')
+
+
 @pytest.mark.parametrize('key,value', [
     ('DB_HOST', 'host.docker.internal'), ('DB_HOST', 'remote-production'),
     ('DB_PORT', '5432'), ('DB_NAME', 'capstone_db'), ('DB_USER', 'capstone'),
