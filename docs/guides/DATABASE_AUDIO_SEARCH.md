@@ -4,7 +4,7 @@
 
 FMA Historical PoC의 핵심 실험 근거는 Markdown으로 보존하고, 원본·manifest·상세 결과는 2026-10-09 Cleanup에서 삭제한다.
 새 개발/검증에는 **FMA와 다른 Dataset의 60~80초(양 경계 포함) 입력**을 사용한다.
-[Phase A](../experiments/audio-highlight-phase-a/README.md)의 6곡·60초 fixture와 Phase A 범위 출처·라이선스 확인은 완료됐다. 실제 MSCLAP real-music 검증과 새 정책 PostgreSQL 통합 검증은 아직 미완료다.
+[Phase A](../experiments/audio-highlight-phase-a/README.md)의 6곡·60초 fixture와 Phase A 범위 출처·라이선스 확인은 완료됐다. [실제 6곡 MSCLAP 생성 경로 기술 검증](../experiments/audio-highlight-msclap-validation/README.md)과 [PostgreSQL/pgvector 통합 검증](../experiments/audio-embedding-postgres-validation/README.md)은 2026-10-09 완료했다. 통합 검증은 승인된 `abs=1e-6`, `rtol=0` cosine 수치 parity와 별개인 정확한 ranking parity를 적용했다. 이는 사용자 표시용 0~100 calibration이나 검색 품질 검증을 완료했다는 뜻이 아니다.
 기존 FMA를 임의 반복·padding해서 새 검증 입력으로 바꾸지 않는다.
 
 다른 Dataset의 권리·길이 확인 → 새 생성 규칙/metadata 검증 → 개발 벡터 대상·새 입력 매핑 확인 →
@@ -134,6 +134,8 @@ docker compose run --rm --no-deps -e RUN_EMBEDDING_DB_TESTS=1 ai python -m pytes
 테스트용 행은 트랜잭션 종료 시 롤백합니다.
 
 ## 실제 검증 결과
+
+2026-10-09 ADR-0007 대표 임베딩 6곡을 새로 생성해 전용 PostgreSQL/pgvector에서 검증한 결과는 위 [통합 검증 기록](../experiments/audio-embedding-postgres-validation/README.md)을 따른다. 저장 round-trip은 6/6 exact equality, Python/PostgreSQL cosine 수치 parity는 승인된 기준 안에서 30/30 통과, 전체 순위는 6/6 일치했다. tie-break·generation compatibility·중복/충돌·rollback도 통과했다. 기존 개발 벡터 삭제·재생성, 분포 및 calibration은 이번 검증 범위가 아니다.
 
 2026-10-03, Docker CPU / PostgreSQL 18 / pgvector 0.8.6에서 전체 테스트 98개가
 통과했습니다. 기존 Starlette deprecation 경고 1개가 있습니다.

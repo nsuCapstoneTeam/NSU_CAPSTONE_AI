@@ -8,7 +8,7 @@
 - 이전 결정은 아래 변경 이력에 보존한다. 현행 정책은 권장 60초·허용 60~80초(양 경계 포함)·고정 8 non-overlap Chunk이며 기존 D5는 폐기한다.
 - Accepted는 이 범위의 설계 승인을 뜻한다. 팀 전체 제품 요구사항 동기화나 구현 완료를 뜻하지 않는다.
 
-구현 상태: 저장·검색에서 공통 AudioEmbeddingGenerator를 사용하며 60~80초 inclusive validation, 처음 56초의 고정 8개 7초 Chunk, Chunk별 L2 → Mean Pooling(N=8) → 최종 L2 및 대표 벡터 1개 생성, generation metadata/profile이 구현되었다. 관련 unit tests와 MSCLAP batch smoke validation도 수행했다. 2026-10-08 [Phase A](../experiments/audio-highlight-phase-a/README.md)에서 실제 음악 6곡의 60초 Highlight Dataset 준비·decode/PCM/반복 재현성 기술 검증 및 로컬 MSCLAP 기술 검증용 출처·라이선스 확인을 완료했다(사용자 공식 라이선스·직접 다운로드 확인 근거, Phase A verified/rights_cleared=true; 공식 서버 파일과 SHA-256 비교는 not_performed). 실제 MSCLAP real-music Embedding 검증·음악 품질 평가, PostgreSQL 통합 검증, 개발/test Embedding 재생성, similarity 분포 검증 및 calibration은 아직 완료되지 않았다.
+구현 상태: 저장·검색에서 공통 AudioEmbeddingGenerator를 사용하며 60~80초 inclusive validation, 처음 56초의 고정 8개 7초 Chunk, Chunk별 L2 → Mean Pooling(N=8) → 최종 L2 및 대표 벡터 1개 생성, generation metadata/profile이 구현되었다. 관련 unit tests와 MSCLAP batch smoke validation도 수행했다. 2026-10-08 [Phase A](../experiments/audio-highlight-phase-a/README.md)에서 실제 음악 6곡의 60초 Highlight Dataset 준비·decode/PCM/반복 재현성 기술 검증 및 로컬 MSCLAP 기술 검증용 출처·라이선스 확인을 완료했다(사용자 공식 라이선스·직접 다운로드 확인 근거, Phase A verified/rights_cleared=true; 공식 서버 파일과 SHA-256 비교는 not_performed). 2026-10-09 [실제 6곡 MSCLAP 생성 경로 검증](../experiments/audio-highlight-msclap-validation/README.md)과 [전용 PostgreSQL/pgvector 통합 검증](../experiments/audio-embedding-postgres-validation/README.md)을 완료했다. 음악 품질 평가, 개발/test Embedding 재생성, similarity 분포 검증 및 calibration은 아직 완료되지 않았다.
 
 ## 변경 이력
 
@@ -186,7 +186,7 @@ Artist가 직접 선택한 Highlight (권장 60초)
 ### 구현 단계의 Future Work
 
 - 개발/테스트 벡터 대상·재생성 원본 목록을 확인하고 실행 단계에서만 삭제·재생성한다. 이 정책을 Backend ACTIVE revision 보존·전환에 적용하지 않는다.
-- 실제 권리 확인 Dataset을 이용한 음악 품질과 PostgreSQL 통합 검증을 수행한다. 현재 unit tests와 smoke validation은 해당 실제 음악/DB 평가를 대체하지 않는다.
+- 실제 PostgreSQL 통합 검증은 [전용 검증 실험](../experiments/audio-embedding-postgres-validation/README.md)에서 완료했다. 실제 권리 확인 Dataset을 이용한 검색/음악 품질 평가는 별도 후속 검증이며, 통합 검증 결과를 대신하지 않는다.
 - 실제 처리시간·동시성·메모리·검색 품질을 측정한다. API·timeout·generation 형식은 별도 협의하고 운영 데이터 migration/version transition을 후속 설계한다.
 
 ### 기준 문서와 현재 구현의 차이
@@ -194,7 +194,7 @@ Artist가 직접 선택한 Highlight (권장 60초)
 - R9의 메인 Linear Requirements v1.11을 실제 저장 후 재조회로 확인했다. AI-033은 권장 60초·허용 60~80초(경계 포함)·처음 56초의 주 기준이다. AI-037/RIGHTS-023은 기존 AI-033 참조와 권리·원본 저장 정책을 유지하며 수정하지 않았다. AI-EMBED는 길이 정책을 AI-033, 고정 Chunk/aggregation을 이 ADR로 참조한다. 이는 Audio 정책 한정 승인이고 v1.11 문서 전체는 승인 전이다. v1.9의 추천/신규 아티스트 미승인 정책, 최종 전체 승인 revision v1.8 및 구현 Baseline v1.1은 유지한다.
 - R8에 따라 서버 협의는 Linear가 관리 위치다. 저장소에 남은 server-agreements 문서와 번호 정합화는 이번 범위 밖이다. 서버 협의 012는 Proposed이며 이번 ADR로 승인하지 않는다.
 - 기존 ADR 0003의 MSCLAP·pgvector 방향과 0006의 동기 처리는 유지한다. D9는 개발/테스트 데이터 한정이며 운영 ACTIVE revision 보존 결정을 폐기하지 않는다.
-- ADR 작성 당시 구현은 해시 seed의 단일 crop이었다. 이후 ADR-0007 생성 정책과 generation metadata/profile을 구현했으며 관련 unit tests와 MSCLAP batch smoke validation을 수행했다. Phase A의 실제 음악 6곡·60초 Highlight 준비와 기술 검증, Phase A 로컬 MSCLAP 기술 검증용 권리 확인은 완료했다. 실제 MSCLAP real-music Embedding 검증·품질 평가·PostgreSQL 통합 검증·개발/test 벡터 재생성과 similarity 분포 검증·calibration은 아직 완료되지 않았다. 현재 동작은 [공통 생성 기준 문서](../guides/AUDIO_EMBEDDING.md), 완료·잔여 구현 작업은 [Roadmap Phase 3](../AI_DEVELOPMENT_ROADMAP.md)에서 확인한다.
+- ADR 작성 당시 구현은 해시 seed의 단일 crop이었다. 이후 ADR-0007 생성 정책과 generation metadata/profile을 구현했으며 관련 unit tests와 MSCLAP batch smoke validation을 수행했다. Phase A의 실제 음악 6곡·60초 Highlight 준비와 기술 검증, Phase A 로컬 MSCLAP 기술 검증용 권리 확인은 완료했다. 실제 6곡 MSCLAP 생성 경로와 전용 PostgreSQL 통합 검증은 2026-10-09 완료했다. 품질 평가·개발/test 벡터 재생성과 similarity 분포 검증·calibration은 아직 완료되지 않았다. 현재 동작은 [공통 생성 기준 문서](../guides/AUDIO_EMBEDDING.md), 완료·잔여 구현 작업은 [Roadmap Phase 3](../AI_DEVELOPMENT_ROADMAP.md)에서 확인한다.
 
 ### 미결정 사항
 
