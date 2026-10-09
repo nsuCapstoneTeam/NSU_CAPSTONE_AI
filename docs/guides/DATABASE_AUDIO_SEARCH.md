@@ -106,8 +106,12 @@ docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python 
 옵션으로 TopK(1~100, 기본 5)와 새로운 결과 파일을 지정할 수 있습니다.
 
 ```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_database_audio --audio samples/reference.mp3 --top-k 5 --output tmp/search-database-new.json
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_database_audio --audio samples/reference.mp3 --top-k 5 --output /workspace/datasets/audio-search-results/search-database-new.json
 ```
+
+이 예제의 `compose.fma.yaml`은 host의 `./datasets`를 `/workspace/datasets`에 쓰기 가능하게 mount합니다.
+결과는 host의 `datasets/audio-search-results/`에 저장되어 `run --rm` 종료 후에도 남습니다.
+CLI가 결과 폴더를 생성하며, 이 로컬 결과 디렉터리는 Git에서 제외됩니다.
 
 출력 파일은 덮어쓰지 않습니다. `candidate_count`는 조건이 맞고 동일 파일 제외를 마친
 전체 후보 수이며 `results`에는 `music_id`, `cosine_similarity`, `audio_similarity_score`, `rank`가 있습니다.

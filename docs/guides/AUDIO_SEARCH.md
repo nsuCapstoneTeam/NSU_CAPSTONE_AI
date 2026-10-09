@@ -34,8 +34,12 @@ ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide�
 validation을 통과해야 합니다. Dataset/fixture 준비 후 아래 placeholder 경로를 실제 경로로 바꿔 실행합니다.
 
 ```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio samples/eligible-highlight.wav --manifest samples/eligible-candidates.json --output tmp/search-eligible-new.json
+docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_audio --audio samples/eligible-highlight.wav --manifest samples/eligible-candidates.json --output /workspace/datasets/audio-search-results/search-eligible-new.json
 ```
+
+이 예제의 `compose.fma.yaml`은 host의 `./datasets`를 `/workspace/datasets`에 쓰기 가능하게 mount합니다.
+결과는 host의 `datasets/audio-search-results/`에 저장되어 `run --rm` 종료 후에도 남습니다.
+CLI가 결과 폴더를 생성하며, 이 로컬 결과 디렉터리는 Git에서 제외됩니다.
 
 `--top-k` 기본값은 5이며 후보가 적으면 남은 후보 수만 반환합니다.
 검색 생성은 고정 8 chunk 방식이며 random crop seed를 사용하지 않습니다. 기존 출력 파일이 있으면 새 파일명을 사용하세요.
