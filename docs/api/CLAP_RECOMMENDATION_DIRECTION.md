@@ -47,7 +47,7 @@ Spring Eligibility
 ## 현재 구현과 남은 계약
 
 현재 공통 AudioEmbeddingGenerator는 ADR-0007의 60~80초 validation과 처음 56초의 고정 8 Chunk 집계를 적용한다. 파일/DB 검색 CLI, 임시 표시 점수, Health API도 구현되어 있다.
-전체 후보 쌍 HTTP 처리·전체 반환·화면·매칭 버튼은 아직 구현 전이다.
+전체 통과 ACTIVE 후보 쌍 입력을 받는 HTTP 흐름, 최대 100곡 반환, 화면·매칭 버튼은 아직 구현 전이다. 전체 후보 입력은 전체 결과 반환을 뜻하지 않는다.
 현재 CLI Top5·DB `top_k` 상한·과거 측정값은 로컬 검증 범위이며 새 서비스 목표의 반환 정책으로 취급하지 않는다.
 
 요청의 음악/Text 표현, endpoint·DTO, 측정으로 정할 입력 최대치·자원 한도·동시성·timeout, 누락/실패 표현, version field의 세부 schema, 설명 대상은 별도 인터페이스 설계·검증이 남아 있다.

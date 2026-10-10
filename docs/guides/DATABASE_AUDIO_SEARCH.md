@@ -19,11 +19,10 @@ ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide�
 MSCLAP batch Embedding → Chunk L2 → Mean Pooling(N=8) → Final L2 순서로
 단일 대표 벡터를 만듭니다. 아래 실제 검증 결과와 저장된 개발 벡터는 이전 generation의 historical 기록입니다.
 
-2026-10-07 사용자 결정의 후속 목표는
-ACTIVE (music_id, audioRevision) 쌍을 대상으로 전체 곡 유사도를 계산·정렬해 전체 결과를 Spring에 반환하는 것이다.
-Spring은 유사도 순으로 곡을 표시하고 사용자가 별도 버튼으로 해당 Artist와 매칭한다. 아티스트 집계는 하지 않는다.
-이 목표는 Linear Accepted로 이미 정합화된 계약이 아니며 [작업 기준](../api/CLAP_RECOMMENDATION_DIRECTION.md)에서 차이를 확인한다.
-revision 후보 제한·결과 revision 반환은 아직 미구현이다.
+현행 서비스 정책은 [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)를 따른다.
+Spring은 통과한 전체 ACTIVE `(music_id, audioRevision)` 후보를 AI에 입력하고, AI는 호환 후보를 유사도순으로 정렬해 최대 100곡을 반환한다.
+Spring은 순서를 유지한다. 후보 입력 상한은 아직 미정이며 NSUAI-15의 성능·메모리·동시성 실측 후 정한다. 입력 후보 전체 전달과 결과 최대 100곡 반환은 별개의 기준이다.
+revision 후보 제한·결과 revision 반환과 업무 HTTP 흐름은 아직 미구현이다.
 현재 기본 Top5·실험 수치는 변경하지 않는다. [연동 계약](../api/AUDIO_SYNC_BACKEND_HANDOFF.md)을 참고한다.
 
 음악 파일을 입력으로 받아 PostgreSQL에 저장된 Audio 임베딩 후보와 비교합니다.
@@ -114,7 +113,7 @@ docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python 
 CLI가 결과 폴더를 생성하며, 이 로컬 결과 디렉터리는 Git에서 제외됩니다.
 
 출력 파일은 덮어쓰지 않습니다. `candidate_count`는 조건이 맞고 동일 파일 제외를 마친
-전체 후보 수이며 `results`에는 `music_id`, `cosine_similarity`, `audio_similarity_score`, `rank`가 있습니다.
+전체 eligible 후보 수이며 `results`에는 반환된 최대 100곡의 `music_id`, `cosine_similarity`, `audio_similarity_score`, `rank`가 있습니다. 후보 수가 반환 상한보다 많으면 `candidate_count`는 전체 수를, `results`는 상위 최대 100곡을 나타냅니다.
 음악 제목·아티스트·재생 URL은 향후 백엔드 음악 정보와 연결해야 합니다.
 DB 접속·SQL 오류와 모델 생성 오류는 실패 상태와 종료 코드 1로 출력합니다.
 

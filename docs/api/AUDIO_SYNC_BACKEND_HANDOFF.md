@@ -9,7 +9,7 @@
 
 결정 배경·이유·서버별 책임의 현행 관리 위치는 [Linear 서버 협의](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3)이다.
 [로컬 목록](../adr/server-agreements/readme.md)은 과거 기록이다. 이 문서는 Accepted 원칙과 상세 인터페이스 제안을 구분한다.
-2026-10-07 전체 곡 반환 흐름은 사용자 결정이며 기존 Accepted 005·009/용어집과 남은 차이는 [작업 기준](CLAP_RECOMMENDATION_DIRECTION.md)에 기록한다.
+2026-10-07의 전체 결과 반환 제안은 당시 이력이다. 현행 정책은 Accepted 012에 따라 전체 통과 ACTIVE 후보 쌍을 입력으로 받고 최대 100곡을 반환하며, 입력 상한은 NSUAI-15 실측 후 정한다. 상세 내용은 [작업 기준](CLAP_RECOMMENDATION_DIRECTION.md)을 따른다.
 
 ## 1. 책임과 식별자
 

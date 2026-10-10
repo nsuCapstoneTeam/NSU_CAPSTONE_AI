@@ -29,7 +29,7 @@
 | 현행 서버 협의·용어 | [Linear 서버 협의](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3) · [용어집](https://linear.app/nsu-capstone/document/용어집-context-475370673105) |
 | 과거 서버 협의 기록 | [보존 목록](adr/server-agreements/readme.md) |
 | API 책임 경계 | [API](api/README.md) |
-| 현재 사용자 결정·AI 작업 기준 | [전체 곡 유사도 정렬·반환](api/CLAP_RECOMMENDATION_DIRECTION.md) |
+| 현재 사용자 결정·AI 작업 기준 | [최대 100곡 유사도 정렬·반환](api/CLAP_RECOMMENDATION_DIRECTION.md) |
 | AI 선설계·동기 연동 | [동기 연동 설계 및 인터페이스 참고](api/AUDIO_SYNC_BACKEND_HANDOFF.md) — Accepted 원칙과 미확정 상세 인터페이스 제안을 구분 |
 | 팀 협업 | [협업 가이드](협업-가이드/README.md) |
 

@@ -43,7 +43,7 @@ ADR-0006의 과거 "기존 파일 경로 유지" 기록은 보존하되 현재 �
 API 상세 필드·요청/응답 명세는 [API 문서](../api/README.md)를 참고한다.
 
 ADR-0002의 당시 TOP5와 ADR-0005의 아티스트 집계 후속 계획은 과거 기록으로 보존한다.
-2026-10-07 사용자 결정의 현행 목표는 [전체 곡 유사도 정렬·반환](../api/CLAP_RECOMMENDATION_DIRECTION.md)이다.
+현행 추천 정책은 Accepted 012에 따른다. 전체 통과 ACTIVE 후보 쌍을 입력으로 받고 AI가 최대 100곡을 반환하는 기준은 [현재 AI 작업 기준](../api/CLAP_RECOMMENDATION_DIRECTION.md)에 정리되어 있다.
 이 안내는 과거 ADR 본문이나 Linear 승인 상태를 변경하지 않는다.
 
 기존 ADR의 실제 결정 내용과 변경 이력은 위 목록에서 계속 확인할 수 있다.
