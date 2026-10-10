@@ -192,7 +192,7 @@ Artist가 직접 선택한 Highlight (권장 60초)
 ### 기준 문서와 현재 구현의 차이
 
 - R9의 메인 Linear Requirements v1.11을 실제 저장 후 재조회로 확인했다. AI-033은 권장 60초·허용 60~80초(경계 포함)·처음 56초의 주 기준이다. AI-037/RIGHTS-023은 기존 AI-033 참조와 권리·원본 저장 정책을 유지하며 수정하지 않았다. AI-EMBED는 길이 정책을 AI-033, 고정 Chunk/aggregation을 이 ADR로 참조한다. 이는 Audio 정책 한정 승인이고 v1.11 문서 전체는 승인 전이다. v1.9의 추천/신규 아티스트 미승인 정책, 최종 전체 승인 revision v1.8 및 구현 Baseline v1.1은 유지한다.
-- R8에 따라 서버 협의는 Linear가 관리 위치다. 저장소에 남은 server-agreements 문서와 번호 정합화는 이번 범위 밖이다. 서버 협의 012는 Proposed이며 이번 ADR로 승인하지 않는다.
+- R8에 따라 서버 협의는 Linear가 관리 위치다. 저장소에 남은 server-agreements 문서와 번호 정합화는 이번 범위 밖이다. 서버 협의 012는 2026-10-10 기준 Accepted이며 이 ADR은 해당 외부 계약을 재정의하지 않는다. 이 상태 갱신은 ADR-0007 Decision을 변경하지 않는다.
 - 기존 ADR 0003의 MSCLAP·pgvector 방향과 0006의 동기 처리는 유지한다. D9는 개발/테스트 데이터 한정이며 운영 ACTIVE revision 보존 결정을 폐기하지 않는다.
 - ADR 작성 당시 구현은 해시 seed의 단일 crop이었다. 이후 ADR-0007 생성 정책과 generation metadata/profile을 구현했으며 관련 unit tests와 MSCLAP batch smoke validation을 수행했다. Phase A의 실제 음악 6곡·60초 Highlight 준비와 기술 검증, Phase A 로컬 MSCLAP 기술 검증용 권리 확인은 완료했다. 실제 6곡 MSCLAP 생성 경로와 전용 PostgreSQL 통합 검증은 2026-10-09 완료했다. 품질 평가·개발/test 벡터 재생성과 similarity 분포 검증·calibration은 아직 완료되지 않았다. 현재 동작은 [공통 생성 기준 문서](../guides/AUDIO_EMBEDDING.md), 완료·잔여 구현 작업은 [Roadmap Phase 3](../AI_DEVELOPMENT_ROADMAP.md)에서 확인한다.
 
