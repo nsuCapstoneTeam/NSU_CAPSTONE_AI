@@ -83,16 +83,16 @@ R8은 당시 의사결정을 설명하는 보존된 Historical 집계 요약이�
 
 ## 외부 계약과 결정하지 않는 사항
 
-2026-10-07 읽기 전용 확인: Linear 011은 **Superseded**이며 012 §4.3으로 대체되었다고 기록한다. 012의 문서 전체 Status는 **Proposed**이며 §4.3에 AI 동의 기록이 있다. 부분 동의를 문서 전체 Accepted로 해석하지 않고, 이 ADR은 Linear의 Status·동의 기록을 재정의하지 않는다(R9).
+2026-10-10 기준 Linear 011은 **Superseded**, 서버 협의 012는 **Accepted**다. 외부 수치·단일 resultVersion·AI 내부 세부 버전 분리는 012 §4.3을 참조한다(R9). 이는 이 ADR의 D1~D5 Decision을 변경하지 않으며, 이 ADR은 서버 간 계약·API 구현 완료를 주장하지 않는다.
 
 다음은 이 ADR의 Decision이 아니다. 필요한 인터페이스는 외부 authoritative source를 참조하고 별도 협의한다.
 
-- `resultVersion`이라는 API 필드명, 필드 개수, JSON 타입/형식, 전달 소수점 자리수.
+- `resultVersion`의 JSON 타입/형식과 전달 소수점 자리수.
 - Spring DB 저장 타입·정밀도·결과 보관 정책, Frontend 반올림·정수 표시·화면 UX.
-- 전체 추천 반환 개수·서비스 전체 추천 정책, 설명 책임·추가 AI 설명 호출 폐기 여부.
+- 입력 후보 최대치의 실측 값, API의 구체 DTO/schema, 처리 자원·timeout, 저장 형식과 Frontend 표시 세부사항.
 - 사용자 피드백 수집 UX와 운영 정책.
 
-수치/버전 기록을 참조한다고 012의 반환 제한·설명 책임 등 전체 흐름을 채택하는 것은 아니다. 현재 사용자 개발 목표와 외부 계약의 차이는 [AI 작업 기준](../api/CLAP_RECOMMENDATION_DIRECTION.md)에서 별도 관리한다.
+Accepted 012는 결과 최대 100곡과 Spring 템플릿 설명 등 외부 흐름을 정했지만, 이 ADR의 D1~D5를 변경하지 않는다. 구체 API schema와 미구현 사항은 [AI 작업 기준](../api/CLAP_RECOMMENDATION_DIRECTION.md)에서 별도 관리한다.
 
 ## References
 
@@ -107,7 +107,7 @@ R8은 당시 의사결정을 설명하는 보존된 Historical 집계 요약이�
 | R6 | [공통 Audio 생성기](../../app/embedding/audio_embedding.py) | D5: 모델·checkpoint·preprocessing·seed·패키지 metadata |
 | R7 | [검색 테스트](../../tests/matching/test_audio_search.py), [변환 테스트](../../tests/matching/test_normalization.py) | D1·D3: 표시값 동점의 raw 순위·임시 구간 검사. 이번 문서 작업에서 테스트를 실행하지 않음 |
 | R8 | [변환 탐색](../experiments/audio-search-phase2/README.md#음악텍스트-기준-탐색), [쌍별 분포](../experiments/audio-search-phase2/README.md#새-음악-표본-및-쌍별-측정), [청취 평가](../experiments/audio-search-phase2/README.md#청취-평가), [실험 조건](../experiments/audio-search-phase2/README.md#공통-실험-조건) | D2~D4: Historical 집계 요약에 남은 오프라인 표본 분석·분포 차이·215/276 포화 진단·평가/표본 재사용 한계. 현재 재계산/audit 가능한 raw evidence가 아님 |
-| R9 | [Linear 011](https://linear.app/nsu-capstone/document/011-ai-항목-점수의-전달-형식-43fcf42521b7), [Linear 012 §4.3](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba), [서버 협의 목록](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3) | D1·D2·D5의 외부 수치·버전 기록, 011 Superseded·012 전체 Proposed와 부분 동의 구분. 서버/API/UX 정책을 새로 승인하는 근거가 아님 |
+| R9 | [Linear 011](https://linear.app/nsu-capstone/document/011-ai-항목-점수의-전달-형식-43fcf42521b7), [Linear 012 §4.3](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba), [서버 협의 목록](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3) | D1·D2·D5 외부 수치·버전 reference, 011 Superseded·012 Accepted 상태. 이 외부 참조 갱신은 D1~D5 Decision을 변경하지 않음 |
 | R10 | [ADR-0007](ADR-0007-audio-highlight-embedding-strategy.md), [Roadmap](../AI_DEVELOPMENT_ROADMAP.md), [입력 검증 Guide](../guides/FMA_VALIDATION.md) | D4·Future Work: 새 생성 조건 분포·검증 필요, 과거 FMA와 새 적격 Dataset 구분 |
 
 0~100 변환·candidate-independent transformation·청취 기반 calibration·piecewise linear 검토는 프로젝트의 engineering decision이다. MSCLAP 공식 점수 변환·calibration 방식이라고 인용하지 않는다.

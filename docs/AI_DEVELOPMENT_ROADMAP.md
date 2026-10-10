@@ -1,6 +1,6 @@
 # AI Development Roadmap
 
-> 2026-10-07 이 작업 대화의 사용자 결정, 구현 전: 전체 통과 곡 Embedding/유사도 계산·정렬·전체 반환 → Spring 곡 표시 → 별도 사용자 Artist 매칭. 집계·후보 비교 설명은 하지 않습니다. [작업 기준](api/CLAP_RECOMMENDATION_DIRECTION.md)은 Linear Accepted와의 차이를 명시합니다. Proposed는 확정 정책이 아닙니다.
+> 2026-10-10 현재 서버 간 추천 정책은 Accepted 012다. 구현 상태는 별도 추적하며, 이 Roadmap은 합의된 계약을 구현 완료로 표시하지 않는다.
 
 
 > Repository: `nsuCapstoneTeam/NSU_CAPSTONE_AI`  
@@ -40,8 +40,9 @@
 - raw cosine ranking·후보 독립 transformation·provisional 점수·calibration 원칙과 생성/변환 버전의 구분은
   [ADR-0008](adr/ADR-0008-music-similarity-transformation-and-ranking.md)을 따른다.
   구체 calibration과 transformation/calibration 버전 체계의 구현·검증은 후속 작업이다.
-- 우선 고정 수식 기반의 0~100 정규화를 구현·검증한다.
-- 단, 아래 값은 실제 MSCLAP 결과를 측정한 후 최종 결정한다.
+- 후보 집합과 독립된 고정 0~100 음악 유사도 변환을 사용한다. raw cosine이 순위를 정하고 표시 점수는 순위를 바꾸지 않는다.
+- 최종 formula·threshold·breakpoint·계수는 NSUAI-12 calibration 실험 후 결정한다.
+- 단, 아래 값은 실제 MSCLAP 결과와 평가 evidence를 바탕으로 결정한다.
   - similarity 유효 범위
   - threshold
   - min/max
@@ -50,14 +51,15 @@
 
 ### 현행 흐름과 서버 정책
 
-- Spring Hard Filter → AI 전체 통과 곡 Embedding/유사도 계산·정렬 → 전체 결과 Spring 반환 → 유사도 순 곡 표시 → 별도 사용자 버튼으로 해당 Artist와 매칭.
-- 전체 반환·유사도 정렬·아티스트 집계 없음·후보 비교 설명 폐기의 출처는 **이번 사용자 결정**이다. Linear Accepted로 이미 반영됐다고 설명하지 않는다.
+- Spring Eligibility → 모든 통과 ACTIVE 후보 쌍 전달 → AI raw cosine 정렬, 최대 100곡 반환 → Spring이 순서를 유지하고 응답을 검증 → Spring 템플릿 설명·저장·응답.
+- Spring은 입력 ACTIVE 후보를 임의로 자르지 않는다. 숫자 입력 최대치는 NSUAI-15의 성능·메모리·동시성 실측 후 결정하며, 결과 반환 상한 100곡과 구분한다. 상한 초과 시 503/경보를 사용하며 임의 분할 호출을 하지 않는다.
+- Spring은 rank/order 연속성, 중복, 후보 범위, 결과 개수, 0~100 점수 및 표시 점수 단조성을 확인한다. raw cosine은 Spring 계약에 포함하지 않으므로 raw cosine 순위 검증은 AI 쪽이 담당한다.
+- 외부 결과 의미는 단일 `resultVersion`으로 식별한다. model/checkpoint, generation/preprocessing, transformation/calibration, 상세 분석, 요청 해석 버전은 AI 내부에서 나눠 추적한다.
 - 정책·용어는 [Linear 서버 협의](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3)의 Accepted 문서와 [용어집](https://linear.app/nsu-capstone/document/용어집-context-475370673105)을 먼저 확인한다.
-- [Accepted 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)의 의미·BPM·리듬 항목, 누락 `null`과 사유, 의미 점수 없는 곡 제외를 따른다.
-- 기존 Accepted 005/009의 반환 제한·평균 순위와 용어집의 100곡 설명은 새 흐름과 차이가 있다. 평균을 현행 순위 수식으로 사용하지 않는다.
-- 곡별 추천 이유는 [Accepted 008](https://linear.app/nsu-capstone/document/008-추천-이유-생성-흐름-ae6cde7df2de), 오류/timeout은 [Accepted 010](https://linear.app/nsu-capstone/document/010-ai-곡-검색-실패시간-초과-시-추천-api-응답-46a63dece138)을 참조한다.
-- Linear 011은 Superseded이며 012 §4.3으로 대체되었다고 기록되어 있다. 012 전체 Status는 Proposed이며 §4.3·§6.2의 AI 동의 기록과 구분한다. 상세 상태·적용 범위 확인은 [작업 기준의 상태와 출처](api/CLAP_RECOMMENDATION_DIRECTION.md#상태와-출처)를 참조하며, 부분 동의를 전체 계약 승인으로 해석하지 않는다.
-- 요청 표현·처리 한도·실패/누락 응답·설명 대상은 서버 협의 정합화가 필요하다.
+- [Accepted 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)는 평균 순위 범위에서 Superseded다. BPM/Rhythm은 추출·요청 비교 상세 정보로 유지되며 음악 순위 점수가 아니다. 공연 형태 Hard Filter는 유지한다.
+- [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)는 005의 retrieval 50~100/Backend Top10과 008의 별도 AI Explanation API 범위도 대체한다. 005의 ACTIVE 후보 쌍·revision 비교·Trust/Risk 분리 원칙은 유지한다. 010은 유지한다. 011은 Superseded 상태를 유지하고, 013은 Proposed 별도 협의로 남는다.
+- Spring은 AI의 구조화된 근거로 템플릿 추천 이유를 생성한다. 별도 AI Explanation API 및 필수 LLM은 현행 흐름이 아니다.
+- 입력 해석은 Event 원문 설명·행사 종류·희망 Genre를 AI가 처리한다. 세부 DTO·처리 가능한 입력 최대치·resource/timeout 수치는 구현·실측 과제로 남는다.
 
 ---
 
@@ -280,14 +282,14 @@ Text Embedding
 
 ---
 
-## Phase 4 — BPM / Rhythm Feature
+## Phase 4 — BPM / Rhythm 상세 정보
 
 관련 Issue:
-- `NSUAI-8` BPM 및 리듬 적합도 계산
-- `NSUAI-9` BPM·리듬 feature 추출 및 적합도 점수화
+- `NSUAI-8` BPM 및 리듬 측정·요청 비교 검증
+- `NSUAI-9` BPM·리듬 feature 상세 정보 생성
 
 목표:
-- CLAP 외의 Audio Feature 기반 매칭 항목을 구현한다.
+- CLAP 순위와 분리된 BPM/Rhythm 측정값과 요청 비교 상세 정보를 검증·구현한다.
 
 구조:
 
@@ -305,44 +307,45 @@ Audio
 - BPM 추출 가능
 - Rhythm Feature 추출 가능
 - 행사 요청 조건과 비교 가능
-- BPM/Rhythm 점수를 0~100 범위로 제공 가능
+- 분석 불가와 요청 조건 없음의 구분 및 `null`+reason을 확인
+- BPM/Rhythm은 음악 순위 점수로 사용하지 않음
 
 ---
 
-## Phase 5 — Accepted 항목 점수·누락 정책 정합화
+## Phase 5 — 고정 음악 유사도 변환 calibration
 
-관련 Issue: `NSUAI-12`, `NSUAI-13`.
+관련 Issue: `NSUAI-12`. `NSUAI-13`은 NSUAI-16에 통합된 Duplicate이며 재활성화하지 않는다.
 
 목표:
-- [Accepted 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)의 의미·BPM·리듬 항목과 0~100 범위·누락 정책을 구현·검증한다.
-- 누락은 `null`과 사유로 전달하고 의미 점수 없는 곡은 후보 제외 원칙을 따른다.
-- 기존 Accepted의 유효 항목 평균과 이번 유사도 정렬은 다른 기준이다. 평균을 현행 순위 계산 작업으로 두지 않는다.
-- 누락/제외 표현을 전체 곡 처리·반환 목표와 서버 계약에서 정합화한다.
+- raw cosine ranking은 변경하지 않고, candidate-independent fixed 0~100 표시 변환 v1을 calibration 실험에서 선정·검증한다.
+- 현재 임시 linear clamp를 최종 변환으로 간주하지 않는다. 구체 공식·threshold·breakpoint·계수는 NSUAI-12 evidence 후 결정한다.
+- FMA Historical 집계는 calibration input으로 재사용하지 않는다. ADR-0007 generation policy로 새로 생성한 Embedding·similarity distribution·evaluation evidence를 쓴다.
 
 완료 기준:
-- 유효 점수의 범위·계산 근거를 확인하고 누락을 임의 0점으로 대체하지 않는다.
-- 의미 점수 누락을 정상 결과로 숨기지 않는다.
-- Hard Filter와 음악 유사도/항목 점수를 구분한다.
-- 수치 전달·결과 버전의 외부 기준은 Linear 011의 Superseded 상태와 012 §4.3의 AI 동의 기록을 참조한다. 구체 인터페이스 형식과 AI 구현·검증 사항을 구분하며, 012 전체를 Accepted 계약으로 취급하지 않는다.
+- 실험 표본·분포·평가 한계와 calibration/검증 표본 분리를 기록한다.
+- 표시 변환이 ranking order를 바꾸지 않고 동일 cosine의 점수가 후보 집합에 독립적인지 확인한다.
+- 외부 resultVersion과 AI 내부 생성·변환 세부 버전을 구분한다.
 
 ---
 
-## Phase 6 — 전체 통과 곡 유사도 정렬·전체 반환
+## Phase 6 — 후보 쌍 검색·최대 100곡 반환
 
-출처: 2026-10-07 이 작업 대화의 사용자 결정, 구현 전. 기존 Accepted 005의 50~100/Backend Top10이 새 흐름으로 승인됐다는 뜻은 아니다.
-관련 Issue: `NSUAI-15`, `NSUAI-16`. 실제 Issue/AC와 차이는 별도 정합화가 필요하며 이번에 Linear를 변경하지 않는다.
+출처: Accepted Linear 서버 협의 012. 정책은 승인됐으며 HTTP 업무 흐름은 구현 전이다.
+관련 Issue: `NSUAI-15`, `NSUAI-16`. 입력 최대치는 NSUAI-15에서 실측 후 정한다.
 
 ```text
-Spring Hard Filter·ACTIVE 후보 쌍
-→ AI 전체 곡의 공통 Embedding/유사도 계산·정렬
-→ 전체 결과·곡 식별자·revision Spring 반환
-→ Spring 유사도 순 곡 표시
+Spring Eligibility·모든 통과 ACTIVE 후보 쌍 및 Event 원문
+→ AI 후보 호환성 확인·raw cosine 정렬
+→ 최대 100곡·구조화된 상세 정보·요청 해석 결과 반환
+→ Spring 순서/구조 검증 후 순위를 유지하고 결과 구성
 → 사용자가 별도 버튼으로 해당 Artist와 매칭
 ```
 
 완료 기준:
 - ACTIVE 후보 쌍을 계산 전에 정확히 제한하고 결과 revision 반환.
-- 전체 전달 곡을 대상으로 하고 CLI Top5/50~100/Proposed 100곡으로 임의 축소하지 않음.
+- Spring이 입력 ACTIVE 후보를 임의로 자르지 않음. 측정한 입력 maximum을 초과하면 503·경보 처리.
+- 결과 상한 최대 100곡. 반환 개수 상한과 입력 후보 상한을 구분.
+- Spring은 raw cosine을 받지 않고 순서를 재정렬하지 않음. Spring 구조 검사와 AI raw cosine 정렬 검증을 분리.
 - 호환 벡터 재사용·필요한 생성·처리 한도·실패/누락 표현을 정합화하고 전체 반환 검증.
 - 아티스트 집계·후보 비교 문장을 생성하지 않음.
 - Reliability·Risk Signal을 음악 유사도 순위에 합산하지 않음.
@@ -350,34 +353,35 @@ Spring Hard Filter·ACTIVE 후보 쌍
 - 화면·매칭 버튼은 Backend/Frontend 구현 책임이며 AI 완료와 구분.
 
 당시 계획 이력: 2026-10-04~05에는 AI retrieval 50~100 → Backend Ranker Top10을 계획했다.
-저장소 현행 작업 목표는 이번 사용자 결정으로 대체하며 Linear 승인 상태는 그대로다.
+2026-10-10 Accepted 012에서 해당 과거 흐름의 적용 범위를 대체했다. 과거 계획과 Decision 이력은 보존한다.
 
 ---
 
-## Phase 7 — 곡별 추천 이유
+## Phase 7 — Spring 템플릿 추천 이유
 
-관련 Issue: `NSUAI-10`, `NSUAI-11`.
+역사적 관련 Issue: `NSUAI-10`, `NSUAI-11` (현재 Canceled).
+
+012에서 별도 AI Explanation API 호출은 현행 흐름에서 제외했다. `NSUAI-10`/`NSUAI-11`은 Canceled 상태를 유지한다.
 
 목표:
-- [Accepted 008](https://linear.app/nsu-capstone/document/008-추천-이유-생성-흐름-ae6cde7df2de)의 추가 AI 호출·템플릿 우선·실패 시 이유만 `null` 원칙 구현.
-- 실제 곡 점수·필터 근거만 사용하고 순위를 재계산하지 않음.
-- 전체 반환 흐름과 기존 Top10/신규 칸 설명 대상의 차이를 서버 협의에서 정합화.
-- endpoint·DTO·timeout·대상 수는 [상세 계약](api/RECOMMENDATION_EXPLANATION_CONTRACT.md)에서 확정.
-- 후보 간 비교·아티스트 집계 근거를 생성하지 않음. 설명 주체·추가 AI 호출은 Accepted 008과 012 §6.2의 AI 동의 기록 사이의 적용 관계 확인이 필요하며, 이 Roadmap에서 임의 변경하지 않음.
+- Spring이 AI 구조화 상세 정보·요청 해석 및 실제 통과 조건으로 템플릿 추천 이유를 만든다.
+- 실제 근거만 사용하고 AI/Spring에서 순위를 다시 계산하지 않는다.
+- 구체 evidence field/schema를 API 계약에서 구현 시 정합화한다.
+- 후보 간 비교 문장이나 아티스트 집계 점수를 생성하지 않는다. LLM은 필수가 아니다.
 
 완료 기준:
-- 곡과 설명 근거 일치, 실패해도 검색 결과 유지.
-- 누락·오래된 결과·근거 없는 설명 검증.
-- LLM 도입·성능 목표는 별도 결정/측정 전 미정.
+- Spring template 설명과 AI 상세 근거의 일치 검증.
+- 누락·오래된 결과·근거 없는 설명을 검증.
+- LLM은 선택 사항이며 필수 구현이 아니다.
 
 ---
 
 ## Phase 8 — 후보 간 비교 설명 (폐기 이력)
 
 이전 계획은 상위 후보 항목 diff 계산과 비교 문장 생성이었다.
-Accepted 008 및 2026-10-07 사용자 결정에 따라 현행 구현에서 제외한다.
-확인 시 `NSUAI-3`·`NSUAI-5`는 Canceled, `NSUAI-6`은 Todo로 남아 있어 Issue 정합화가 필요하다.
-이번에 Issue 상태를 변경하지 않는다. 이 Phase 번호를 재사용하지 않는다.
+Accepted 012가 008의 별도 AI Explanation API 범위를 대체했으며 후보 비교 설명은 현행 흐름에서 제외한다.
+`NSUAI-3`·`NSUAI-5`·`NSUAI-6`의 기록은 이 과거 Phase의 이력이며 이번 동기화 범위에서 상태를 변경하지 않는다.
+이 Phase 번호를 재사용하지 않는다.
 
 ---
 
@@ -405,12 +409,12 @@ Matching Pipeline
   ├── Similarity
   ├── Item Score Normalization
   ├── Track Retrieval
-  └── Explanation
+  └── Structured recommendation details for Spring templates
   ↓
 PostgreSQL + pgvector
 ```
 
-곡 검색 API 응답의 개념 예시(확정 Schema가 아님; 설명 호출 계약은 별도 미정):
+곡 검색 API 응답의 과거 개념 예시(확정 Schema가 아님; 별도 설명 API 호출은 현행 정책이 아님):
 
 ```json
 {
@@ -590,15 +594,14 @@ Duplicate:
 - `NSUAI-2`
 - `NSUAI-8`
 - `NSUAI-9`
-- `NSUAI-10`
-- `NSUAI-11`
 - `NSUAI-12`
-- `NSUAI-13`
 - `NSUAI-15`
 - `NSUAI-16`
 - `NSUAI-25`
 - `NSUAI-26`
 - `NSUAI-27`
+
+Canceled/Duplicate 이력은 현행 구현 backlog가 아니다: `NSUAI-10`, `NSUAI-11`, `NSUAI-13`, `NSUAI-28`.
 
 ---
 
@@ -608,9 +611,9 @@ MSCLAP PoC·Audio/Text 차원·실제 Similarity 측정과 Audio 저장/검색 C
 Phase A 입력 준비, ADR-0007 실제 6곡 MSCLAP 생성 경로 검증 및 전용 PostgreSQL/pgvector 통합 검증을 완료했다. DB 통합 결과는 [실험 기록](experiments/audio-embedding-postgres-validation/README.md)에 있다. 검색 품질·similarity 분포/calibration은 미완료다.
 다음은 재생성 대상·새 입력 mapping·소유권 확인이다. 기존 개발 벡터를 삭제·재생성하는 작업은 별도 승인을 받은 뒤에만 진행한다.
 
-## 2026-10-07 정합화 이력
+## 2026-10-07~10 정합화 이력
 
 이번 사용자 결정으로 전체 곡 반환·유사도 정렬·집계 없음·후보 비교 설명 폐기를 반영했다.
-이전 순위/반환 제한 계획은 당시 이력이며 Linear Accepted 상태는 변경하지 않았다.
+2026-10-10 Linear 012가 Accepted로 동기화됐으며 005/008/009의 대체 범위와 유지 원칙을 구분했다. 구현 상태는 별도로 추적한다.
 30초 FMA는 핵심 근거만 Historical Markdown으로 보존하고 새 검증은 다른 Dataset을 사용한다.
 ADR-0007·코드·테스트·DB·데이터를 변경하지 않은 문서 작업이다.

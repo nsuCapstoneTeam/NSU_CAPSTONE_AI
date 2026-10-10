@@ -1,23 +1,20 @@
-# 곡별 추천 이유 상세 계약 제안
+# 곡별 추천 이유: 현재 책임과 상세 계약 제안
 
 ## 상태와 기준
 
-기본 처리 원칙은 [Linear 서버 협의 008](https://linear.app/nsu-capstone/document/008-추천-이유-생성-흐름-ae6cde7df2de)의 **Accepted** 결정을 참조한다.
-추가 AI 호출·템플릿 우선·실패 시 추천 이유만 `null`이라는 원칙과, 아직 미정인 endpoint·DTO·timeout을 구분한다.
-후보 간 비교 설명은 2026-10-07 이번 사용자 결정 및 Accepted 008에 따라 제공하지 않는다.
+현행 책임은 [Accepted Linear 서버 협의 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba) §6.2를 따른다. 별도 AI Explanation API 호출 범위는 012가 대체했다. Spring이 AI의 구조화된 상세 정보·행사 요청 해석 결과·실제로 통과한 필수 조건으로 템플릿 추천 이유를 만든다. LLM은 필수가 아니다.
 
-현행 전체 곡 반환·유사도 표시·별도 사용자 매칭 흐름은 [AI 작업 기준](CLAP_RECOMMENDATION_DIRECTION.md)의 사용자 결정이다.
-기존 Accepted 008의 Top10/신규 칸 설명 대상과 전체 결과 흐름 사이의 적용 범위는 서버 협의 정합화가 필요하다.
-Proposed 012의 Spring 설명 생성으로 책임을 바꾸거나 모든 곡의 설명 생성을 임의 확정하지 않는다.
+검색 응답은 raw cosine 순위로 최대 100곡을 반환하고 Spring은 순서를 다시 정렬하지 않는다. 별도 AI 설명 호출은 하지 않는다. 이 문서는 Spring template에서 사용할 근거와 아직 정하지 않은 세부 필드의 설계 참고이며 확정 DTO/Schema가 아니다.
+
+아래 접힌 내용은 2026-10-05의 역사적 설계 제안이다. 제안 당시의 별도 AI 호출·Spring Ranker·항목 점수·후보 비교 방안은 Accepted 012의 현행 정책이 아니며, 제안 원문은 이력 보존을 위해 유지한다.
 
 ## 곡별 설명 흐름과 제안 정보
 
-1. AI는 전체 통과 곡을 유사도 순으로 반환한다(이번 사용자 결정, 구현 전).
-2. Spring이 현재 표시 결과와 설명할 곡의 실제 점수·필터 근거를 구성한다.
-3. Accepted 008의 추가 AI 호출로 곡별 추천 이유를 받아 같은 결과에 연결한다.
-4. 설명 실패 시 검색 결과는 유지하고 추천 이유만 `null`로 둔다.
+1. AI가 raw cosine 순으로 최대 100곡과 구조화된 상세 정보·행사 요청 해석 결과를 반환한다.
+2. Spring이 AI의 상세 정보·해석 결과 및 실제 통과한 필수 조건으로 곡별 템플릿 추천 이유를 구성한다.
+3. Spring은 추천 결과 순서를 유지하고 추천 결과와 함께 설명을 저장·응답한다.
 
-설명 대상 수·호출 시점·결과 버전 연결·동기 화면 응답 포함 여부는 별도 정합화한다.
+세부 설명 schema·저장 field는 API 구현에서 정합화한다. 외부 결과는 단일 `resultVersion`으로 식별하고, AI 내부 생성/전처리·변환·분석·요청 해석 버전은 별도 추적한다.
 
 | 제안 정보 | 목적 |
 | --- | --- |
@@ -31,19 +28,19 @@ Proposed 012의 Spring 설명 생성으로 책임을 바꾸거나 모든 곡의 
 
 ## 생성·실패 원칙
 
-- 초기에는 템플릿을 사용하며 LLM은 별도 검토 사항이다.
-- [Accepted 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)의 항목 점수·누락 `null`과 사유를 따른다.
+- 템플릿 설명은 Spring 책임이며 LLM은 필수 구성요소가 아니다.
+- [Superseded for ranking 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)에서 유지된 세부 정보 누락의 `null`과 사유 구분을 적용한다. BPM/Rhythm은 음악 순위 점수로 쓰지 않는다.
 - 실제 유사도·점수·필터 결과만 설명하고 누락을 0/PASS로 추정하지 않는다.
 - 신뢰성·위험 신호를 음악 순위의 원인으로 설명하지 않는다.
 - 곡별 추천 이유를 후보 간 점수 차이 문장으로 만들지 않는다.
 - 반환된 유사도 순위를 설명 때문에 재계산하지 않는다.
-- 설명 실패·timeout은 추천 이유만 `null`로 두며 검색 장애는 [Accepted 010](https://linear.app/nsu-capstone/document/010-ai-곡-검색-실패시간-초과-시-추천-api-응답-46a63dece138)과 구분한다.
+- AI 검색 실패·timeout은 별도 설명 호출 실패와 구분해 [Accepted 010](https://linear.app/nsu-capstone/document/010-ai-곡-검색-실패시간-초과-시-추천-api-응답-46a63dece138)을 따른다.
 
 ## 남은 계약·검증
 
-- [ ] 전체 반환 흐름과 Accepted 008의 설명 대상·호출 정보 정합화
-- [ ] endpoint·입출력 필드·결과 연결·timeout 확정
-- [ ] 정상·누락·오래된 결과·실패 사례 검증
+- [ ] Spring 템플릿에 쓰는 구조화된 근거·설명 필드의 schema 정합화
+- [ ] 결과와 단일 `resultVersion` 연결 field 정합화
+- [ ] 정상·누락·오래된 결과의 설명 evidence 처리 검증
 - [ ] 실제 처리시간 측정; 측정 전 성능 목표 임의 확정 금지
 
 관련 작업: [NSUAI-10](https://linear.app/nsu-capstone/issue/NSUAI-10),
