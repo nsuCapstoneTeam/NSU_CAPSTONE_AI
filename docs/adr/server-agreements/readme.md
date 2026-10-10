@@ -26,8 +26,7 @@ Linear는 2026-10-06 두 저장소의 로컬 server-agreements 관리 위치를 
 | [008](008-music-score-items-and-performance-format.md) | 당시 음악 항목·공연 형태 제안 이력. Linear 008과 다른 내용; 관련 Accepted 결정은 Linear 009 |
 
 로컬 007·008을 Linear의 같은 번호로 단순 대응시키지 않는다. 과거 Decision·근거는 보존한다.
-2026-10-07 사용자 결정의 전체 결과 반환·유사도 정렬·집계 없음·후보 비교 설명 폐기는
-[AI 작업 기준](../../api/CLAP_RECOMMENDATION_DIRECTION.md)을 확인한다.
+2026-10-07 사용자 결정의 유사도 정렬·집계 없음·후보 비교 설명 폐기는 당시 이력이다. 결과 반환 상한은 이후 Accepted 012에서 최대 100곡으로 확정됐다. 현행 기준은 [AI 작업 기준](../../api/CLAP_RECOMMENDATION_DIRECTION.md)을 확인한다.
 이 정리는 Linear의 Accepted/Proposed 상태나 다른 저장소를 변경하지 않는다.
 
 ## 문서 책임

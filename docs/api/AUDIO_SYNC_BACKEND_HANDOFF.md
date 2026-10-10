@@ -1,6 +1,6 @@
 # 백엔드 전달용 Audio 동기 연동 계약
 
-> 2026-10-07 이 작업 대화의 사용자 결정, 구현 전. 전체 통과 곡 반환·유사도 정렬·아티스트 집계 없음·후보 간 비교 설명 폐기를 [AI 작업 기준](CLAP_RECOMMENDATION_DIRECTION.md)에 기록한다. 이 결정을 Linear Accepted 상태로 표시하지 않는다.
+> 2026-10-10 현재 서버 간 계약은 [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)다. 아래 추천 검색은 합의된 기준이며 업무 API 구현 완료를 뜻하지 않는다.
 
 
 상태: **사용자 전달 백엔드 확인·후속 결정 반영, 구현 전**. 2026-10-04.
@@ -9,7 +9,7 @@
 
 결정 배경·이유·서버별 책임의 현행 관리 위치는 [Linear 서버 협의](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3)이다.
 [로컬 목록](../adr/server-agreements/readme.md)은 과거 기록이다. 이 문서는 Accepted 원칙과 상세 인터페이스 제안을 구분한다.
-2026-10-07 전체 곡 반환 흐름은 사용자 결정이며 기존 Accepted 005·009/용어집과 남은 차이는 [작업 기준](CLAP_RECOMMENDATION_DIRECTION.md)에 기록한다.
+2026-10-07의 전체 결과 반환 제안은 당시 이력이다. 현행 정책은 Accepted 012에 따라 전체 통과 ACTIVE 후보 쌍을 입력으로 받고 최대 100곡을 반환하며, 입력 상한은 NSUAI-15 실측 후 정한다. 상세 내용은 [작업 기준](CLAP_RECOMMENDATION_DIRECTION.md)을 따른다.
 
 ## 1. 책임과 식별자
 
@@ -100,11 +100,11 @@ ID 집합과 revision 집합을 각각 비교하면 잘못된 쌍이 포함될 �
 ]
 ```
 
-기존 CLI Top5는 Audio 연동 확인용이다. 현행 사용자 결정의 서비스 목표는 전체 통과 곡의 Embedding/유사도 계산·정렬과 전체 결과 반환이다.
-Spring은 유사도 순으로 곡을 표시하고 사용자는 별도 버튼으로 해당 Artist와 매칭한다. 곡→아티스트 집계를 하지 않는다.
-AI 결과의 music_id·source_version·rank·cosine_similarity와 표시 점수 필드는 상세 제안이며 DTO는 아직 미정이다.
-서비스 결과를 CLI Top5·retrieval 50~100·Proposed 012의 100곡으로 잘라내지 않는다.
-점수·누락 점수는 Accepted 009, 장애/timeout은 Accepted 010을 참조한다. 실패·누락을 임의로 숨기지 않으며 전체 흐름과의 응답 정합화는 후속 계약이다.
+기존 CLI Top5는 Audio 연동 확인용이다. Accepted 012에 따라 Spring은 통과한 모든 ACTIVE 후보 쌍을 AI에 전달하고, AI는 raw cosine 순위로 최대 100곡을 반환한다. 입력 후보 최대치는 NSUAI-15에서 성능·메모리·동시성 실측 후 결정하며 결과 반환 상한 100곡과 구분한다. Spring은 응답 순서를 재정렬하지 않는다.
+AI의 raw cosine 순위는 AI 측에서 검증한다. Spring은 rank/order 연속성, 중복, 후보 범위, 결과 개수, 0~100 점수 유효성 및 표시 점수의 단조성을 확인하며 raw cosine은 Spring 계약에 포함하지 않는다.
+AI 결과의 music_id·audioRevision·rank·resultVersion 및 상세 정보는 계약 구현 시 확정할 field/schema다. 외부 `resultVersion`은 하나이며 AI 내부 model/checkpoint, Embedding generation/preprocessing, transformation/calibration, 상세 분석 및 요청 해석의 세부 버전과 구분한다.
+005의 retrieval 50~100/Backend Top10, 009의 의미/BPM/Rhythm 평균 음악 순위, 008의 별도 AI Explanation API 호출은 Accepted 012의 범위로 대체됐다. BPM/Rhythm 측정과 요청 비교는 순위에 반영하지 않는 상세 정보다.
+점수는 후보 독립 고정 0~100 음악 유사도이며 확률·적합 가능성이 아니다. 구체 변환/calibration은 NSUAI-12에서 정한다. 장애/timeout은 Accepted 010을 따른다.
 **Reliability는 최종 추천 순위에 반영하지 않는다.** Risk Signal과 함께 별도 결과 정보로 표시한다.
 현재 표시 점수는 음악 간 유사도이며 종합 적합도나 신뢰 확률이 아니다.
 
@@ -119,7 +119,7 @@ AI 결과의 music_id·source_version·rank·cosine_similarity와 표시 점수 
 | --- | --- |
 | PUT /internal/v1/audio-embeddings/{music_id} | 파일·source_version·source_sha256 전달, revision별 생성·저장 |
 | GET /internal/v1/audio-embeddings/{music_id}?source_version=2 | 특정 revision 처리 상태 확인 |
-| POST /internal/v1/audio-search | 검색 입력·전체 후보 쌍 전달, 유사도 정렬한 전체 결과 반환; 세부 DTO 미정 |
+| POST /internal/v1/audio-search | 요청 원문과 모든 ACTIVE 후보 쌍 전달, raw cosine 정렬한 최대 100곡 및 구조화된 상세 정보 반환; 입력 최대치·세부 DTO 미정 |
 | DELETE /internal/v1/audio-embeddings/{music_id}?source_version=3 | 음악 자체 삭제와 삭제 기록 유지 |
 | 활성 전환 확인·이전 revision 정리 | 신규 계약 필요. 위 음악 삭제 API를 재사용하지 않음 |
 
@@ -140,10 +140,7 @@ AI 결과의 music_id·source_version·rank·cosine_similarity와 표시 점수 
 기존 `0001_audio_embeddings.sql` 체크섬은 유지하고 추가 마이그레이션으로 변경한다.
 기존 CLI 데이터의 초기 revision 부여와 CLI의 검증 우회 방지도 함께 설계한다.
 현재 구현은 음악 ID당 벡터 하나의 최초 저장/동일 결과 재사용이며 위 기능은 미구현이다.
-Text 저장·번역, BPM/리듬 항목 점수·설명 생성 구현은 이 문서 범위 밖이다.
-현행 전체 반환·유사도 표시·사용자 매칭 흐름과 아티스트 집계 없음은 이번 사용자 결정이다.
-후보 간 비교 설명은 폐기한다. 곡별 추천 이유는 Accepted 008을 참조하고 [상세 설명 계약](RECOMMENDATION_EXPLANATION_CONTRACT.md)에서
-전체 흐름에 맞춘 설명 대상·DTO·timeout을 별도로 정합화한다.
+Text 저장·번역과 업무 HTTP API 구현은 후속 작업이다. BPM/Rhythm은 측정값과 요청 비교 상세 정보로 다루며 0~100 순위 점수가 아니다. Accepted 012에 따라 Spring이 AI의 구조화된 근거와 통과 조건으로 템플릿 추천 이유를 만들며 별도 AI Explanation API는 현행 흐름이 아니다. LLM은 필수가 아니다. 상세 설명 제안은 [설명 계약 문서](RECOMMENDATION_EXPLANATION_CONTRACT.md)를 참조한다.
 
 2026-10-04 Linear NSUAI-25·26·27, NSU-63과 연결 GitHub AI #18·19·20, Backend #68에 이 기준을 반영했다.
 기존 단일 벡터 교체안은 더 이상 현재 구현 목표로 사용하지 않는다.
@@ -151,5 +148,4 @@ Text 저장·번역, BPM/리듬 항목 점수·설명 생성 구현은 이 문�
 ## 변경 이력 — 현행 목표와 이전 계약의 차이
 
 2026-10-04의 retrieval 50~100 → Backend Ranker Top10과 아티스트 집계 계획은 당시 기록이다.
-2026-10-07 사용자 결정으로 저장소 실행 목표를 전체 통과 곡 분석·유사도 정렬·전체 반환으로 정리했다.
-점수·누락·오류의 Accepted 정책은 유지하며 Linear 승인 상태·Backend 구현은 이번에 변경하지 않았다.
+2026-10-07 제안 방향은 2026-10-10 Accepted 서버 협의 012에 따라 동기화했다. 결과 최대 100곡, 모든 ACTIVE 후보 쌍 전달, raw cosine 순위 유지, Spring의 순서 재정렬 금지, Spring 템플릿 설명을 반영했다. API 구현은 별도 상태다.

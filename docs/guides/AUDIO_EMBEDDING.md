@@ -22,8 +22,8 @@ ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide�
 이 절은 현재 구현에 적용된 Audio 생성 규칙이다. 결정 이유·공식 근거·대안과
 trade-off 및 이전 정책의 변경 이력은 [ADR-0007](../adr/ADR-0007-audio-highlight-embedding-strategy.md)에 기록한다.
 제품 길이 정책의 주 기준은 [Linear AI-033](https://linear.app/nsu-capstone/document/ssot-아티스트-행사-매칭-플랫폼-mvp-요구사항-e38bb23f87b1)의 v1.11이다.
-현재 공통 생성기 구현은 아래 정책을 적용한다. 실제 MSCLAP 통합 검증과 새 Dataset 평가 상태는
-구현 단위 테스트 통과 여부와 구분해 관리한다.
+현재 공통 생성기 구현은 아래 정책을 적용한다. 실제 6곡 MSCLAP 생성 경로 검증과 전용 PostgreSQL/pgvector 통합 검증은 완료됐으며,
+검색·음악 품질 평가, 새 similarity 분포 및 calibration은 별도 후속 단계다.
 
 - Artist가 직접 선택한 대표 Highlight의 **권장 길이는 60초**다.
 - **최소 60초·최대 80초**를 길이 validation 조건으로 적용한다. L < 60초 또는 L > 80초는 실패하고, **60초 ≤ L ≤ 80초는 통과**한다. 양 경계인 60초와 80초도 허용한다.
@@ -66,7 +66,7 @@ PCM float 임시 WAV로 만들며 MSCLAP 공개 API가 각 입력을 random crop
 
 Chunk는 각각 L2 정규화하고 float64 계산으로 평균 및 최종 L2 정규화를 수행한다. norm 검사에는
 임의 epsilon을 적용하지 않고 finite 여부와 정확한 0만 검사한다. 0에 가까운 비영 norm은 임계값으로
-거부하지 않는다. decoder별 압축 형식의 경계 정밀도와 실제 음원에서의 품질은 별도 통합 검증 대상이다.
+거부하지 않는다. 실제 6곡 생성 경로와 PostgreSQL 저장/검색 수치·순위 검증은 완료됐다. Decoder별 압축 형식의 경계 정밀도와 실제 검색·음악 품질은 별도 평가 대상이다.
 
 ## 현재 구현
 

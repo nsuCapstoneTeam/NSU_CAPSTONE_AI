@@ -2,7 +2,7 @@
 
 > 과거 합의 기록 보존. 아래 Status·Decision은 당시 내용이며 현행 기준이 아니다. 로컬 번호는 Linear의 같은 번호와 내용이 다르다. 현행 서버 정책은 [Linear 목록](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3)의 Accepted 문서, 이번 사용자 결정은 [AI 작업 기준](../../api/CLAP_RECOMMENDATION_DIRECTION.md)을 확인한다.
 >
-> 관련 현행 확인 위치: [Linear 007](https://linear.app/nsu-capstone/document/007-추천-단위는-곡-69137a45b2c6) · [008](https://linear.app/nsu-capstone/document/008-추천-이유-생성-흐름-ae6cde7df2de) · [009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd). Proposed 012를 승인하거나 당시 기록을 재작성하지 않는다.
+> 관련 현행 확인 위치: [Accepted Linear 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba). 아래 본문은 당시 합의 이력으로 보존하며 현행 기준은 012를 따른다.
 
 
 ## Status

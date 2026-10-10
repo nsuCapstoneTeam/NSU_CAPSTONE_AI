@@ -16,7 +16,7 @@ Python AI/Matching Server 및 AI Matching 시스템에 영향을 주는
 | [ADR-0004](./ADR-0004-korean-input-english-msclap.md) | NSUAI-1, NSUAI-2 | 한국어 음악 요청을 영어로 변환한 뒤 MSCLAP 입력 | 입력 정책 승인, 번역 방식 미정 |
 | [ADR-0005](./ADR-0005-audio-similarity-display-score.md) | NSUAI-1, NSUAI-2 | 음악 파일 검색과 음악·텍스트별 임시 표시 점수 분리 | 개발용 기준 채택, 최종 점수 미정 |
 | [ADR-0006](./ADR-0006-asynchronous-audio-processing.md) | NSUAI-17 관련, 외부 이슈 변경 전 | 음악 입력 동기 처리·AI 선설계 | 사용자 결정 반영, 업무 API 구현 전 |
-| [ADR-0007](./ADR-0007-audio-highlight-embedding-strategy.md) | NSUAI-25 관련, 외부 이슈 변경 전 | Highlight 권장 60초·허용 60~80초(경계 포함)·처음 56초/고정 8 non-overlap Chunk·L2/Mean(N=8)·개발 벡터 재생성 | Accepted (사용자 승인), generation policy 구현 완료; 실제 Dataset 평가·벡터 재생성 미완료 |
+| [ADR-0007](./ADR-0007-audio-highlight-embedding-strategy.md) | NSUAI-25 관련, 외부 이슈 변경 전 | Highlight 권장 60초·허용 60~80초(경계 포함)·처음 56초/고정 8 non-overlap Chunk·L2/Mean(N=8)·개발 벡터 재생성 | Accepted (사용자 승인), generation policy 및 실제 6곡 MSCLAP/전용 PostgreSQL 검증 완료; dev/test 벡터 재생성 미완료 |
 | [ADR-0008](./ADR-0008-music-similarity-transformation-and-ranking.md) | 외부 이슈 변경 없음 | raw cosine ranking·후보 독립 transformation·calibration 및 버전 추적 원칙 | Accepted (AI 원칙 사용자 승인), 최종 calibration·버전 체계 구현 전 |
 
 ADR-0005는 개발용 임시 표시 점수 기준과 초기 실험 근거를 보존한다.
@@ -43,7 +43,7 @@ ADR-0006의 과거 "기존 파일 경로 유지" 기록은 보존하되 현재 �
 API 상세 필드·요청/응답 명세는 [API 문서](../api/README.md)를 참고한다.
 
 ADR-0002의 당시 TOP5와 ADR-0005의 아티스트 집계 후속 계획은 과거 기록으로 보존한다.
-2026-10-07 사용자 결정의 현행 목표는 [전체 곡 유사도 정렬·반환](../api/CLAP_RECOMMENDATION_DIRECTION.md)이다.
+현행 추천 정책은 Accepted 012에 따른다. 전체 통과 ACTIVE 후보 쌍을 입력으로 받고 AI가 최대 100곡을 반환하는 기준은 [현재 AI 작업 기준](../api/CLAP_RECOMMENDATION_DIRECTION.md)에 정리되어 있다.
 이 안내는 과거 ADR 본문이나 Linear 승인 상태를 변경하지 않는다.
 
 기존 ADR의 실제 결정 내용과 변경 이력은 위 목록에서 계속 확인할 수 있다.

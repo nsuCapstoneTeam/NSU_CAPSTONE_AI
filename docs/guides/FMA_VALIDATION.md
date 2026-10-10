@@ -21,8 +21,8 @@ FMA 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거
 
 현재 기준은 [ADR-0007](../adr/ADR-0007-audio-highlight-embedding-strategy.md)과 [Phase A](../experiments/audio-highlight-phase-a/README.md)입니다.
 별도 음악 6곡의 정확히 60초 fixture·PCM 동일성·재현성 및 Phase A 범위 출처·라이선스 확인은 완료됐습니다.
-실제 MSCLAP real-music Embedding 검증과 새 정책 PostgreSQL 통합 검증은 아직 미완료입니다.
-후속 순서는 [Roadmap](../AI_DEVELOPMENT_ROADMAP.md)을 따릅니다. 30초 FMA를 반복·padding하여 새 검증에 사용하지 않습니다.
+실제 6곡의 production MSCLAP 생성 경로 검증과 전용 PostgreSQL/pgvector 통합 검증도 완료됐습니다. 두 검증은 음악 검색 품질·similarity 분포·calibration의 평가를 대신하지 않습니다.
+현재 후속 순서는 [Roadmap](../AI_DEVELOPMENT_ROADMAP.md)을 따릅니다. 검색 품질 평가와 dev/test 벡터 대상·입력 mapping 확인은 남아 있으며, 30초 FMA를 반복·padding해 새 검증 입력으로 사용하지 않습니다.
 
 FMA Historical 집계는 과거 의사결정 설명용이며 향후 calibration input으로 사용하지 않습니다. 향후 calibration은 ADR-0007 generation policy에 따라 새로 생성한 Embedding·새 similarity distribution·새 evaluation evidence를 기반으로 수행하고, 해당 evidence는 별도로 생성·보존합니다.
 

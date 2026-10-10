@@ -4,7 +4,7 @@
 
 FMA Historical PoC의 핵심 실험 근거는 Markdown으로 보존하고, 원본·manifest·상세 결과는 2026-10-09 Cleanup에서 삭제한다.
 새 개발/검증에는 **FMA와 다른 Dataset의 60~80초(양 경계 포함) 입력**을 사용한다.
-[Phase A](../experiments/audio-highlight-phase-a/README.md)의 6곡·60초 fixture와 Phase A 범위 출처·라이선스 확인은 완료됐다. 실제 MSCLAP real-music 검증과 새 정책 PostgreSQL 통합 검증은 아직 미완료다.
+[Phase A](../experiments/audio-highlight-phase-a/README.md)의 6곡·60초 fixture 준비에 이어 [실제 MSCLAP 생성 경로 검증](../experiments/audio-highlight-msclap-validation/README.md)과 [전용 PostgreSQL/pgvector 통합 검증](../experiments/audio-embedding-postgres-validation/README.md)도 완료됐다. 이는 생성 경로 및 저장/검색 수치·순위의 기술 검증이며 추천 검색 품질·similarity 분포·calibration 평가는 포함하지 않는다.
 기존 FMA를 임의 반복·padding해서 새 검증 입력으로 바꾸지 않는다.
 
 다른 Dataset의 권리·길이 확인 → 새 생성 규칙/metadata 검증 → 개발 벡터 대상·새 입력 매핑 확인 →
@@ -29,7 +29,7 @@ ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide�
 
 현재 `search_audio.py`는 `AudioEmbeddingGenerator`의 generation policy를 사용합니다.
 입력은 60~80초(양 경계 포함)여야 하며, 처음 56초에서 7초 × 8개 Chunk를 생성해
-하나의 대표 벡터로 집계합니다. Phase A fixture 준비는 완료됐고 실제 MSCLAP 음악 품질 평가는 후속 단계입니다. Phase A manifest는 이 검색 CLI의 후보 manifest와 형식이 다르므로 직접 전달하지 않습니다.
+하나의 대표 벡터로 집계합니다. 실제 6곡에서 이 생성 경로를 MSCLAP으로 검증했으며, 실제 추천 검색·음악 품질 평가는 후속 단계입니다. Phase A manifest는 이 검색 CLI의 후보 manifest와 형식이 다르므로 직접 전달하지 않습니다.
 적격 query Audio와 각 후보 Audio를 준비해야 합니다. manifest의 모든 후보도 현재 60~80초
 validation을 통과해야 합니다. Dataset/fixture 준비 후 아래 placeholder 경로를 실제 경로로 바꿔 실행합니다.
 

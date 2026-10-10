@@ -12,9 +12,9 @@ processing/ready/failed/deleted 상태 조회와 stale 재처리를 지원하는
 아래 상태 조회 제외·원자 교체·Top5 설명은 초기 이력이며 현재 구현 목표로 사용하지 않는다.
 당시(2026-10-04) 추천 경로 제안은 ACTIVE revision 쌍 후보로 AI retrieval 50~100개를 받고 Backend에서 Top10을 선정하는 것이었다. 이 반환 제한·선정 흐름은 현행 개발 목표가 아니다.
 
-현행 개발 목표는 [현재 AI 작업 기준](CLAP_RECOMMENDATION_DIRECTION.md)을 따른다.
-Spring Hard Filter → 통과한 전체 곡에 대해 AI가 Embedding/유사도 계산·정렬 → 전체 결과 Spring 반환 → Spring이 유사도 순으로 곡 표시 → 사용자가 별도 버튼으로 선택한 곡의 Artist와 매칭한다.
-이 흐름은 2026-10-07 이 작업 대화의 사용자 결정이며, 기존 Linear Accepted 계약으로 승인된 흐름이라는 뜻이 아니다. 기존 Accepted 정책과의 차이는 서버 협의 정합화 대상으로 남아 있다.
+현행 서버 간 정책은 [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba) 및 [현재 AI 작업 기준](CLAP_RECOMMENDATION_DIRECTION.md)을 따른다.
+Spring Eligibility → 통과한 전체 ACTIVE 후보 쌍을 AI에 입력 → AI가 raw cosine으로 정렬해 최대 100곡 반환 → Spring이 순서를 유지해 표시·응답한다. Spring은 입력 후보를 임의로 자르지 않으며 입력 최대치는 NSUAI-15 실측 후 결정한다.
+이 문서 아래의 초기 Top5 및 과거 전체 반환 제안은 이력이며 현행 반환 정책이 아니다.
 동기 연동 설계는 [백엔드 전달용 문서](AUDIO_SYNC_BACKEND_HANDOFF.md)를 참고하며, Accepted 원칙과 미확정 상세 인터페이스 제안을 구분한다.
 
 이하 본문은 초기 제안 당시의 기록이다. 본문의 ‘현재’·‘다음 단계’는 당시 시점을 뜻하며 현행 구현 지침으로 사용하지 않는다.

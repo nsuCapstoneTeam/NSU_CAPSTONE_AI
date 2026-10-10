@@ -69,9 +69,9 @@ FMA 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거
 업무 HTTP API·Text 저장·번역·곡별 설명은 후속 작업입니다.
 여기 수식과 FMA 분포는 기존 단일 crop 개발용 기준입니다. ADR-0007 새 검증은 다른 Dataset의
 Phase A에서 준비한 별도 60초 적격 입력을 사용하며 [Roadmap](../AI_DEVELOPMENT_ROADMAP.md)과 [입력 안내](FMA_VALIDATION.md)를 따릅니다.
-서버 점수·누락 정책은 [Accepted Linear 협의 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)를 확인합니다.
+서버 간 현재 순위·표시 점수 정책은 [Accepted Linear 협의 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)를 따릅니다. 009는 의미/BPM/Rhythm 평균 순위에 관해서는 Superseded이며, BPM/Rhythm의 상세 측정·요청 비교와 공연 형태 Hard Filter 등 유지 범위만 historical reference로 남습니다.
 임시 CLI 수식을 서버의 최종 변환 수식으로 승격하지 않습니다.
-외부 수치 전달·결과 버전은 Linear 011의 Superseded 상태와 012 §4.3의 AI 동의 기록을 참조하며, 012 전체 Status=Proposed와 부분 동의를 구분합니다. 상세 확인 위치는 [AI 작업 기준의 상태와 출처](../api/CLAP_RECOMMENDATION_DIRECTION.md#상태와-출처)입니다.
+외부 수치·순위 및 결과 버전은 Accepted 012 §4.3을 따릅니다. raw cosine이 순위를 정하고 Spring은 AI 순서를 재정렬하지 않습니다. 후보 독립 고정 0~100 변환은 표시용이며 확률/적합성 점수가 아닙니다. 외부 단일 `resultVersion`은 AI 내부의 model/checkpoint, generation/preprocessing, transformation/calibration, 상세 분석 및 요청 해석 세부 버전과 분리합니다. 구체 변환은 NSUAI-12 실험 후 결정합니다. 상세 상태는 [AI 작업 기준의 상태와 출처](../api/CLAP_RECOMMENDATION_DIRECTION.md#상태와-출처)를 참조합니다.
 현재 CLI 수식·실측 결과와 향후 인터페이스 구현·검증은 별도로 관리합니다.
 
 ## 향후 transformation 설계 원칙
