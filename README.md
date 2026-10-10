@@ -75,7 +75,7 @@ FMA 검증 도구·영어 입력 정책·음악 파일 검색·임시 점수 변
 8개의 겹치지 않는 구간으로 처리하고, Chunk별 L2 정규화 → Mean Pooling → 최종 L2
 정규화로 대표 Embedding 하나를 만듭니다.
 
-Phase A에서 별도 6곡·60초 fixture를 준비했습니다. 실제 MSCLAP 및 PostgreSQL 새 정책 검증은 아직 미완료입니다.
+Phase A의 별도 6곡·60초 fixture 준비 후, 실제 MSCLAP 생성 경로 기술 검증과 전용 PostgreSQL/pgvector 통합 검증도 완료했습니다. 이 검증은 검색·음악 품질 평가, similarity 분포 또는 calibration 완료를 뜻하지 않습니다.
 Phase A manifest는 검색 후보 manifest와 형식이 다르므로 직접 전달하지 않습니다. 검색 절차와 입력 형식은 [사용 안내](docs/guides/AUDIO_SEARCH.md)를
 참고하세요.
 
@@ -244,7 +244,7 @@ py -3.11 -m venv .venv
 - [API 책임 경계](docs/api/README.md)
 - [협업 가이드](docs/협업-가이드/README.md)
 
-현재 다음 작업은 Phase 3의 다른 Dataset 60~80초 입력 준비 → 실제 음악 품질·PostgreSQL 통합 검증 → 개발 벡터 재생성 → 새 generation 기반 저장·검색 확인입니다.
+PostgreSQL 통합 검증과 실제 6곡 MSCLAP 생성 경로 검증은 완료됐습니다. 다음은 기존 개발 벡터의 소유권·재생성 대상과 새 입력 mapping을 확인하고 별도 승인받는 일입니다. 승인 뒤 dev/test 벡터를 ADR-0007 generation으로 재생성하고 저장·검색을 확인한 다음, 새 similarity 분포와 음악 품질을 평가하고 calibration을 진행합니다.
 백엔드 ID·수정/삭제 계약, Text 생성·번역, Accepted 항목 점수·곡별 설명과 전체 통과 곡 반환/API 연동은 Roadmap의 의존 순서에 따라 진행합니다.
 기존 30초 FMA의 핵심 실험 근거만 Markdown으로 유지하며 새 생성 정책 검증에 사용하지 않습니다.
-최종 점수와 더 큰 후보 집합의 검색 품질은 추가 검증이 필요하며 번역 구현은 보류합니다.
+검색 품질·similarity 분포/calibration, 처리 가능한 입력 후보 최대치 실측, 013 MP3/M4A 검증은 미완료이며 번역 구현도 보류합니다.
