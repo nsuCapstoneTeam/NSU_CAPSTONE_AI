@@ -407,7 +407,7 @@ Matching Pipeline
   ├── Embedding
   ├── Audio Feature
   ├── Similarity
-  ├── Item Score Normalization
+  ├── Fixed 0–100 Music Similarity
   ├── Track Retrieval
   └── Structured recommendation details for Spring templates
   ↓
@@ -504,8 +504,9 @@ React
 - Timeout/Error 처리
 - Artist ID 전달
 - 전체 통과 ACTIVE 후보 쌍 입력 → AI 유사도 정렬·최대 100곡 반환 → Spring 순서 유지·곡 표시 → 별도 사용자 Artist 매칭 검증
-- 항목별 Score 반환
-- 추천 이유 반환
+- 곡별 `rank`와 응답 순서, 후보 독립 0~100 음악 유사도 반환; raw cosine은 AI 내부 정렬 기준이며 Spring 계약 필드에 포함하지 않음
+- BPM/Rhythm 등 구조화된 상세 정보 반환; 순위 점수로 사용하지 않음
+- AI의 구조화된 근거·행사 요청 해석·통과 조건을 사용한 Spring 템플릿 추천 이유 구성
 - Sample 등록/수정/삭제 후 Embedding 상태
 - 실제 Audio/Text 데이터 기반 Matching 결과
 
