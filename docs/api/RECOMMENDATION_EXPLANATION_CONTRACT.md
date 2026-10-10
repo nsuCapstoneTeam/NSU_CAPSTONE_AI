@@ -43,8 +43,7 @@
 - [ ] 정상·누락·오래된 결과의 설명 evidence 처리 검증
 - [ ] 실제 처리시간 측정; 측정 전 성능 목표 임의 확정 금지
 
-관련 작업: [NSUAI-10](https://linear.app/nsu-capstone/issue/NSUAI-10),
-[NSUAI-16](https://linear.app/nsu-capstone/issue/NSUAI-16).
+관련 진행 작업: [NSUAI-16](https://linear.app/nsu-capstone/issue/NSUAI-16). `NSUAI-10`은 별도 AI Explanation API에 관한 과거 작업이며 현재 Canceled 상태다. 012에 따라 Spring 템플릿 설명으로 대체되어 현행 backlog가 아니다. 과거 제안과 이슈 참조는 아래 Historical 이력에 보존한다.
 
 ## 이전 제안 이력 — 현행 계약이 아님
 

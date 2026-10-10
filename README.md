@@ -1,19 +1,15 @@
 # NSU_CAPSTONE_AI
 
-> 2026-10-07 사용자 결정(이 작업 대화), 구현 전: Spring Hard Filter → AI가 통과한 전체 곡의 Embedding/유사도 계산·정렬 → 전체 결과 반환 → Spring 유사도 순 곡 표시 → 사용자가 별도 버튼으로 해당 Artist와 매칭. 곡→아티스트 집계와 후보 간 비교 설명은 하지 않습니다. [현재 작업 기준](docs/api/CLAP_RECOMMENDATION_DIRECTION.md)에서 사용자 결정과 Linear Accepted 정책의 출처·차이를 구분합니다.
+> 2026-10-07의 전체 결과 반환 흐름은 당시 제안 이력입니다. 현재 추천 정책은 [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)에 따릅니다. Spring은 전체 통과 ACTIVE 후보 쌍을 전달하고 AI는 최대 100곡을 반환합니다. 입력 후보 상한은 NSUAI-15 실측 후 결정합니다. 상세 기준은 [현재 AI 작업 기준](docs/api/CLAP_RECOMMENDATION_DIRECTION.md)을 참고하세요.
 
 
 아티스트–행사 매칭 플랫폼의 Python AI 서버입니다. Microsoft MSCLAP 기반 음악·텍스트와
 음악·음악 유사도, 파일 검색 CLI, FastAPI Health Check, PostgreSQL + pgvector 준비 상태 검사를 다룹니다.
 
-현재는 **Phase 2 검증 이후 Phase 3 Audio 임베딩 저장**을 개발하고 있습니다. FMA 실험 결과를 근거로
-**한국어 요청 → 영어 변환 → MSCLAP** 입력 정책을 확정했습니다.
-번역 방식·구현은 미정으로 보류합니다. 임시 점수 변환과 곡 단위 검색 CLI까지 구현했고,
-Audio 임베딩 테이블·동기 저장 CLI와 DB 후보 검색 CLI를 연결했습니다.
-백엔드 계약·수정/삭제 연동, BPM·리듬 분석, 설명 생성과 분석 API는 후속 작업입니다.
-현행 개발 목표는 AI가 Hard Filter를 통과한 전체 곡을 유사도 순으로 반환하고 Spring이 곡을 표시하는 흐름입니다.
-사용자는 해당 곡의 Artist와 별도 버튼으로 매칭합니다. 곡→아티스트 집계는 하지 않습니다.
-ADR-0007 Audio 생성 정책은 구현했습니다. 전체 결과 반환은 아직 구현하지 않았습니다.
+Phase A Dataset 준비, 실제 6곡 MSCLAP 생성 경로 검증, 전용 PostgreSQL/pgvector 통합 검증을 완료했습니다.
+다음은 기존 개발 벡터의 소유권·대상과 새 입력 mapping을 확인하는 단계입니다. 기존 벡터 삭제·재생성은 별도 승인 전에는 수행하지 않습니다.
+현행 서비스 흐름은 Spring Eligibility가 통과한 전체 ACTIVE 후보 쌍 전달 → AI raw cosine 정렬·최대 100곡 반환 → Spring의 순서 유지·응답 검증·템플릿 설명입니다. 입력 후보 상한은 NSUAI-15의 성능·메모리·동시성 실측 후 결정합니다.
+업무 HTTP API, 입력 해석 및 BPM/Rhythm 상세 분석은 후속 구현이며, AI가 별도 설명 API를 제공하는 흐름은 아닙니다. 0~100 표시 변환은 calibration 실험 후 결정합니다.
 
 ## 구현 상태
 
@@ -30,8 +26,8 @@ ADR-0007 Audio 생성 정책은 구현했습니다. 전체 결과 반환은 아�
 | 음악 파일로 후보 곡 검색 | CLI 구현, 원본 코사인 순위·음악 간 임시 0~100점 반환 |
 | DB 저장 임베딩으로 후보 곡 검색 | 호환 조건 필터·동일 파일 제외·pgvector 정확 검색 CLI 구현 |
 | 임시 유사도 표시 점수 | 음악↔텍스트 0~0.4 / 음악↔음악 0~1, 최종 기준 검증 필요 |
-| 의미·BPM·리듬 항목 점수·곡별 추천 이유 | Audio 임시 의미 점수 외 후속 구현; Accepted 서버 협의 참조 |
-| 전체 통과 곡 유사도 정렬·전체 결과 반환 | 사용자 결정 반영, 구현 전; 아티스트 집계·후보 비교 설명 제외 |
+| BPM/Rhythm 상세 분석·구조화된 추천 근거 | 후속 구현; 추천 이유는 Accepted 012에 따라 Spring 템플릿 책임이며 별도 AI Explanation API는 사용하지 않음 |
+| 전체 ACTIVE 후보 입력·최대 100곡 결과 반환 | Accepted 012 정책 반영; 업무 HTTP API 구현 전; 입력 후보 상한은 NSUAI-15 실측 후 결정; Spring 순서 유지·아티스트 집계/후보 비교 설명 제외 |
 | 분석·매칭 HTTP API·Spring Boot 연동 | 후속 구현 |
 
 분류 코드의 softmax는 라벨 사이의 상대점수이며 행사 적합도 백분율이 아닙니다.
@@ -43,13 +39,13 @@ MSCLAP의 배율 적용 유사도와 순수 cosine도 구분합니다.
 테이블 생성·음악 파일 저장·처리 이유는 [임베딩 저장 안내](docs/guides/EMBEDDING_STORAGE.md)를 참고하세요.
 저장된 후보 벡터로 검색하는 방법은 [DB 음악 검색](docs/guides/DATABASE_AUDIO_SEARCH.md)을 참고하세요.
 음악 입력 처리의 동기 방향과 AI 선설계 결정은 [ADR 0006](docs/adr/ADR-0006-asynchronous-audio-processing.md)에 기록했습니다.
-현재 검색은 곡 단위 개발 CLI입니다. 기본 Top5는 검증 설정이며 서비스의 전체 결과 반환을 구현한 것은 아닙니다.
+현재 검색은 곡 단위 개발 CLI입니다. 기본 Top5와 `--top-k`는 CLI 검증 설정이며, 서비스의 최대 100곡 반환 흐름은 아직 구현되지 않았습니다.
 
 2026-10-04 [백엔드 연동 결정](docs/api/AUDIO_SYNC_BACKEND_HANDOFF.md): revision별 v1·v2 벡터를
 함께 보관하고 Backend ACTIVE 전환 커밋 확인 후 이전 벡터를 정리합니다.
 AI 상태 조회·stale 재처리·ACTIVE revision 쌍 검색은 구현 전입니다.
-현행 목표는 전체 통과 곡의 유사도 정렬·전체 결과 반환이며 Reliability·Risk Signal은 별도 표시합니다.
-점수·누락 점수·오류의 Accepted 정책과 이번 사용자 결정의 차이는 [작업 기준](docs/api/CLAP_RECOMMENDATION_DIRECTION.md)에 기록합니다.
+현행 목표는 전체 통과 ACTIVE 후보 쌍을 입력받아 raw cosine으로 정렬하고 최대 100곡을 반환하는 것입니다. Spring은 순서를 유지하며 Reliability·Risk Signal은 별도 표시합니다. 입력 후보 상한은 NSUAI-15 실측 후 정합니다.
+점수·누락 점수·오류의 현행 Accepted 정책은 [작업 기준](docs/api/CLAP_RECOMMENDATION_DIRECTION.md)에 기록합니다.
 
 ## 과거 구현 변경 기록 (PR #28 이후 Audio 저장·검색)
 

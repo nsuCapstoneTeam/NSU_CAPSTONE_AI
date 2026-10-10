@@ -102,7 +102,7 @@ docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python 
 docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_database_audio --audio samples/reference.mp3
 ```
 
-옵션으로 TopK(1~100, 기본 5)와 새로운 결과 파일을 지정할 수 있습니다.
+CLI 옵션으로 TopK(1~100, 기본 5)와 새로운 결과 파일을 지정할 수 있습니다. 검증 시 `--top-k 5`, `10`, `100` 등으로 CLI 반환 개수를 선택할 수 있습니다. 이는 개발 CLI의 조회 옵션이며 서비스 계약의 결과 상한(최대 100곡)과는 별개입니다. 서비스 정책은 최대 100곡 반환이고 CLI 옵션이 서비스의 입력 후보 상한이나 임의 결과 개수를 정하지 않습니다.
 
 ```powershell
 docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_database_audio --audio samples/reference.mp3 --top-k 5 --output /workspace/datasets/audio-search-results/search-database-new.json
@@ -112,8 +112,7 @@ docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python 
 결과는 host의 `datasets/audio-search-results/`에 저장되어 `run --rm` 종료 후에도 남습니다.
 CLI가 결과 폴더를 생성하며, 이 로컬 결과 디렉터리는 Git에서 제외됩니다.
 
-출력 파일은 덮어쓰지 않습니다. `candidate_count`는 조건이 맞고 동일 파일 제외를 마친
-전체 eligible 후보 수이며 `results`에는 반환된 최대 100곡의 `music_id`, `cosine_similarity`, `audio_similarity_score`, `rank`가 있습니다. 후보 수가 반환 상한보다 많으면 `candidate_count`는 전체 수를, `results`는 상위 최대 100곡을 나타냅니다.
+출력 파일은 덮어쓰지 않습니다. `candidate_count`는 동일 파일 제외 후 전체 eligible 후보 수입니다. CLI의 `results` 개수는 요청한 `--top-k` 이하(이 CLI의 허용 범위 최대 100)이며, 예를 들어 `--top-k 5`는 최대 5개를 반환합니다. 이는 서비스 계약과 별개로, 서비스 응답은 최대 100곡입니다.
 음악 제목·아티스트·재생 URL은 향후 백엔드 음악 정보와 연결해야 합니다.
 DB 접속·SQL 오류와 모델 생성 오류는 실패 상태와 종료 코드 1로 출력합니다.
 
