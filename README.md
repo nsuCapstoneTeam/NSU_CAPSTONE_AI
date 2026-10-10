@@ -245,6 +245,6 @@ py -3.11 -m venv .venv
 - [협업 가이드](docs/협업-가이드/README.md)
 
 PostgreSQL 통합 검증과 실제 6곡 MSCLAP 생성 경로 검증은 완료됐습니다. 다음은 기존 개발 벡터의 소유권·재생성 대상과 새 입력 mapping을 확인하고 별도 승인받는 일입니다. 승인 뒤 dev/test 벡터를 ADR-0007 generation으로 재생성하고 저장·검색을 확인한 다음, 새 similarity 분포와 음악 품질을 평가하고 calibration을 진행합니다.
-백엔드 ID·수정/삭제 계약, Text 생성·번역, Accepted 항목 점수·곡별 설명과 전체 통과 곡 반환/API 연동은 Roadmap의 의존 순서에 따라 진행합니다.
+백엔드 ID·수정/삭제 계약, Text 생성·번역, BPM/Rhythm 구조화 상세 정보, 곡별 순위·0~100 음악 유사도와 Spring 템플릿 설명을 포함한 Accepted 012 업무 API 연동은 Roadmap의 의존 순서에 따라 진행합니다. raw cosine은 AI 내부 정렬 기준이며 Spring 응답 계약에 노출하지 않습니다.
 기존 30초 FMA의 핵심 실험 근거만 Markdown으로 유지하며 새 생성 정책 검증에 사용하지 않습니다.
 검색 품질·similarity 분포/calibration, 처리 가능한 입력 후보 최대치 실측, 013 MP3/M4A 검증은 미완료이며 번역 구현도 보류합니다.

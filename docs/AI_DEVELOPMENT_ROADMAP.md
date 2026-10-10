@@ -514,43 +514,21 @@ React
 
 # 2. 실제 구현 시작 순서
 
-아래는 초기 구축부터의 의존 순서다. Phase 1 기반·Phase 2 PoC·현재 Audio 저장/검색 CLI는 이미 구현됐으며 서비스 전체 완료와 구분한다.
+아래는 초기 구축 때 정리한 의존 순서의 이력이다. 초기 환경·MSCLAP·Embedding·DB 기반 및 CLI는 구현됐고, 실제 6곡 MSCLAP 생성 경로와 전용 PostgreSQL 통합 검증도 완료됐다. 이 초기 순서는 현재 남은 작업의 우선순위를 나타내지 않으므로, 이어지는 현행 순서를 따른다.
 
 ```text
-1. 프로젝트 실행 환경 구축
-        ↓
-2. MSCLAP 설치 / 모델 로딩
-        ↓
-3. Audio Embedding 생성
-        ↓
-4. Text Embedding 생성
-        ↓
-5. Cosine Similarity 측정
-        ↓
-6. 여러 테스트 데이터로 Similarity 분포 확인
-        ↓
-7. 0~100 정규화 방식 결정
-        ↓
-8. PostgreSQL + pgvector 저장
-        ↓
-9. BPM / Rhythm Feature
-        ↓
-10. Accepted 항목 점수·누락 정책 검증
-        ↓
-11. 전체 통과 ACTIVE 후보 쌍 입력 → AI 유사도 정렬·최대 100곡 반환 → Spring 순서 유지·곡 표시
-        ↓
-12. 추천 이유
-        ↓
-13. Embedding revision 수정/삭제 lifecycle 검증 (비교 설명은 폐기)
-        ↓
-14. Python API Server
-        ↓
-15. Spring Boot 연동
-        ↓
-16. 별도 사용자 Artist 매칭 연동 검증
-        ↓
-17. E2E Test
+초기 설정·생성·DB 기반 및 CLI                         ✅
+ADR-0007 실제 음악 생성 경로 검증                    ✅
+전용 PostgreSQL/pgvector 통합 검증                    ✅
+기존 dev/test Embedding 대상·소유권·입력 mapping 확인 ⏳ NEXT
+별도 승인 후 ADR-0007 generation으로 재생성            ⏳
+새 generation 저장·검색 확인                          ⏳
+새 similarity 분포·음악 품질 평가                     ⏳
+후보 독립 0~100 음악 유사도 calibration               ⏳
+Accepted 012 업무 API / Spring 연동·E2E               ⏳
 ```
+
+Accepted 012 응답에서는 곡별 `rank`, 후보 독립 0~100 음악 유사도, BPM/Rhythm 등 구조화된 상세 정보를 다룬다. API 문서에서 세부 DTO/schema는 구현 시 확정 대상으로 남아 있으므로 여기서 추가 field 이름을 정하지 않는다. raw cosine은 AI 내부 정렬 기준이며 Spring 응답 계약에 노출하지 않는다. Spring은 AI 순서를 유지하고 AI의 구조화 근거와 실제 통과 조건으로 템플릿 추천 이유를 만든다. BPM/Rhythm은 음악 순위 점수나 legacy 종합 Score가 아니다.
 
 ---
 
@@ -569,12 +547,12 @@ Python 내부의 Matching Pipeline을 먼저 함수 수준에서 완성한 뒤 H
 현재 Phase 2에서 MSCLAP 2023 CPU의 Audio/Text Embedding을 1024차원으로 실측했다.
 저장·검색에 사용하는 차원은 실제 모델/환경의 출력으로 검증하며, 모델·checkpoint·환경 변경 시 재검증한다.
 
-## Hard Filter와 Soft Score를 분리한다
+## Hard Filter와 음악 유사도 정렬을 분리한다
 - Hard Filter = 후보 포함 여부
 - 음악 유사도 = 현행 사용자 결정의 곡 정렬 기준
-- 항목 점수 = Accepted 서버 정책의 값·누락 처리; 평균을 현행 순위 수식으로 사용하지 않음
+- BPM/Rhythm 등 구조화 상세 정보는 순위 점수로 사용하지 않으며 legacy 항목 점수·종합 점수 평균을 현행 순위에 사용하지 않음
 
-## 설명은 실제 점수만 사용한다
+## 설명은 실제 근거만 사용한다
 곡별 추천 이유에 임의 평가를 추가하지 않는다. 후보 간 비교 설명은 제공하지 않는다.
 
 ---
