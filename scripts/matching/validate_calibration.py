@@ -7,7 +7,10 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker, SchemaError
 
-from scripts.matching.validate_calibration_event_queries import duplicate_query_ids
+from scripts.matching.validate_calibration_event_queries import (
+    duplicate_query_ids,
+    event_query_raw_reference_errors,
+)
 from scripts.matching.validate_calibration_manifest import duplicate_sample_ids
 
 
@@ -50,6 +53,11 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
         duplicates = duplicate_query_ids(event_queries)
         if duplicates:
             errors.append('Duplicate query_id values: ' + ', '.join(duplicates))
+    except ValueError as exc:
+        errors.append(str(exc))
+
+    try:
+        errors.extend(event_query_raw_reference_errors(event_queries))
     except ValueError as exc:
         errors.append(str(exc))
 
@@ -97,8 +105,8 @@ def main(argv=None):
         return 1
 
     print(
-        'Calibration validation passed: manifest schema and sample_id uniqueness; '
-        'event query schema and query_id uniqueness.'
+        'Calibration validation passed: both schemas, sample_id/query_id uniqueness, '
+        'and ACTIVE Event interpretation Raw references.'
     )
     return 0
 

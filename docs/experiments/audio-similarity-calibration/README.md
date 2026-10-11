@@ -29,7 +29,7 @@ Event query는 실제 사용자 데이터가 아니라 대표적인 합성 시�
 
 Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 구조의 이름은 calibration 자료의 의미 라벨이며 Spring API payload field 이름이나 API schema가 아니다.
 
-개발 의존성(`requirements-dev.txt`, `jsonschema==4.26.0`)이 설치된 저장소 루트에서 `uv run python -m scripts.matching.validate_calibration` 한 명령으로 manifest와 Event query의 JSON Schema 검증, `sample_id`/`query_id` 고유성, calibration cohort 상태 및 query 구성 규칙을 함께 검사한다. ACTIVE query는 `review_status: reviewed_for_raw_support`여야 하며, 이 조건은 Event query schema가 검증한다.
+저장소 루트에서 `uv run --isolated --with jsonschema==4.26.0 python -m scripts.matching.validate_calibration` 한 명령으로 전체 calibration 검증을 실행한다. 고정된 `jsonschema` 버전을 격리된 uv 실행 환경에 준비하므로 새 checkout에서도 추가 설치 단계 없이 실행할 수 있다. `requirements-dev.txt`에도 같은 버전을 고정한다. 명령은 manifest/Event query JSON Schema, `sample_id`/`query_id` 고유성, cohort/query 교차 규칙, ACTIVE 해석값의 Raw evidence와 `desired_genre` 참조 대상 일치를 검사한다. ACTIVE query는 `review_status: reviewed_for_raw_support`여야 하며, 이 조건은 Event query schema가 검증한다. JSON Schema는 query 간 ID 고유성이나 Raw 문자열과 annotation evidence의 교차 필드 일치를 표현하지 못하므로 통합 validator가 추가로 검사한다.
 
 `historical_raw_draft`는 최초 synthetic Raw draft 20개의 snapshot으로 calibration 문서 이력을 보존하며, 실제 사용자 입력 로그나 production revision history가 아니다. `raw_service_input`은 현재 calibration 단계에서 사용하는 Raw 입력이다. snapshot 생성 직후에는 두 값이 같았고, 현재는 ACTIVE 16개 중 15개에 검수한 Raw v1을 반영해 해당 항목에서 두 값이 다르다.
 
@@ -45,6 +45,8 @@ Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 
 1차 목표는 50곡이다. 같은 아티스트는 가급적 1곡, 최대 2곡으로 제한한다. 장르·분위기, 보컬/인스트루멘탈, electronic/acoustic, 느림/중간/빠름 인상의 편중을 줄인다. 제공자 metadata와 사람이 붙인 label을 별도로 보존하고 출처가 불분명한 label은 unknown으로 둔다. Source metadata의 tempo는 표본 구성 설명으로만 쓸 수 있으며, BPM/Rhythm ranking 구현을 뜻하지 않는다.
 
 정식 calibration 후보는 Incompetech 2곡, 새 FMA 전체곡 20곡, Wikimedia Commons 22곡, ccMixter 6곡으로 총 50곡이다. `candidate_selection_complete`는 정확히 50개이며 각 sample의 `source_catalog_duration`이 60초 이상, `commercial_use_status`가 `allowed`, `rights_status`가 `confirmed_from_official_metadata`이고 `sample_id`가 모두 고유한 현재 유효 후보 집합을 뜻한다. 위 통합 검증 명령은 schema의 개수·길이·권리 상태 조건과 객체 내 ID 고유성을 함께 검사한다. 재검증으로 sample이 길이·권리·상업 사용 기준에 부적격해지면 이 상태를 유지하지 않고 `candidate_selection_incomplete`로 바꾼다. 적격 대체 후보를 검증해 유효한 50곡을 다시 확보한 뒤에만 complete로 되돌린다. `source_catalog_duration`은 취득 전 catalog 기반 기준이며, Audio acquisition 후 실제 decode 및 `decoded_duration` 검증은 별도 단계에서 수행한다. ccMixter는 개별 트랙의 길이·라이선스·attribution·source dependency를 확인한 항목만 포함하며, sample/remix source chain이 불명확한 트랙은 포함하지 않는다. 기존 FMA 30초 Historical 자료는 사용하지 않고, Phase A 6곡은 기술 검증 fixture로만 유지하며 calibration cohort에서 제외한다. HOLD 판정된 The Wind that Shakes the Barley는 검토 이력에만 보존하고 PASS cohort 및 manifest에서는 제외했다. Audio 다운로드, source SHA 기록, decode 검증, prepared Audio 생성, MSCLAP Embedding, cosine 실험, 청취평가 및 transformation 선정은 아직 수행하지 않았다.
+
+`candidate_selection_complete`는 취득 전 catalog 검증 단계에서도 사용할 수 있다. `acquisition_method`가 `not_acquired` 또는 `pending`이면 `decoded_duration`은 null이어야 하며 아직 decode를 요구하지 않는다. 취득 방법이 `official_direct_download` 또는 `other_confirmed_method`로 바뀌면 같은 complete cohort 검증에서 `decoded_duration`이 반드시 존재하고 60초 이상이어야 한다. 취득 후 decode 결과가 누락되거나 60초 미만이면 검증은 실패하며, 해당 sample을 교체해 적격 50곡을 확보하기 전까지 상태를 `candidate_selection_incomplete`로 낮춘다. Schema의 이 조건은 manifest 값 일관성을 검사하며, 실제 파일을 decode하거나 기록값의 진실성을 확인하는 검증은 후속 acquisition 절차의 책임이다.
 
 ## Segment 준비 규칙
 

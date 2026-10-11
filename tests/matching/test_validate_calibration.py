@@ -1,4 +1,6 @@
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -38,6 +40,20 @@ def _run_validator(tmp_path, capsys, *, manifest=None, event_queries=None):
 def test_current_manifest_and_event_queries_pass(capsys):
     assert main([]) == 0
     assert 'Calibration validation passed' in capsys.readouterr().out
+
+
+def test_documented_module_invocation_runs_from_repository_root():
+    repository_root = Path(__file__).resolve().parents[2]
+    result = subprocess.run(
+        [sys.executable, '-m', 'scripts.matching.validate_calibration'],
+        cwd=repository_root,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert 'both schemas' in result.stdout
 
 
 def test_missing_manifest_required_field_fails(tmp_path, capsys):
@@ -140,7 +156,7 @@ def test_interpreted_attribute_with_empty_evidence_fails(tmp_path, capsys):
     ('state', 'value', 'evidence'),
     [
         ('not_requested', None, []),
-        ('unable_to_interpret', None, ['ambiguous raw request']),
+        ('unable_to_interpret', None, ['같이 즐길 수 있는']),
     ],
 )
 def test_uninterpreted_states_allow_null_value_with_expected_evidence(
@@ -191,3 +207,229 @@ def test_complete_cohort_with_duration_below_60_fails(tmp_path, capsys):
 
     assert result == 1
     assert 'source_catalog_duration' in output.err
+
+
+def test_complete_cohort_with_null_catalog_duration_fails(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['source_catalog_duration'] = None
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'source_catalog_duration' in output.err
+
+
+def test_complete_cohort_with_restricted_commercial_use_fails(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['commercial_use_status'] = 'restricted'
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'commercial_use_status' in output.err
+
+
+def test_complete_cohort_with_decoded_duration_below_60_fails(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['decoded_duration'] = 59.9
+    manifest['samples'][0]['acquisition_method'] = 'official_direct_download'
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'decoded_duration' in output.err
+
+
+def test_acquired_complete_sample_requires_decoded_duration(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['acquisition_method'] = 'official_direct_download'
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'decoded_duration' in output.err
+
+
+def test_acquired_complete_sample_with_60_second_decode_passes(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['acquisition_method'] = 'official_direct_download'
+    manifest['samples'][0]['decoded_duration'] = 60
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
+def test_incomplete_cohort_does_not_apply_complete_only_eligibility_rules(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['cohort_status'] = 'candidate_selection_incomplete'
+    manifest['samples'].pop()
+    manifest['samples'][0]['rights_status'] = 'excluded'
+    manifest['samples'][0]['commercial_use_status'] = 'restricted'
+    manifest['samples'][0]['source_catalog_duration'] = None
+    manifest['samples'][0]['decoded_duration'] = 0
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
+def test_interpreted_evidence_must_be_an_exact_raw_excerpt(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['mood']['evidence'] = [
+        'excerpt absent from current Raw'
+    ]
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'exact substring' in output.err
+
+
+def test_interpreted_evidence_rejects_empty_or_whitespace_excerpt(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['mood']['evidence'] = ['  ']
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'non-empty Raw excerpt' in output.err
+
+
+def test_evidence_from_another_query_fails(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    event_01 = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    event_02 = next(query for query in event_queries['queries'] if query['query_id'] == 'event-02')
+    event_02['structured_interpretation']['attributes']['mood']['evidence'] = (
+        event_01['structured_interpretation']['attributes']['mood']['evidence']
+    )
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'exact substring' in output.err
+
+
+def test_stale_historical_raw_evidence_fails(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-02')
+    active['structured_interpretation']['attributes']['mood']['evidence'] = [
+        active['historical_raw_draft']['event_description_ko']
+    ]
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'exact substring' in output.err
+
+
+def test_desired_genre_reference_requires_non_null_raw_target(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['raw_service_input']['desired_genre'] = None
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'cannot be interpreted when raw_service_input.desired_genre is null' in output.err
+
+
+def test_desired_genre_reference_must_use_expected_pointer(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['desired_genre']['value_ref'] = (
+        '#/raw_service_input/event_description_ko'
+    )
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'desired_genre' in output.err
+
+
+def test_desired_genre_evidence_must_come_from_referenced_raw_field(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['desired_genre']['evidence'] = [
+        active['raw_service_input']['event_description_ko'][:6]
+    ]
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'raw_service_input.desired_genre' in output.err
+
+
+def test_desired_genre_not_requested_requires_null_raw_value(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['desired_genre'] = {
+        'state': 'not_requested',
+        'value_ref': None,
+        'evidence': [],
+    }
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'contains a request' in output.err
+
+
+def test_desired_genre_not_requested_with_null_raw_value_passes(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 0, output.err
+
+
+def test_reserve_and_replace_unreviewed_placeholders_pass(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    deferred = [
+        query
+        for query in event_queries['queries']
+        if query['selection_status'] in {'reserve', 'replace_candidate'}
+    ]
+
+    assert len(deferred) == 4
+    assert all(query['structured_interpretation']['review_status'] == 'not_reviewed' for query in deferred)
+    assert all(
+        annotation['state'] == 'not_requested'
+        for query in deferred
+        for annotation in query['structured_interpretation']['attributes'].values()
+    )
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 0, output.err
+
+
+def test_desired_genre_unable_to_interpret_without_raw_request_fails(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-07')
+    active['structured_interpretation']['attributes']['desired_genre'] = {
+        'state': 'unable_to_interpret',
+        'value_ref': None,
+        'evidence': [],
+    }
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'has no request' in output.err
+
+
+def test_unable_to_interpret_evidence_must_reference_current_raw(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['mood'] = {
+        'state': 'unable_to_interpret',
+        'value': None,
+        'evidence': ['excerpt absent from current Raw'],
+    }
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'exact substring' in output.err

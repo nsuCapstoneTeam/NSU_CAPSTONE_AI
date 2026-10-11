@@ -34,6 +34,89 @@ def duplicate_query_ids(event_queries):
     return sorted(duplicates)
 
 
+def event_query_raw_reference_errors(event_queries):
+    """Validate reviewed annotations against their own raw service input."""
+    if not isinstance(event_queries, dict) or not isinstance(event_queries.get('queries'), list):
+        raise ValueError("event query inventory must contain a 'queries' array")
+
+    errors = []
+    for index, query in enumerate(event_queries['queries']):
+        if not isinstance(query, dict) or query.get('selection_status') != 'active_v1':
+            continue
+
+        query_id = query.get('query_id', f'queries[{index}]')
+        raw_input = query.get('raw_service_input')
+        interpretation = query.get('structured_interpretation')
+        if not isinstance(raw_input, dict) or not isinstance(interpretation, dict):
+            continue  # JSON Schema reports structural errors.
+
+        attributes = interpretation.get('attributes')
+        if not isinstance(attributes, dict):
+            continue  # JSON Schema reports structural errors.
+
+        raw_sources = {
+            key: value
+            for key in ('event_type', 'event_description_ko', 'desired_genre')
+            if isinstance((value := raw_input.get(key)), str) and value
+        }
+
+        for attribute, annotation in attributes.items():
+            if not isinstance(annotation, dict):
+                continue
+
+            evidence = annotation.get('evidence')
+            if not isinstance(evidence, list):
+                continue  # JSON Schema reports structural errors.
+
+            for evidence_index, excerpt in enumerate(evidence):
+                location = (
+                    f'query {query_id} structured_interpretation.attributes.'
+                    f'{attribute}.evidence[{evidence_index}]'
+                )
+                if not isinstance(excerpt, str) or not excerpt.strip():
+                    errors.append(f'{location} must be a non-empty Raw excerpt')
+                    continue
+
+                if attribute == 'desired_genre':
+                    raw_genre = raw_input.get('desired_genre')
+                    if not isinstance(raw_genre, str) or excerpt not in raw_genre:
+                        errors.append(
+                            f'{location} must be an exact substring of '
+                            'raw_service_input.desired_genre'
+                        )
+                elif not any(excerpt in source for source in raw_sources.values()):
+                    errors.append(
+                        f'{location} must be an exact substring of this query\'s '
+                        'raw_service_input.event_type, event_description_ko, or desired_genre'
+                    )
+
+        desired_genre = attributes.get('desired_genre')
+        if not isinstance(desired_genre, dict):
+            continue
+        raw_genre = raw_input.get('desired_genre')
+        state = desired_genre.get('state')
+        value_ref = desired_genre.get('value_ref')
+        location = f'query {query_id} structured_interpretation.attributes.desired_genre'
+
+        if state == 'interpreted':
+            if value_ref != '#/raw_service_input/desired_genre':
+                errors.append(f'{location}.value_ref must point to raw_service_input.desired_genre')
+            if not isinstance(raw_genre, str) or not raw_genre.strip():
+                errors.append(
+                    f'{location} cannot be interpreted when raw_service_input.desired_genre is null or empty'
+                )
+        elif state == 'not_requested' and raw_genre is not None:
+            errors.append(
+                f'{location} is not_requested but raw_service_input.desired_genre contains a request'
+            )
+        elif state == 'unable_to_interpret' and raw_genre is None:
+            errors.append(
+                f'{location} is unable_to_interpret but raw_service_input.desired_genre has no request'
+            )
+
+    return errors
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('event_queries', nargs='?', type=Path, default=DEFAULT_EVENT_QUERIES)

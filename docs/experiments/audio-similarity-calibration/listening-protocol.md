@@ -4,7 +4,7 @@
 
 이 문서는 NSUAI-36에서 사전 준비하는 프로토콜 초안이다. 실제 청취 평가는 NSUAI-38에서 수행한다. 이번 작업에서 평가 표본을 재생하거나 평가하지 않았다. Likert 응답을 사용자 표시 0–100 값으로 직접 변환하지 않는다.
 
-평가 대상은 representative synthetic scenario benchmark의 ACTIVE v1 16개와 calibration cohort의 60초 segment 쌍이다. 현재 한국어 raw scenario와 structured interpretation은 draft이고, 영어 model input은 `human_authored_draft_translation` / `not_reviewed` 상태다. 따라서 영어 문장은 평가에 확정된 입력이 아니며, 사람의 검수와 확정 뒤에만 사용한다. 이 자료는 실제 사용자 요청을 대표한다고 주장하지 않는다. 평가 화면에는 evaluator에게 raw cosine, rank, 점수 구간, 후보 선택 순위를 노출하지 않는다. 현재 50곡은 calibration cohort로만 사용하며, 그 분포와 이 청취 평가는 transformation 선정 자료다. 최종 transformation 선택 후에는 별도의 독립 validation cohort로 검증하고, 현재 calibration cohort를 독립 validation evidence로 재사용하지 않는다. 별도 cohort의 크기·구성 및 validation에서 재사용할 query/evaluation material은 결과 확인 전에 기록한다.
+평가 대상은 representative synthetic scenario benchmark의 ACTIVE v1 16개와 calibration cohort의 60초 segment 쌍이다. 현재 한국어 raw scenario는 사람 검수한 representative synthetic input이며 ACTIVE 16개 structured interpretation은 Raw 근거 검수를 마쳤다. 영어 model input은 `human_authored_draft_translation` / `not_reviewed` 상태다. 따라서 영어 문장은 평가에 확정된 입력이 아니며, 사람의 검수와 확정 뒤에만 사용한다. 이 자료는 실제 사용자 요청을 대표한다고 주장하지 않는다. 평가 화면에는 evaluator에게 raw cosine, rank, 점수 구간, 후보 선택 순위를 노출하지 않는다. 현재 50곡은 calibration cohort로만 사용하며, 그 분포와 이 청취 평가는 transformation 선정 자료다. 최종 transformation 선택 후에는 별도의 독립 validation cohort로 검증하고, 현재 calibration cohort를 독립 validation evidence로 재사용하지 않는다. 별도 cohort의 크기·구성 및 validation에서 재사용할 query/evaluation material은 결과 확인 전에 기록한다.
 
 ## 표본 추출
 

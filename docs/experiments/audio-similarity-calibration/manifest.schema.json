@@ -59,6 +59,9 @@
                   "type": "number",
                   "minimum": 60
                 },
+                "decoded_duration": {
+                  "type": ["number", "null"]
+                },
                 "commercial_use_status": {
                   "const": "allowed"
                 },
@@ -70,6 +73,43 @@
                 "source_catalog_duration",
                 "commercial_use_status",
                 "rights_status"
+              ],
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "acquisition_method": {
+                        "enum": ["official_direct_download", "other_confirmed_method"]
+                      }
+                    },
+                    "required": ["acquisition_method"]
+                  },
+                  "then": {
+                    "properties": {
+                      "decoded_duration": {
+                        "type": "number",
+                        "minimum": 60
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "acquisition_method": {
+                        "enum": ["not_acquired", "pending"]
+                      }
+                    },
+                    "required": ["acquisition_method"]
+                  },
+                  "then": {
+                    "properties": {
+                      "decoded_duration": {
+                        "type": "null"
+                      }
+                    }
+                  }
+                }
               ]
             }
           }

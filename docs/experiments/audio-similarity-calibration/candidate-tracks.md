@@ -73,11 +73,11 @@ ccMixter 약관은 track별 라이선스 확인과 attribution을 요구하고, 
 - FMA의 개별 권리/길이를 현재 공식 페이지에서 함께 검증하지 못한 후보, NonCommercial 제한 또는 full-track 여부가 명확하지 않은 항목도 추가하지 않았다.
 - 50곡 목표를 맞추려고 같은 artist를 더 넣거나 license/duration 근거가 약한 트랙을 추정해 추가하지 않았다.
 
-## 다음 검증
+## 후보 선정 당시 다음 검증 — Historical
 
-1. 추가 선정은 개별 공식 track/file page에서 full-track 길이·녹음물 license·source/artist/attribution을 확인할 수 있을 때만 한다. ccMixter는 source dependency가 없는 독립 트랙을 우선한다. FMA는 FMA-small 중복을 track identity 기준으로 배제할 수 있어야 한다.
+1. 당시에는 개별 공식 track/file page에서 full-track 길이·녹음물 license·source/artist/attribution을 확인할 수 있는 추가 후보만 선정할 계획이었다. 현재 후보 선정은 완료됐으며 이 항목은 과거 절차 기록이다. ccMixter는 source dependency가 없는 독립 트랙을 우선하고 FMA는 FMA-small 중복을 track identity 기준으로 배제하도록 했다.
 2. 승인된 취득 절차가 시작된 뒤 원본 SHA-256, decoder duration, sample rate, channel, codec을 실제 파일에서 측정한다. catalog duration을 decoded duration으로 간주하지 않는다.
-3. Schema에 manual mood/tempo field가 없으므로 임의로 확장하지 않는다. 나중에 manual label을 만들면 기존 `labelSource.kind=manual_label`에 annotator/protocol을 기록한다.
+3. 이 후보 기록에는 제공자 metadata만 사용했고 manual mood/tempo label은 만들지 않았다. Manifest schema는 genre/mood 값과 source provenance를 지원하지만 tempo·acoustic/electronic field는 정의하지 않는다. 향후 label을 추가할 경우 제공자 metadata와 manual label을 구분해 기록한다.
 4. 해당 batch 기록 당시의 후보 수는 34/50으로, 그 시점에서는 candidate selection이 미완료였다. 이후 manifest-only 재검증과 마지막 대체 후보 검토를 거쳐 앞부분의 현재 상태와 아래 최종 집계에 기록한 PASS 50곡을 확정했다.
 
 ## ccMixter 검토 batch 2

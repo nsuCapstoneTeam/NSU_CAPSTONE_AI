@@ -301,7 +301,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
                           }
                         }
@@ -326,7 +326,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
                           }
                         }
@@ -351,7 +351,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
                           }
                         }
                       }
@@ -381,7 +381,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
                           }
                         }
@@ -406,7 +406,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
                           }
                         }
@@ -431,7 +431,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
                           }
                         }
                       }
@@ -461,7 +461,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
                           }
                         }
@@ -486,7 +486,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
                           }
                         }
@@ -511,7 +511,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
                           }
                         }
                       }
@@ -545,7 +545,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
                           }
                         }
@@ -570,7 +570,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
                           }
                         }
@@ -595,7 +595,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
                           }
                         }
                       }
@@ -625,7 +625,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
                           }
                         }
@@ -650,7 +650,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
                           }
                         }
@@ -675,7 +675,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
                           }
                         }
                       }
@@ -709,7 +709,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
                           }
                         }
@@ -734,7 +734,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
                           }
                         }
@@ -759,7 +759,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
                           }
                         }
                       }
@@ -789,7 +789,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
                           }
                         }
@@ -814,7 +814,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
                           }
                         }
@@ -839,7 +839,7 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
                           }
                         }
                       }
@@ -870,7 +870,7 @@
                               "type": "string"
                             },
                             "minItems": 1,
-                            "description": "Exact excerpt(s) from the corresponding raw_service_input describing this request."
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
                           }
                         }
                       },
@@ -950,7 +950,7 @@
                               "type": "string"
                             },
                             "minItems": 1,
-                            "description": "Exact excerpt(s) from the corresponding raw_service_input describing this request."
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
                           }
                         }
                       },
@@ -1030,7 +1030,7 @@
                               "type": "string"
                             },
                             "minItems": 1,
-                            "description": "Exact excerpt(s) from the corresponding raw_service_input describing this request."
+                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
                           }
                         }
                       },
