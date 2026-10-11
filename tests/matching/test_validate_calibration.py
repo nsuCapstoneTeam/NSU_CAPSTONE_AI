@@ -91,6 +91,78 @@ def test_active_query_not_reviewed_fails(tmp_path, capsys):
     assert 'reviewed_for_raw_support' in output.err
 
 
+@pytest.mark.parametrize(
+    ('attribute', 'value_key'),
+    [
+        ('mood', 'value'),
+        ('tempo', 'value'),
+        ('desired_genre', 'value_ref'),
+        ('instrument_preference', 'value'),
+        ('vocal_preference', 'value'),
+        ('acoustic_electronic', 'value'),
+        ('dynamic_progression', 'value'),
+        ('usage_context', 'value'),
+        ('rhythmic_character', 'value'),
+        ('activity_character', 'value'),
+    ],
+)
+def test_interpreted_attribute_with_null_value_fails(
+    tmp_path,
+    capsys,
+    attribute,
+    value_key,
+):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['selection_status'] == 'active_v1')
+    annotation = active['structured_interpretation']['attributes'][attribute]
+    annotation['state'] = 'interpreted'
+    annotation[value_key] = None
+    annotation['evidence'] = ['raw evidence']
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert attribute in output.err
+
+
+def test_interpreted_attribute_with_empty_evidence_fails(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['mood']['evidence'] = []
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'evidence' in output.err
+
+
+@pytest.mark.parametrize(
+    ('state', 'value', 'evidence'),
+    [
+        ('not_requested', None, []),
+        ('unable_to_interpret', None, ['ambiguous raw request']),
+    ],
+)
+def test_uninterpreted_states_allow_null_value_with_expected_evidence(
+    tmp_path,
+    capsys,
+    state,
+    value,
+    evidence,
+):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['tempo'] = {
+        'state': state,
+        'value': value,
+        'evidence': evidence,
+    }
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 0, output.err
+
+
 def test_complete_cohort_with_49_samples_fails(tmp_path, capsys):
     manifest = _load_json('manifest.json')
     manifest['samples'].pop()

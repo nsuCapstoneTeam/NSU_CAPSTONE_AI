@@ -373,10 +373,7 @@
                             "const": "interpreted"
                           },
                           "value": {
-                            "type": [
-                              "string",
-                              "null"
-                            ],
+                            "type": "string",
                             "minLength": 1
                           },
                           "evidence": {
@@ -456,10 +453,7 @@
                             "const": "interpreted"
                           },
                           "value_ref": {
-                            "type": [
-                              "string",
-                              "null"
-                            ],
+                            "type": "string",
                             "pattern": "^#/raw_service_input/desired_genre$"
                           },
                           "evidence": {
@@ -623,10 +617,7 @@
                             "const": "interpreted"
                           },
                           "value": {
-                            "type": [
-                              "string",
-                              "null"
-                            ],
+                            "type": "string",
                             "minLength": 1
                           },
                           "evidence": {
@@ -790,10 +781,7 @@
                             "const": "interpreted"
                           },
                           "value": {
-                            "type": [
-                              "string",
-                              "null"
-                            ],
+                            "type": "string",
                             "minLength": 1
                           },
                           "evidence": {
