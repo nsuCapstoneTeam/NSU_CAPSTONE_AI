@@ -55,6 +55,10 @@
             "maxItems": 50,
             "items": {
               "properties": {
+                "source_catalog_duration": {
+                  "type": "number",
+                  "minimum": 60
+                },
                 "commercial_use_status": {
                   "const": "allowed"
                 },
@@ -63,6 +67,7 @@
                 }
               },
               "required": [
+                "source_catalog_duration",
                 "commercial_use_status",
                 "rights_status"
               ]
