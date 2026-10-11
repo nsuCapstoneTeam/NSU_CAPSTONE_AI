@@ -29,6 +29,8 @@ Event query는 실제 사용자 데이터가 아니라 대표적인 합성 시�
 
 Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 구조의 이름은 calibration 자료의 의미 라벨이며 Spring API payload field 이름이나 API schema가 아니다.
 
+`event-queries.schema.json`은 20개 inventory와 query 상태 구조를 검증하며, ACTIVE query는 `review_status: reviewed_for_raw_support`여야 한다. JSON Schema는 객체 배열 안에서 특정 속성(`query_id`)의 고유성을 보장하지 않으므로, schema 검증 후 `uv run python scripts/matching/validate_calibration_event_queries.py`도 실행해 20개 query ID 중복 여부를 확인한다.
+
 `historical_raw_draft`는 최초 synthetic Raw draft 20개의 snapshot으로 calibration 문서 이력을 보존하며, 실제 사용자 입력 로그나 production revision history가 아니다. `raw_service_input`은 현재 calibration 단계에서 사용하는 Raw 입력이다. snapshot 생성 직후에는 두 값이 같았고, 현재는 ACTIVE 16개 중 15개에 검수한 Raw v1을 반영해 해당 항목에서 두 값이 다르다.
 
 1. `raw_service_input`: 대표 합성 시나리오의 행사 종류·한국어 행사 설명·희망 Genre 의미를 보존한다. 이는 실제 사용자 입력이나 실제 사용자 데이터가 아니다. ACTIVE v1은 16개이며 Raw 수정안은 15개에 반영했고 event-07은 유지했다. Genre 지정은 12개, 미지정은 4개다. 이 수와 비율은 통계적으로 최적이라고 검증된 값이 아니다.

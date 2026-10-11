@@ -86,6 +86,37 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "selection_status": {
+                  "const": "active_v1"
+                }
+              },
+              "required": [
+                "selection_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "structured_interpretation": {
+                  "properties": {
+                    "review_status": {
+                      "const": "reviewed_for_raw_support"
+                    }
+                  },
+                  "required": [
+                    "review_status"
+                  ]
+                }
+              },
+              "required": [
+                "structured_interpretation"
+              ]
+            }
+          }
+        ],
         "required": [
           "query_id",
           "selection_status",
