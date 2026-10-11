@@ -13,6 +13,7 @@ from scripts.matching.validate_calibration_event_queries import (
     event_query_raw_reference_errors,
 )
 from scripts.matching.validate_calibration_manifest import (
+    complete_cohort_license_evidence_errors,
     duplicate_provider_track_identities,
     duplicate_sample_ids,
     duplicate_source_urls,
@@ -46,6 +47,11 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
     errors = []
     errors.extend(_schema_errors(manifest, manifest_schema, 'manifest'))
     errors.extend(_schema_errors(event_queries, event_queries_schema, 'event queries'))
+
+    try:
+        errors.extend(complete_cohort_license_evidence_errors(manifest))
+    except ValueError as exc:
+        errors.append(str(exc))
 
     try:
         duplicates = duplicate_sample_ids(manifest)

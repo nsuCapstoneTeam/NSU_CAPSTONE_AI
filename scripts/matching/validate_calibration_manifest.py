@@ -78,6 +78,40 @@ def duplicate_provider_track_identities(manifest):
     return sorted(duplicates)
 
 
+def complete_cohort_license_evidence_errors(manifest):
+    """Require reviewable license and attribution evidence for a complete cohort."""
+    if not isinstance(manifest, dict) or not isinstance(manifest.get('samples'), list):
+        raise ValueError("manifest must contain a 'samples' array")
+    if manifest.get('cohort_status') != 'candidate_selection_complete':
+        return []
+
+    errors = []
+    for index, sample in enumerate(manifest['samples']):
+        if not isinstance(sample, dict):
+            raise ValueError(f'samples[{index}] must be an object')
+        sample_id = sample.get('sample_id', f'samples[{index}]')
+        for field in ('license_name', 'license_url'):
+            value = sample.get(field)
+            if not isinstance(value, str) or not value.strip():
+                errors.append(
+                    f'{sample_id}.{field} must be non-blank for candidate_selection_complete'
+                )
+
+        attribution_required = sample.get('attribution_required')
+        if not isinstance(attribution_required, bool):
+            errors.append(
+                f'{sample_id}.attribution_required must be explicitly true or false '
+                'for candidate_selection_complete'
+            )
+        elif attribution_required:
+            attribution = sample.get('attribution')
+            if not isinstance(attribution, str) or not attribution.strip():
+                errors.append(
+                    f'{sample_id}.attribution must be non-blank when attribution_required is true'
+                )
+    return errors
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('manifest', nargs='?', type=Path, default=DEFAULT_MANIFEST)

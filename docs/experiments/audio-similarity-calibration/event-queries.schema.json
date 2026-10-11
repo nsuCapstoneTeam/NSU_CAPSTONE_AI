@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Audio Similarity Calibration Event Query Experiment Data",
-  "description": "Calibration experiment inventory only, not a Spring API contract. The integrated validator enforces cross-record query/raw-scenario uniqueness and checks evidence against each query's current raw_service_input.",
+  "description": "Calibration experiment inventory only, not a Spring API contract. The integrated validator enforces cross-record query/raw-scenario uniqueness and checks non-blank values and evidence against each query's current raw_service_input.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -154,16 +154,24 @@
               },
               "event_type": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "event_description_ko": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "desired_genre": {
-                "type": [
-                  "string",
-                  "null"
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ]
               }
             }
@@ -184,16 +192,24 @@
               },
               "event_type": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "event_description_ko": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "desired_genre": {
-                "type": [
-                  "string",
-                  "null"
+                "oneOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "pattern": "\\S"
+                  },
+                  {
+                    "type": "null"
+                  }
                 ]
               }
             }
@@ -236,7 +252,8 @@
                   },
                   "mood_request": {
                     "type": "string",
-                    "minLength": 1
+                    "minLength": 1,
+                    "pattern": "\\S"
                   },
                   "tempo_request": {
                     "type": [
@@ -257,7 +274,7 @@
                 }
               },
               "attributes": {
-                "description": "Calibration-only annotations, not production interpretation DTOs. interpreted requires a non-empty value/value_ref and evidence; not_requested requires null value/value_ref and empty evidence; unable_to_interpret requires null value/value_ref and at least one related Raw excerpt. The integrated validator checks every excerpt is an exact substring of this query's current raw_service_input. While review_status is not_reviewed, placeholder states are not semantic findings.",
+                "description": "Calibration-only annotations, not production interpretation DTOs. interpreted requires a non-null, non-empty, non-blank value/value_ref and at least one non-blank evidence excerpt; not_requested requires null value/value_ref and empty evidence; unable_to_interpret requires null value/value_ref and at least one non-blank related Raw excerpt. The integrated validator checks every supplied excerpt is an exact substring of that query's current raw_service_input. While review_status is not_reviewed, placeholder states are not semantic findings.",
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
@@ -293,13 +310,16 @@
                             "minItems": 1,
                             "items": {
                               "type": "string",
-                              "minLength": 1
+                              "minLength": 1,
+                              "pattern": "\\S"
                             }
                           },
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
@@ -324,7 +344,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
@@ -349,7 +371,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
                             "minItems": 1
@@ -375,12 +399,15 @@
                           },
                           "value": {
                             "type": "string",
-                            "minLength": 1
+                            "minLength": 1,
+                            "pattern": "\\S"
                           },
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
@@ -405,7 +432,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
@@ -430,7 +459,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
                             "minItems": 1
@@ -461,7 +492,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
@@ -486,7 +519,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
@@ -511,7 +546,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
                             "minItems": 1
@@ -540,13 +577,16 @@
                             "minItems": 1,
                             "items": {
                               "type": "string",
-                              "minLength": 1
+                              "minLength": 1,
+                              "pattern": "\\S"
                             }
                           },
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
@@ -571,7 +611,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
@@ -596,7 +638,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
                             "minItems": 1
@@ -622,12 +666,15 @@
                           },
                           "value": {
                             "type": "string",
-                            "minLength": 1
+                            "minLength": 1,
+                            "pattern": "\\S"
                           },
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
@@ -652,7 +699,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
@@ -677,7 +726,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
                             "minItems": 1
@@ -706,13 +757,16 @@
                             "minItems": 1,
                             "items": {
                               "type": "string",
-                              "minLength": 1
+                              "minLength": 1,
+                              "pattern": "\\S"
                             }
                           },
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
@@ -737,7 +791,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
@@ -762,7 +818,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
                             "minItems": 1
@@ -788,12 +846,15 @@
                           },
                           "value": {
                             "type": "string",
-                            "minLength": 1
+                            "minLength": 1,
+                            "pattern": "\\S"
                           },
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "minItems": 1
@@ -818,7 +879,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty.",
                             "maxItems": 0
@@ -843,7 +906,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
                             "minItems": 1
@@ -869,12 +934,15 @@
                           },
                           "value": {
                             "type": "string",
-                            "minLength": 1
+                            "minLength": 1,
+                            "pattern": "\\S"
                           },
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "minItems": 1,
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
@@ -899,7 +967,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "maxItems": 0,
                             "description": "Empty because this request was not made."
@@ -924,7 +994,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
                             "minItems": 1
@@ -950,12 +1022,15 @@
                           },
                           "value": {
                             "type": "string",
-                            "minLength": 1
+                            "minLength": 1,
+                            "pattern": "\\S"
                           },
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "minItems": 1,
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
@@ -980,7 +1055,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "maxItems": 0,
                             "description": "Empty because this request was not made."
@@ -1005,7 +1082,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
                             "minItems": 1
@@ -1031,12 +1110,15 @@
                           },
                           "value": {
                             "type": "string",
-                            "minLength": 1
+                            "minLength": 1,
+                            "pattern": "\\S"
                           },
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "minItems": 1,
                             "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
@@ -1061,7 +1143,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "maxItems": 0,
                             "description": "Empty because this request was not made."
@@ -1086,7 +1170,9 @@
                           "evidence": {
                             "type": "array",
                             "items": {
-                              "type": "string"
+                              "type": "string",
+                              "minLength": 1,
+                              "pattern": "\\S"
                             },
                             "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
                             "minItems": 1
@@ -1113,7 +1199,8 @@
             "properties": {
               "text": {
                 "type": "string",
-                "minLength": 1
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "status": {
                 "const": "draft_not_confirmed_model_input"

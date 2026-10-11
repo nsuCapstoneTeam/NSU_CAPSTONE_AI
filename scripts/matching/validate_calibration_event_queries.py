@@ -71,16 +71,29 @@ def duplicate_raw_service_inputs(event_queries):
     return sorted(duplicates)
 
 
+def _has_nonblank_value(value):
+    """Return whether an interpreted value contains usable non-blank text."""
+    if isinstance(value, str):
+        return bool(value.strip())
+    if isinstance(value, list):
+        return bool(value) and all(
+            isinstance(item, str) and item.strip()
+            for item in value
+        )
+    return False
+
+
 def event_query_raw_reference_errors(event_queries):
-    """Validate reviewed annotations against their own raw service input."""
+    """Validate annotation evidence against its query's current Raw input."""
     if not isinstance(event_queries, dict) or not isinstance(event_queries.get('queries'), list):
         raise ValueError("event query inventory must contain a 'queries' array")
 
     errors = []
     for index, query in enumerate(event_queries['queries']):
-        if not isinstance(query, dict) or query.get('selection_status') != 'active_v1':
+        if not isinstance(query, dict):
             continue
 
+        is_active = query.get('selection_status') == 'active_v1'
         query_id = query.get('query_id', f'queries[{index}]')
         raw_input = query.get('raw_service_input')
         interpretation = query.get('structured_interpretation')
@@ -110,8 +123,11 @@ def event_query_raw_reference_errors(event_queries):
 
             location = f'query {query_id} structured_interpretation.attributes.{attribute}'
             if state == 'interpreted':
-                if attribute != 'desired_genre' and value in (None, '', []):
-                    errors.append(f'{location} is interpreted but has no value')
+                if attribute == 'desired_genre':
+                    if not _has_nonblank_value(value):
+                        errors.append(f'{location} is interpreted but has no value_ref')
+                elif not _has_nonblank_value(value):
+                    errors.append(f'{location} is interpreted but has no non-blank value')
                 if not evidence:
                     errors.append(f'{location} is interpreted but has no evidence')
             elif state == 'not_requested':
@@ -162,6 +178,8 @@ def event_query_raw_reference_errors(event_queries):
                 errors.append(
                     f'{location} cannot be interpreted when raw_service_input.desired_genre is null or empty'
                 )
+        elif not is_active:
+            continue
         elif state == 'not_requested' and raw_genre is not None:
             errors.append(
                 f'{location} is not_requested but raw_service_input.desired_genre contains a request'

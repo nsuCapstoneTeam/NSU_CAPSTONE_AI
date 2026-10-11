@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Audio Similarity Calibration Manifest",
-  "description": "Calibration experiment manifest. JSON Schema checks per-sample eligibility and complete-cohort size; the integrated calibration validator additionally enforces cross-record sample and real-track identity uniqueness.",
+  "description": "Calibration experiment manifest. JSON Schema checks per-sample eligibility, complete-cohort size, and license/attribution evidence shape; the integrated validator additionally enforces cross-record sample and real-track identity uniqueness.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -32,7 +32,7 @@
       "const": "offline_calibration_decoded_audio_center_exact_60_seconds"
     },
     "samples": {
-      "description": "For candidate_selection_complete, the integrated validator requires unique sample_id and source_url values plus unique (provider, provider_track_id) pairs when provider_track_id is present. A missing provider_track_id relies on source_url uniqueness.",
+      "description": "For candidate_selection_complete, the integrated validator requires unique sample_id and source_url values plus unique (provider, provider_track_id) pairs when provider_track_id is present. A missing provider_track_id relies on source_url uniqueness. A complete cohort also requires non-blank title, artist, provider, license name, license URL and source URL, an explicit attribution_required boolean, and non-blank attribution when required.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/sample"
@@ -47,7 +47,9 @@
             "const": "candidate_selection_complete"
           }
         },
-        "required": ["cohort_status"]
+        "required": [
+          "cohort_status"
+        ]
       },
       "then": {
         "properties": {
@@ -62,29 +64,91 @@
                   "minimum": 60
                 },
                 "decoded_duration": {
-                  "type": ["number", "null"]
+                  "type": [
+                    "number",
+                    "null"
+                  ]
                 },
                 "commercial_use_status": {
                   "const": "allowed"
                 },
                 "rights_status": {
                   "const": "confirmed_from_official_metadata"
+                },
+                "title": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                },
+                "artist": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                },
+                "provider": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                },
+                "source_url": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "format": "uri"
+                },
+                "provider_track_id": {
+                  "oneOf": [
+                    {
+                      "type": "null"
+                    },
+                    {
+                      "type": "string",
+                      "minLength": 1,
+                      "pattern": "\\S"
+                    }
+                  ]
+                },
+                "license_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S"
+                },
+                "license_url": {
+                  "type": "string",
+                  "minLength": 1,
+                  "pattern": "\\S",
+                  "format": "uri"
+                },
+                "attribution_required": {
+                  "type": "boolean"
                 }
               },
               "required": [
                 "source_catalog_duration",
                 "commercial_use_status",
-                "rights_status"
+                "rights_status",
+                "title",
+                "artist",
+                "provider",
+                "source_url",
+                "license_name",
+                "license_url",
+                "attribution_required"
               ],
               "allOf": [
                 {
                   "if": {
                     "properties": {
                       "acquisition_method": {
-                        "enum": ["official_direct_download", "other_confirmed_method"]
+                        "enum": [
+                          "official_direct_download",
+                          "other_confirmed_method"
+                        ]
                       }
                     },
-                    "required": ["acquisition_method"]
+                    "required": [
+                      "acquisition_method"
+                    ]
                   },
                   "then": {
                     "properties": {
@@ -99,15 +163,41 @@
                   "if": {
                     "properties": {
                       "acquisition_method": {
-                        "enum": ["not_acquired", "pending"]
+                        "enum": [
+                          "not_acquired",
+                          "pending"
+                        ]
                       }
                     },
-                    "required": ["acquisition_method"]
+                    "required": [
+                      "acquisition_method"
+                    ]
                   },
                   "then": {
                     "properties": {
                       "decoded_duration": {
                         "type": "null"
+                      }
+                    }
+                  }
+                },
+                {
+                  "if": {
+                    "properties": {
+                      "attribution_required": {
+                        "const": true
+                      }
+                    },
+                    "required": [
+                      "attribution_required"
+                    ]
+                  },
+                  "then": {
+                    "properties": {
+                      "attribution": {
+                        "type": "string",
+                        "minLength": 1,
+                        "pattern": "\\S"
                       }
                     }
                   }
@@ -121,14 +211,29 @@
   ],
   "$defs": {
     "nullableString": {
-      "type": ["string", "null"]
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        {
+          "type": "null"
+        }
+      ]
     },
     "nullableNumber": {
-      "type": ["number", "null"],
+      "type": [
+        "number",
+        "null"
+      ],
       "minimum": 0
     },
     "nullableNonNegativeInteger": {
-      "type": ["integer", "null"],
+      "type": [
+        "integer",
+        "null"
+      ],
       "minimum": 0
     },
     "labelSource": {
@@ -136,21 +241,50 @@
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "provider", "url"],
+          "required": [
+            "kind",
+            "provider",
+            "url"
+          ],
           "properties": {
-            "kind": {"const": "source_metadata"},
-            "provider": {"type": "string", "minLength": 1},
-            "url": {"type": "string", "format": "uri"}
+            "kind": {
+              "const": "source_metadata"
+            },
+            "provider": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "url": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S",
+              "format": "uri"
+            }
           }
         },
         {
           "type": "object",
           "additionalProperties": false,
-          "required": ["kind", "annotator_id", "protocol_version"],
+          "required": [
+            "kind",
+            "annotator_id",
+            "protocol_version"
+          ],
           "properties": {
-            "kind": {"const": "manual_label"},
-            "annotator_id": {"type": "string", "minLength": 1},
-            "protocol_version": {"type": "string", "minLength": 1}
+            "kind": {
+              "const": "manual_label"
+            },
+            "annotator_id": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            },
+            "protocol_version": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S"
+            }
           }
         },
         {
@@ -195,39 +329,97 @@
         "notes"
       ],
       "properties": {
-        "sample_id": {"type": "string", "pattern": "^cal-[a-z0-9-]+$"},
-        "title": {"type": "string", "minLength": 1},
-        "artist": {"type": "string", "minLength": 1},
-        "provider": {"type": "string", "minLength": 1},
-        "provider_track_id": {"$ref": "#/$defs/nullableString"},
-        "source_url": {"type": "string", "format": "uri"},
+        "sample_id": {
+          "type": "string",
+          "pattern": "^cal-[a-z0-9-]+$"
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "artist": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "provider": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S"
+        },
+        "provider_track_id": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "source_url": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "format": "uri"
+        },
         "source_sha256": {
           "oneOf": [
-            {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-            {"type": "null"}
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "source_catalog_duration": {
-          "type": ["number", "null"],
+          "type": [
+            "number",
+            "null"
+          ],
           "exclusiveMinimum": 0
         },
-        "decoded_duration": {"$ref": "#/$defs/nullableNumber"},
-        "source_sample_rate": {"$ref": "#/$defs/nullableNonNegativeInteger"},
-        "source_channels": {"$ref": "#/$defs/nullableNonNegativeInteger"},
-        "source_codec": {"$ref": "#/$defs/nullableString"},
-        "license_name": {"$ref": "#/$defs/nullableString"},
+        "decoded_duration": {
+          "$ref": "#/$defs/nullableNumber"
+        },
+        "source_sample_rate": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "source_channels": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "source_codec": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "license_name": {
+          "$ref": "#/$defs/nullableString"
+        },
         "license_url": {
           "oneOf": [
-            {"type": "string", "format": "uri"},
-            {"type": "null"}
+            {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "\\S",
+              "format": "uri"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
-        "attribution": {"$ref": "#/$defs/nullableString"},
+        "attribution": {
+          "$ref": "#/$defs/nullableString"
+        },
         "commercial_use_status": {
           "type": "string",
-          "enum": ["allowed", "restricted", "unknown"]
+          "enum": [
+            "allowed",
+            "restricted",
+            "unknown"
+          ]
         },
-        "attribution_required": {"type": ["boolean", "null"]},
+        "attribution_required": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        },
         "rights_status": {
           "type": "string",
           "enum": [
@@ -249,27 +441,55 @@
           "type": "string",
           "const": "offline_calibration_decoded_audio_center_exact_60_seconds"
         },
-        "segment_start_frame": {"$ref": "#/$defs/nullableNonNegativeInteger"},
+        "segment_start_frame": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
         "segment_end_frame_exclusive": {
           "$ref": "#/$defs/nullableNonNegativeInteger"
         },
         "prepared_sha256": {
           "oneOf": [
-            {"type": "string", "pattern": "^[a-f0-9]{64}$"},
-            {"type": "null"}
+            {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            {
+              "type": "null"
+            }
           ]
         },
-        "prepared_duration": {"$ref": "#/$defs/nullableNumber"},
-        "genre_value": {"$ref": "#/$defs/nullableString"},
-        "genre_source": {"$ref": "#/$defs/labelSource"},
-        "mood_value": {
-          "type": ["array", "null"],
-          "items": {"type": "string"}
+        "prepared_duration": {
+          "$ref": "#/$defs/nullableNumber"
         },
-        "mood_source": {"$ref": "#/$defs/labelSource"},
+        "genre_value": {
+          "$ref": "#/$defs/nullableString"
+        },
+        "genre_source": {
+          "$ref": "#/$defs/labelSource"
+        },
+        "mood_value": {
+          "type": [
+            "array",
+            "null"
+          ],
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "\\S"
+          },
+          "minItems": 1
+        },
+        "mood_source": {
+          "$ref": "#/$defs/labelSource"
+        },
         "vocal_instrumental": {
           "type": "string",
-          "enum": ["vocal", "instrumental", "mixed", "unknown"]
+          "enum": [
+            "vocal",
+            "instrumental",
+            "mixed",
+            "unknown"
+          ]
         },
         "label_status": {
           "type": "string",
@@ -281,7 +501,9 @@
             "unknown"
           ]
         },
-        "notes": {"type": "string"}
+        "notes": {
+          "type": "string"
+        }
       }
     }
   }

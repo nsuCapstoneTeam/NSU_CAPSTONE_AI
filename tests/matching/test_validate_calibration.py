@@ -232,6 +232,66 @@ def test_interpreted_attribute_with_empty_evidence_fails(tmp_path, capsys):
 
 
 @pytest.mark.parametrize(
+    ('attribute', 'value_key', 'blank_value'),
+    [
+        ('mood', 'value', []),
+        ('mood', 'value', ['']),
+        ('mood', 'value', ['   ']),
+        ('tempo', 'value', ''),
+        ('tempo', 'value', '   '),
+        ('desired_genre', 'value_ref', ''),
+        ('instrument_preference', 'value', '   '),
+        ('vocal_preference', 'value', ''),
+        ('acoustic_electronic', 'value', '   '),
+        ('dynamic_progression', 'value', ''),
+        ('usage_context', 'value', '   '),
+        ('rhythmic_character', 'value', ''),
+        ('activity_character', 'value', '   '),
+    ],
+)
+def test_interpreted_blank_values_fail(tmp_path, capsys, attribute, value_key, blank_value):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    annotation = active['structured_interpretation']['attributes'][attribute]
+    annotation['state'] = 'interpreted'
+    annotation[value_key] = blank_value
+    annotation['evidence'] = ['같이 즐길 수 있는']
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert attribute in output.err
+
+
+@pytest.mark.parametrize('excerpt', ['', '   '])
+def test_blank_interpreted_evidence_fails(tmp_path, capsys, excerpt):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['mood']['evidence'] = [excerpt]
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'evidence' in output.err
+
+
+@pytest.mark.parametrize('excerpt', ['', '   '])
+def test_blank_unable_to_interpret_evidence_fails(tmp_path, capsys, excerpt):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['tempo'] = {
+        'state': 'unable_to_interpret',
+        'value': None,
+        'evidence': [excerpt],
+    }
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'evidence' in output.err
+
+
+@pytest.mark.parametrize(
     ('state', 'value', 'evidence'),
     [
         ('not_requested', None, []),
@@ -372,6 +432,94 @@ def test_complete_cohort_with_restricted_commercial_use_fails(tmp_path, capsys):
     assert 'commercial_use_status' in output.err
 
 
+@pytest.mark.parametrize('license_name', [None, '', '   '])
+def test_complete_cohort_requires_nonblank_license_name(tmp_path, capsys, license_name):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['license_name'] = license_name
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'license_name' in output.err
+
+
+@pytest.mark.parametrize(
+    ('field', 'value'),
+    [
+        ('title', '   '),
+        ('artist', ''),
+        ('provider', '   '),
+        ('source_url', '   '),
+        ('provider_track_id', '   '),
+    ],
+)
+def test_sample_identity_fields_reject_blank_strings(tmp_path, capsys, field, value):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0][field] = value
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert field in output.err
+
+
+@pytest.mark.parametrize('field_value', ['', '   '])
+def test_source_label_provider_rejects_blank_values(tmp_path, capsys, field_value):
+    manifest = _load_json('manifest.json')
+    sample = next(sample for sample in manifest['samples'] if sample['genre_value'] is not None)
+    sample['genre_source']['provider'] = field_value
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'genre_source' in output.err
+
+
+@pytest.mark.parametrize('label', ['', '   '])
+def test_mood_label_array_rejects_blank_items(tmp_path, capsys, label):
+    manifest = _load_json('manifest.json')
+    sample = next(sample for sample in manifest['samples'] if sample['mood_value'] is not None)
+    sample['mood_value'] = [label]
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'mood_value' in output.err
+
+
+@pytest.mark.parametrize('license_url', [None, '', '   '])
+def test_complete_cohort_requires_nonblank_license_url(tmp_path, capsys, license_url):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['license_url'] = license_url
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'license_url' in output.err
+
+
+@pytest.mark.parametrize('attribution', [None, '', '   '])
+def test_required_attribution_must_be_nonblank(tmp_path, capsys, attribution):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['attribution_required'] = True
+    manifest['samples'][0]['attribution'] = attribution
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'attribution' in output.err
+
+
+def test_optional_attribution_may_be_null(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['attribution_required'] = False
+    manifest['samples'][0]['attribution'] = None
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
 def test_complete_cohort_with_decoded_duration_below_60_fails(tmp_path, capsys):
     manifest = _load_json('manifest.json')
     manifest['samples'][0]['decoded_duration'] = 59.9
@@ -411,8 +559,32 @@ def test_incomplete_cohort_does_not_apply_complete_only_eligibility_rules(tmp_pa
     manifest['samples'][0]['commercial_use_status'] = 'restricted'
     manifest['samples'][0]['source_catalog_duration'] = None
     manifest['samples'][0]['decoded_duration'] = 0
+    manifest['samples'][0]['license_name'] = None
+    manifest['samples'][0]['license_url'] = None
+    manifest['samples'][0]['attribution_required'] = None
+    manifest['samples'][0]['attribution'] = None
 
     result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
+def test_valid_nonblank_interpreted_string_and_array_values_pass(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    attributes = active['structured_interpretation']['attributes']
+    attributes['tempo'] = {
+        'state': 'interpreted',
+        'value': 'medium',
+        'evidence': ['관객이 같이 즐길 수 있는 느낌'],
+    }
+    attributes['mood'] = {
+        'state': 'interpreted',
+        'value': ['communal', 'joyful'],
+        'evidence': ['관객이 같이 즐길 수 있는 느낌'],
+    }
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
 
     assert result == 0, output.err
 
@@ -570,6 +742,30 @@ def test_unable_to_interpret_evidence_must_reference_current_raw(tmp_path, capsy
     foreign_excerpt = other_query['raw_service_input']['event_description_ko']
     assert foreign_excerpt not in active['raw_service_input']['event_description_ko']
     active['structured_interpretation']['attributes']['mood'] = {
+        'state': 'unable_to_interpret',
+        'value': None,
+        'evidence': [foreign_excerpt],
+    }
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'exact substring' in output.err
+
+
+def test_deferred_query_evidence_must_reference_its_current_raw(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    deferred = next(
+        query for query in event_queries['queries']
+        if query['selection_status'] in {'reserve', 'replace_candidate'}
+    )
+    foreign = next(
+        query for query in event_queries['queries']
+        if query['query_id'] != deferred['query_id']
+    )
+    foreign_excerpt = foreign['raw_service_input']['event_description_ko']
+    assert foreign_excerpt not in deferred['raw_service_input']['event_description_ko']
+    deferred['structured_interpretation']['attributes']['tempo'] = {
         'state': 'unable_to_interpret',
         'value': None,
         'evidence': [foreign_excerpt],
