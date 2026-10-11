@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -86,10 +87,25 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
     return errors
 
 
+def _reject_non_finite_constant(token):
+    raise ValueError(f'Non-finite JSON numeric constant {token!r} is not allowed')
+
+
+def _parse_finite_float(token):
+    value = float(token)
+    if not math.isfinite(value):
+        raise ValueError(f'Non-finite JSON number {token!r} is not allowed')
+    return value
+
+
 def _read_json(path, label):
     try:
-        return json.loads(path.read_text(encoding='utf-8-sig'))
-    except (OSError, json.JSONDecodeError) as exc:
+        return json.loads(
+            path.read_text(encoding='utf-8-sig'),
+            parse_constant=_reject_non_finite_constant,
+            parse_float=_parse_finite_float,
+        )
+    except (OSError, ValueError) as exc:
         raise ValueError(f'Cannot read {label} from {path}: {exc}') from exc
 
 

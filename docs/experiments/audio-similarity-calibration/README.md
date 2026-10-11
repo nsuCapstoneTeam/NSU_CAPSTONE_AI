@@ -33,6 +33,10 @@ Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 
 
 각 Structured Interpretation 속성의 상태는 calibration 검수 근거를 나타낸다. `interpreted`는 null·빈 문자열·공백 문자열·빈 배열·빈 문자열 항목이 없는 해석값과 1개 이상의 non-blank 현재 Raw excerpt가 필요하고, `not_requested`는 null 값과 빈 evidence를 요구한다. `unable_to_interpret`는 요청 근거가 있으나 해석할 수 없는 상태이므로 null 값이면서 1개 이상의 non-blank 현재 Raw excerpt가 필요하다. 통합 validator는 제공된 excerpt가 동일 query의 현재 `raw_service_input`에 실제로 포함되는지 확인한다. `desired_genre`는 Raw 값이 존재할 때에만 고정 pointer로 참조한다.
 
+통합 validator는 표준 JSON에서 허용되지 않는 `NaN`, `Infinity`, `-Infinity`뿐 아니라 유한 범위를 벗어나 Python에서 무한대로 변환되는 지수 표기도 입력 단계에서 거부한다. 수치 schema 규칙은 `source_catalog_duration`을 양수로, complete 상태에서는 60초 이상으로 제한하고, `decoded_duration`과 `prepared_duration`은 0 이상으로 제한한다. 취득 후 `decoded_duration`은 complete 상태에서 60초 이상이어야 한다. `source_sample_rate`와 `source_channels`는 null 또는 양의 정수, segment frame index는 null 또는 0 이상의 정수이며, 취득 파일의 `source_file_size`(선택 기록)는 null 또는 0 이상의 정수다. `cohort_target`은 정확히 50이며 그 밖의 합리적 상한은 현재 정하지 않았다.
+
+`source_url`, `license_url`, source metadata URL은 absolute HTTP(S) URL이어야 한다. URI 형식 검사와 함께 scheme·authority가 빠진 상대 경로 및 공백 포함 URL도 schema에서 거부한다.
+
 `historical_raw_draft`는 최초 synthetic Raw draft 20개의 snapshot으로 calibration 문서 이력을 보존하며, 실제 사용자 입력 로그나 production revision history가 아니다. `raw_service_input`은 현재 calibration 단계에서 사용하는 Raw 입력이다. snapshot 생성 직후에는 두 값이 같았고, 현재는 ACTIVE 16개 중 15개에 검수한 Raw v1을 반영해 해당 항목에서 두 값이 다르다.
 
 1. `raw_service_input`: 대표 합성 시나리오의 행사 종류·한국어 행사 설명·희망 Genre 의미를 보존한다. 이는 실제 사용자 입력이나 실제 사용자 데이터가 아니다. ACTIVE v1은 16개이며 Raw 수정안은 15개에 반영했고 event-07은 유지했다. Genre 지정은 12개, 미지정은 4개다. 이 수와 비율은 통계적으로 최적이라고 검증된 값이 아니다.

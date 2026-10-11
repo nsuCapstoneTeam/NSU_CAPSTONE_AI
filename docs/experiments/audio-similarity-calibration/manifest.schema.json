@@ -93,7 +93,7 @@
                 "source_url": {
                   "type": "string",
                   "minLength": 1,
-                  "pattern": "\\S",
+                  "pattern": "^https?://[^\\s/]+(?:/[^\\s]*)?$",
                   "format": "uri"
                 },
                 "provider_track_id": {
@@ -116,7 +116,7 @@
                 "license_url": {
                   "type": "string",
                   "minLength": 1,
-                  "pattern": "\\S",
+                  "pattern": "^https?://[^\\s/]+(?:/[^\\s]*)?$",
                   "format": "uri"
                 },
                 "attribution_required": {
@@ -236,6 +236,17 @@
       ],
       "minimum": 0
     },
+    "nullablePositiveInteger": {
+      "oneOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "labelSource": {
       "oneOf": [
         {
@@ -258,7 +269,7 @@
             "url": {
               "type": "string",
               "minLength": 1,
-              "pattern": "\\S",
+              "pattern": "^https?://[^\\s/]+(?:/[^\\s]*)?$",
               "format": "uri"
             }
           }
@@ -354,7 +365,7 @@
         "source_url": {
           "type": "string",
           "minLength": 1,
-          "pattern": "\\S",
+          "pattern": "^https?://[^\\s/]+(?:/[^\\s]*)?$",
           "format": "uri"
         },
         "source_sha256": {
@@ -379,10 +390,14 @@
           "$ref": "#/$defs/nullableNumber"
         },
         "source_sample_rate": {
-          "$ref": "#/$defs/nullableNonNegativeInteger"
+          "$ref": "#/$defs/nullablePositiveInteger"
         },
         "source_channels": {
-          "$ref": "#/$defs/nullableNonNegativeInteger"
+          "$ref": "#/$defs/nullablePositiveInteger"
+        },
+        "source_file_size": {
+          "$ref": "#/$defs/nullableNonNegativeInteger",
+          "description": "Optional source-file byte count recorded during acquisition; absent or null before acquisition, and never negative."
         },
         "source_codec": {
           "$ref": "#/$defs/nullableString"
@@ -395,7 +410,7 @@
             {
               "type": "string",
               "minLength": 1,
-              "pattern": "\\S",
+              "pattern": "^https?://[^\\s/]+(?:/[^\\s]*)?$",
               "format": "uri"
             },
             {

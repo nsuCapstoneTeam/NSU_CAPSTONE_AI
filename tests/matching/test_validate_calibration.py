@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from scripts.matching.validate_calibration import main
+from scripts.matching.validate_calibration import _read_json, main
 
 
 CALIBRATION_DIR = (
@@ -40,6 +40,85 @@ def _run_validator(tmp_path, capsys, *, manifest=None, event_queries=None):
 def test_current_manifest_and_event_queries_pass(capsys):
     assert main([]) == 0
     assert 'Calibration validation passed' in capsys.readouterr().out
+
+
+@pytest.mark.parametrize('token', ['NaN', 'Infinity', '-Infinity', '1e999', '-1e999'])
+def test_json_reader_rejects_non_finite_numbers(tmp_path, token):
+    path = tmp_path / 'non-finite.json'
+    path.write_text('{"value": ' + token + '}', encoding='utf-8')
+
+    with pytest.raises(ValueError, match='Non-finite'):
+        _read_json(path, 'fixture')
+
+
+def test_json_reader_accepts_finite_number(tmp_path):
+    path = tmp_path / 'finite.json'
+    path.write_text('{"value": 60.25}', encoding='utf-8')
+
+    assert _read_json(path, 'fixture') == {'value': 60.25}
+
+
+@pytest.mark.parametrize('token', ['NaN', 'Infinity', '-Infinity'])
+def test_calibration_command_rejects_non_finite_manifest_number(tmp_path, capsys, token):
+    manifest = _load_json('manifest.json')
+    event_queries = _load_json('event-queries.json')
+    manifest_path = tmp_path / 'manifest.json'
+    event_queries_path = tmp_path / 'event-queries.json'
+    manifest_text = json.dumps(manifest)
+    marker = '"source_catalog_duration": '
+    start = manifest_text.index(marker) + len(marker)
+    end = start
+    while end < len(manifest_text) and manifest_text[end] not in ',}':
+        end += 1
+    manifest_path.write_text(manifest_text[:start] + token + manifest_text[end:], encoding='utf-8')
+    event_queries_path.write_text(json.dumps(event_queries), encoding='utf-8')
+
+    result = main([
+        '--manifest', str(manifest_path),
+        '--event-queries', str(event_queries_path),
+    ])
+    output = capsys.readouterr()
+
+    assert result == 1
+    assert 'Non-finite' in output.err
+
+
+@pytest.mark.parametrize(
+    'filename',
+    [
+        'manifest.json',
+        'event-queries.json',
+        'manifest.schema.json',
+        'event-queries.schema.json',
+    ],
+)
+def test_calibration_command_strictly_parses_all_json_inputs(tmp_path, capsys, filename):
+    filenames = (
+        'manifest.json',
+        'event-queries.json',
+        'manifest.schema.json',
+        'event-queries.schema.json',
+    )
+    paths = {}
+    for name in filenames:
+        path = tmp_path / name
+        path.write_text(
+            (CALIBRATION_DIR / name).read_text(encoding='utf-8'),
+            encoding='utf-8',
+        )
+        paths[name] = path
+    paths[filename].write_text('{"probe": Infinity}', encoding='utf-8')
+
+    result = main([
+        '--manifest', str(paths['manifest.json']),
+        '--event-queries', str(paths['event-queries.json']),
+        '--manifest-schema', str(paths['manifest.schema.json']),
+        '--event-queries-schema', str(paths['event-queries.schema.json']),
+    ])
+    output = capsys.readouterr()
+
+    assert result == 1
+    assert 'Non-finite' in output.err
 
 
 def test_documented_module_invocation_runs_from_repository_root():
@@ -422,6 +501,91 @@ def test_complete_cohort_with_null_catalog_duration_fails(tmp_path, capsys):
     assert 'source_catalog_duration' in output.err
 
 
+@pytest.mark.parametrize('duration', [0, -0.1])
+def test_nonpositive_catalog_duration_fails(tmp_path, capsys, duration):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['source_catalog_duration'] = duration
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'source_catalog_duration' in output.err
+
+
+@pytest.mark.parametrize('field', ['source_sample_rate', 'source_channels'])
+@pytest.mark.parametrize('value', [0, -1, 1.5])
+def test_source_rate_and_channel_counts_must_be_positive_integers(
+    tmp_path,
+    capsys,
+    field,
+    value,
+):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0][field] = value
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert field in output.err
+
+
+def test_negative_source_file_size_fails(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['source_file_size'] = -1
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'source_file_size' in output.err
+
+
+def test_source_file_size_must_be_an_integer(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['source_file_size'] = 1.5
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'source_file_size' in output.err
+
+
+def test_finite_source_measurements_with_valid_integer_units_pass(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    sample = manifest['samples'][0]
+    sample['source_sample_rate'] = 44100
+    sample['source_channels'] = 2
+    sample['source_file_size'] = 4096
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
+@pytest.mark.parametrize('field', ['decoded_duration', 'prepared_duration'])
+def test_negative_measured_durations_fail(tmp_path, capsys, field):
+    manifest = _load_json('manifest.json')
+    sample = manifest['samples'][0]
+    sample[field] = -0.1
+    if field == 'decoded_duration':
+        sample['acquisition_method'] = 'official_direct_download'
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert field in output.err
+
+
+@pytest.mark.parametrize('field', ['segment_start_frame', 'segment_end_frame_exclusive'])
+def test_negative_segment_frame_fails(tmp_path, capsys, field):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0][field] = -1
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert field in output.err
+
+
 def test_complete_cohort_with_restricted_commercial_use_fails(tmp_path, capsys):
     manifest = _load_json('manifest.json')
     manifest['samples'][0]['commercial_use_status'] = 'restricted'
@@ -461,6 +625,17 @@ def test_sample_identity_fields_reject_blank_strings(tmp_path, capsys, field, va
 
     assert result == 1
     assert field in output.err
+
+
+@pytest.mark.parametrize('source_url', ['not a valid url', 'https://'])
+def test_malformed_absolute_source_url_fails(tmp_path, capsys, source_url):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['source_url'] = source_url
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'source_url' in output.err
 
 
 @pytest.mark.parametrize('field_value', ['', '   '])
