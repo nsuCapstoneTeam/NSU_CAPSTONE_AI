@@ -29,7 +29,7 @@ Event query는 실제 사용자 데이터가 아니라 대표적인 합성 시�
 
 Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 구조의 이름은 calibration 자료의 의미 라벨이며 Spring API payload field 이름이나 API schema가 아니다.
 
-`uv run python scripts/matching/validate_calibration.py` 한 명령으로 manifest와 Event query의 JSON Schema 검증, `sample_id`/`query_id` 고유성, calibration cohort 상태 및 query 구성 규칙을 함께 검사한다. ACTIVE query는 `review_status: reviewed_for_raw_support`여야 하며, 이 조건은 Event query schema가 검증한다.
+`uv run python -m scripts.matching.validate_calibration` 한 명령으로 manifest와 Event query의 JSON Schema 검증, `sample_id`/`query_id` 고유성, calibration cohort 상태 및 query 구성 규칙을 함께 검사한다. ACTIVE query는 `review_status: reviewed_for_raw_support`여야 하며, 이 조건은 Event query schema가 검증한다.
 
 `historical_raw_draft`는 최초 synthetic Raw draft 20개의 snapshot으로 calibration 문서 이력을 보존하며, 실제 사용자 입력 로그나 production revision history가 아니다. `raw_service_input`은 현재 calibration 단계에서 사용하는 Raw 입력이다. snapshot 생성 직후에는 두 값이 같았고, 현재는 ACTIVE 16개 중 15개에 검수한 Raw v1을 반영해 해당 항목에서 두 값이 다르다.
 
