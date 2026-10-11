@@ -4,7 +4,7 @@
 
 이 문서는 NSUAI-36에서 사전 준비하는 프로토콜 초안이다. 실제 청취 평가는 NSUAI-38에서 수행한다. 이번 작업에서 평가 표본을 재생하거나 평가하지 않았다. Likert 응답을 사용자 표시 0–100 값으로 직접 변환하지 않는다.
 
-평가 대상은 representative synthetic scenario benchmark의 ACTIVE v1 16개와 calibration cohort의 60초 segment 쌍이다. 현재 한국어 raw scenario와 structured interpretation은 draft이고, 영어 model input은 `human_authored_draft_translation` / `not_reviewed` 상태다. 따라서 영어 문장은 평가에 확정된 입력이 아니며, 사람의 검수와 확정 뒤에만 사용한다. 이 자료는 실제 사용자 요청을 대표한다고 주장하지 않는다. 평가 화면에는 evaluator에게 raw cosine, rank, 점수 구간, 후보 선택 순위를 노출하지 않는다.
+평가 대상은 representative synthetic scenario benchmark의 ACTIVE v1 16개와 calibration cohort의 60초 segment 쌍이다. 현재 한국어 raw scenario와 structured interpretation은 draft이고, 영어 model input은 `human_authored_draft_translation` / `not_reviewed` 상태다. 따라서 영어 문장은 평가에 확정된 입력이 아니며, 사람의 검수와 확정 뒤에만 사용한다. 이 자료는 실제 사용자 요청을 대표한다고 주장하지 않는다. 평가 화면에는 evaluator에게 raw cosine, rank, 점수 구간, 후보 선택 순위를 노출하지 않는다. 현재 50곡은 calibration cohort로만 사용하며, 그 분포와 이 청취 평가는 transformation 선정 자료다. 최종 transformation 선택 후에는 별도의 독립 validation cohort로 검증하고, 현재 calibration cohort를 독립 validation evidence로 재사용하지 않는다. 별도 cohort의 크기·구성 및 validation에서 재사용할 query/evaluation material은 결과 확인 전에 기록한다.
 
 ## 표본 추출
 
@@ -14,7 +14,7 @@ NSUAI-37이 각 query에 대한 cosine 결과를 생성한 뒤, query별로 다�
 - 중간 rank 부근 2개 후보
 - 하위 2개 후보
 
-ACTIVE v1 16개 기준 전체 cosine pair는 50곡 × 16 query = 800개다. query별 상위 2개, 중간 rank 부근 2개, 하위 2개를 추출하면 최대 16 × 6 = 96쌍이다. Tie 또는 중복 sample/query 조합 발생 시 사전 고정된 규칙으로 대체하고 추출 seed와 선택 사유를 evidence에 기록한다. 추가로 전체 가능한 query-track 조합에서 무작위 20–40쌍을 뽑는다. 앞의 표본과 겹친 쌍은 중복 계산하지 않는다. 현재 engineering estimate는 약 116–136개의 고유 쌍이다. 이는 통계적 충분성을 뜻하지 않는다.
+ACTIVE v1 16개 기준 전체 cosine pair는 50곡 × 16 query = 800개다. query별 상위 2개, 중간 rank 부근 2개, 하위 2개를 추출하면 최대 16 × 6 = 96쌍이다. Tie 또는 중복 sample/query 조합 발생 시 사전 고정된 규칙으로 대체하고, stratified 추출 seed와 선택 사유를 evidence에 기록한다. 추가 무작위 20–40쌍은 전체 800개 조합에서 이미 선택된 stratified pair를 제외한 나머지 모집단에서 비복원 추출한다. 재현을 위해 random 추출 seed와 eligible pair ID 집합/버전을 evidence에 기록한다. stratified 96쌍과 random 20–40쌍을 확보한 경우 예상 고유 pair는 116–136개이며, 실제 표본 수를 기록한다. 이는 통계적 충분성을 뜻하지 않는다.
 
 3명의 evaluator가 모든 고유 쌍을 각각 평가한다면 산술상 약 348–408건의 rating이다. 실제 표본 수와 evaluator 수는 실행 전에 기록한다.
 

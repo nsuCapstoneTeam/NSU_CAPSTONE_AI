@@ -37,6 +37,27 @@
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "cohort_status": {
+            "const": "candidate_selection_complete"
+          }
+        },
+        "required": ["cohort_status"]
+      },
+      "then": {
+        "properties": {
+          "samples": {
+            "type": "array",
+            "minItems": 50,
+            "maxItems": 50
+          }
+        }
+      }
+    }
+  ],
   "$defs": {
     "nullableString": {
       "type": ["string", "null"]
