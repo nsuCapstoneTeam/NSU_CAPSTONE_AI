@@ -4,7 +4,7 @@
 
 목표는 50곡이다. 이전에 확인한 34곡, manifest-only 재검증에서 PASS한 15곡, 마지막 대체 후보 1곡을 합쳐 정식 PASS 후보 50곡을 확정했다. 출처별 정식 후보는 Incompetech 2곡, 새 FMA 전체곡 20곡, Wikimedia Commons 22곡, ccMixter 6곡이다. HOLD 1곡은 검토 이력에만 남기고 PASS cohort와 manifest에서 제외했다. Audio는 다운로드하지 않았고, manifest의 파일별 decode 정보와 SHA-256은 모두 미측정 상태다. 후보 선정은 완료됐지만 Audio 취득 및 calibration 검증은 완료되지 않았다.
 
-확정 기준은 완곡인 실제 음악 녹음, 공식 개별 페이지의 60초 이상 길이, 식별 가능한 제목/artist/source, 연구·개발 목적 로컬 분석을 허용하는 명시적 라이선스, attribution 조건 확인이다. Wikimedia Commons에서 `License review needed` 표기가 있는 파일은 제외했다. 수록된 수록 페이지에는 그런 경고가 없었다. 페이지 metadata는 실제 취득 후 decode 검증을 대체하지 않는다.
+확정 기준은 완곡인 실제 음악 녹음, 공식 개별 페이지의 60초 이상 길이, 식별 가능한 제목/artist/source, 연구·개발 목적 로컬 분석을 허용하는 명시적 라이선스, attribution 조건 확인이다. 같은 credited artist는 최대 2곡으로 제한한다. 자동 검증은 manifest의 artist 문자열을 공백 정리 및 대소문자 무시 후 비교하며, 별칭 또는 여러 기여자 credit의 실체 식별은 사람이 검토한다. Wikimedia Commons에서 `License review needed` 표기가 있는 파일은 제외했다. 수록된 수록 페이지에는 그런 경고가 없었다. 페이지 metadata는 실제 취득 후 decode 검증을 대체하지 않는다.
 
 고정된 기존 Incompetech 2곡은 유지한다. 두 곡 모두 Kevin MacLeod이므로 해당 artist의 허용치 2곡을 채웠으며 추가하지 않는다. 기존 FMA-small/30초 Historical 자료와 Phase A 6곡은 제외한다. MUSAN은 이번 cohort에서 제외한다. FMA에서는 FMA-small이 만들어진 2017년 이후 개별 공개된 전체 트랙만 선택했다. 오래된 FMA 항목은 FMA-small 겹침 여부를 안전하게 배제할 수 없어 후보로 세지 않았다.
 

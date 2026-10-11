@@ -14,6 +14,7 @@ from scripts.matching.validate_calibration_event_queries import (
     event_query_raw_reference_errors,
 )
 from scripts.matching.validate_calibration_manifest import (
+    artist_count_errors,
     complete_cohort_license_evidence_errors,
     duplicate_provider_track_identities,
     duplicate_sample_ids,
@@ -51,6 +52,7 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
 
     try:
         errors.extend(complete_cohort_license_evidence_errors(manifest))
+        errors.extend(artist_count_errors(manifest))
     except ValueError as exc:
         errors.append(str(exc))
 
@@ -143,8 +145,8 @@ def main(argv=None):
         return 1
 
     print(
-        'Calibration validation passed: schemas, unique sample/query/track identities and Raw scenarios, '
-        'and ACTIVE Event interpretation Raw references.'
+        'Calibration validation passed: schemas, unique sample/query/track identities, credited-artist cap, '
+        'unique Raw scenarios, and ACTIVE Event interpretation Raw references.'
     )
     return 0
 

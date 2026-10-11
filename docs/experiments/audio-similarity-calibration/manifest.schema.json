@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Audio Similarity Calibration Manifest",
-  "description": "Calibration experiment manifest. JSON Schema checks per-sample eligibility, complete-cohort size, and license/attribution evidence shape; the integrated validator additionally enforces cross-record sample and real-track identity uniqueness.",
+  "description": "Calibration experiment manifest, not a production API schema. For candidate_selection_complete the integrated validator also enforces no more than two samples per credited artist (normalized by whitespace and case), in addition to unique sample and real-track identities.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -32,7 +32,7 @@
       "const": "offline_calibration_decoded_audio_center_exact_60_seconds"
     },
     "samples": {
-      "description": "For candidate_selection_complete, the integrated validator requires unique sample_id and source_url values plus unique (provider, provider_track_id) pairs when provider_track_id is present. A missing provider_track_id relies on source_url uniqueness. A complete cohort also requires non-blank title, artist, provider, license name, license URL and source URL, an explicit attribution_required boolean, and non-blank attribution when required.",
+      "description": "For candidate_selection_complete, the integrated validator requires unique sample_id and source_url values, unique (provider, provider_track_id) pairs when provider_track_id is present, and at most two records for each credited artist after whitespace normalization and case folding. A missing provider_track_id relies on source_url uniqueness. A complete cohort also requires non-blank title, artist, provider, license name, license URL and source URL, an explicit attribution_required boolean, and non-blank attribution when required. Artist aliases and contributor-credit parsing remain part of the documented human review, not automatic identity resolution.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/sample"

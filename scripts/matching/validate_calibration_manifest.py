@@ -78,6 +78,32 @@ def duplicate_provider_track_identities(manifest):
     return sorted(duplicates)
 
 
+def artist_count_errors(manifest, max_per_artist=2):
+    """Enforce the documented credited-artist cap for a complete cohort."""
+    if not isinstance(manifest, dict) or not isinstance(manifest.get('samples'), list):
+        raise ValueError("manifest must contain a 'samples' array")
+    if manifest.get('cohort_status') != 'candidate_selection_complete':
+        return []
+
+    counts = {}
+    display_names = {}
+    for index, sample in enumerate(manifest['samples']):
+        if not isinstance(sample, dict):
+            raise ValueError(f'samples[{index}] must be an object')
+        artist = sample.get('artist')
+        if not isinstance(artist, str) or not artist.strip():
+            continue  # JSON Schema reports missing or blank artist values.
+        normalized = ' '.join(artist.split()).casefold()
+        counts[normalized] = counts.get(normalized, 0) + 1
+        display_names.setdefault(normalized, ' '.join(artist.split()))
+
+    return [
+        f"artist '{display_names[artist]}' occurs {count} times; maximum is {max_per_artist}"
+        for artist, count in sorted(counts.items())
+        if count > max_per_artist
+    ]
+
+
 def complete_cohort_license_evidence_errors(manifest):
     """Require reviewable license and attribution evidence for a complete cohort."""
     if not isinstance(manifest, dict) or not isinstance(manifest.get('samples'), list):

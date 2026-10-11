@@ -210,6 +210,40 @@ def test_distinct_track_identities_pass(tmp_path, capsys):
     assert result == 0, output.err
 
 
+def test_complete_cohort_rejects_three_tracks_by_same_artist(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    artist = manifest['samples'][0]['artist']
+    manifest['samples'][1]['artist'] = artist
+    manifest['samples'][2]['artist'] = artist
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert f"artist '{artist}' occurs 3 times; maximum is 2" in output.err
+
+
+def test_complete_cohort_allows_two_tracks_by_same_artist(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    artist = manifest['samples'][0]['artist']
+    manifest['samples'][1]['artist'] = artist
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
+def test_incomplete_cohort_does_not_apply_artist_cap(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['cohort_status'] = 'candidate_selection_incomplete'
+    artist = manifest['samples'][0]['artist']
+    manifest['samples'][1]['artist'] = artist
+    manifest['samples'][2]['artist'] = artist
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
 def test_missing_provider_track_id_falls_back_to_source_url(tmp_path, capsys):
     manifest = _load_json('manifest.json')
     manifest['samples'][0]['provider_track_id'] = None
