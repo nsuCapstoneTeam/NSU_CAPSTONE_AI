@@ -21,7 +21,7 @@ Event query는 실제 사용자 데이터가 아니라 대표적인 합성 시�
 - 청취평가: 아직 안 함
 - 사용자 표시용 0~100 transformation 선정: 아직 안 함
 
-따라서 candidate selection complete ≠ calibration experiment complete다. 후보 목록 확정과 Audio 준비·생성·평가 결과를 별도 단계로 관리한다.
+따라서 candidate selection complete ≠ calibration experiment complete다. 후보 목록 확정과 Audio 준비·생성·평가 결과를 별도 단계로 관리한다. 실제 실험 전에는 clean worktree의 Git commit SHA와 manifest/query/schema/protocol/실행 코드의 파일 bytes SHA-256을 기록하고, source·prepared·playback Audio도 각각 SHA-256으로 연결한다. 청취평가는 공통 AudioEmbeddingGenerator가 분석하는 동일한 전처리 파형의 `[0초, 56초)`만 대상으로 하며 prepared 60초 전체를 재생하지 않는다. 세부 기록 조건은 [청취 평가 프로토콜](./listening-protocol.md)을 따른다. 이 identity와 playback evidence는 아직 생성되지 않았다.
 
 현재 PASS 50곡은 calibration cohort다. 이 cohort의 raw cosine 분포와 청취평가는 transformation 선정 자료이며 독립 validation 자료가 아니다. 최종 transformation 선택 후 별도로 구성한 독립 validation cohort에서 검증한다. 현재 50곡을 validation holdout으로 간주하지 않으며, 별도 validation cohort의 크기와 구성은 아직 정하지 않았다.
 
