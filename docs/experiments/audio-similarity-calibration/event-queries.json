@@ -1,0 +1,1824 @@
+{
+  "query_set_version": "event-queries-draft-v1",
+  "status": "synthetic_scenario_inventory_not_production_interpretation",
+  "benchmark_purpose": "representative_synthetic_scenario_benchmark",
+  "service_input_semantics": "Calibration-only semantic labels; not Spring JSON field names or an API schema.",
+  "active_set_version": "engineering-calibration-v1",
+  "queries": [
+    {
+      "query_id": "event-01",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "야외 대학 축제",
+        "event_description_ko": "야외 대학 축제에서 관객들이 함께 뛰고 즐길 수 있는 활기찬 음악을 원합니다. 록이나 팝 느낌이면 좋고, 분위기는 밝고 에너지가 있었으면 합니다.",
+        "desired_genre": "rock or pop"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "야외 대학 축제",
+        "event_description_ko": "대학 축제 무대에 쓸 음악을 찾고 있어요. 관객이 같이 즐길 수 있는 느낌이면 좋겠어요.",
+        "desired_genre": "rock or pop"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "bright, energetic, communal",
+          "tempo_request": "빠르고 활기찬 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "interpreted",
+            "value": [
+              "함께 즐기는 느낌"
+            ],
+            "evidence": [
+              "같이 즐길 수 있는 느낌"
+            ]
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "rock or pop"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Bright, energetic rock or pop music for an outdoor university festival, with a lively communal feel.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-02",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "야외 결혼식",
+        "event_description_ko": "야외 결혼식의 식전 시간에 어울리는 따뜻하고 낭만적인 음악을 원합니다. 어쿠스틱한 악기와 차분한 분위기가 좋습니다.",
+        "desired_genre": "acoustic"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "야외 결혼식",
+        "event_description_ko": "야외 결혼식 식전 시간에 어울리는 어쿠스틱한 음악을 찾고 있어요. 너무 들뜨지 않는 곡이면 좋겠습니다.",
+        "desired_genre": null
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "warm, romantic, calm",
+          "tempo_request": "느리고 여유로운 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "interpreted",
+            "value": [
+              "차분함"
+            ],
+            "evidence": [
+              "너무 들뜨지 않는"
+            ]
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "not_requested",
+            "value_ref": null,
+            "evidence": []
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "interpreted",
+            "value": [
+              "어쿠스틱"
+            ],
+            "evidence": [
+              "어쿠스틱한 음악"
+            ]
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Warm, romantic acoustic music for the pre-ceremony part of an outdoor wedding, with a calm and relaxed mood.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-03",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "기업 시상식",
+        "event_description_ko": "기업 시상식에서 수상자가 입장할 때 사용할 웅장하고 자신감 있는 음악을 원합니다. 오케스트라나 영화음악 같은 느낌을 선호합니다.",
+        "desired_genre": "orchestral or soundtrack"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "기업 시상식",
+        "event_description_ko": "기업 시상식에서 수상자가 입장할 때 쓸 음악을 찾고 있어요. 조금 웅장한 느낌이면 좋겠습니다.",
+        "desired_genre": "soundtrack"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "grand, confident, uplifting",
+          "tempo_request": "중간에서 빠른 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "interpreted",
+            "value": [
+              "웅장함"
+            ],
+            "evidence": [
+              "조금 웅장한 느낌"
+            ]
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "soundtrack"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "interpreted",
+            "value": "수상자가 입장할 때 쓸 음악",
+            "evidence": [
+              "수상자가 입장할 때 쓸 음악"
+            ]
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Grand, confident orchestral or soundtrack-style music for award winners entering a corporate ceremony, with an uplifting feel.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-04",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "미술 전시 오프닝",
+        "event_description_ko": "작은 미술 전시 오프닝에서 대화에 방해되지 않을 세련되고 잔잔한 배경 음악을 원합니다. 재즈나 라운지 분위기를 선호합니다.",
+        "desired_genre": "jazz or lounge"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "미술 전시 오프닝",
+        "event_description_ko": "작은 미술 전시 오프닝에서 사람들이 대화할 때 틀 배경 음악을 찾고 있어요.",
+        "desired_genre": "jazz or lounge"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "subtle, refined, relaxed",
+          "tempo_request": "느리거나 중간 정도",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "jazz or lounge"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "interpreted",
+            "value": "대화 중 사용하는 배경 음악",
+            "evidence": [
+              "사람들이 대화할 때 틀 배경 음악"
+            ]
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Subtle, refined jazz or lounge background music for a small art exhibition opening, relaxed enough for conversation.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-05",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "야간 게임 행사",
+        "event_description_ko": "야간 게임 행사에서 긴장감과 호기심을 높이는 전자음악을 원합니다. 너무 무섭기보다는 신비롭고 조금 어두운 분위기면 좋겠습니다.",
+        "desired_genre": "electronic"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "야간 게임 행사",
+        "event_description_ko": "야간 게임 행사에 어울릴 음악이 필요해요. 약간 긴장감이 있으면 좋겠습니다.",
+        "desired_genre": "electronic"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "mysterious, slightly dark, suspenseful",
+          "tempo_request": "중간 정도의 박진감",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "interpreted",
+            "value": [
+              "긴장감"
+            ],
+            "evidence": [
+              "약간 긴장감"
+            ]
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "electronic"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Mysterious electronic music with a slightly dark and suspenseful mood for a nighttime gaming event, intriguing rather than frightening.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-06",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "지역 문화 축제",
+        "event_description_ko": "지역 문화 축제의 낮 시간에 어울리는 친근하고 경쾌한 음악을 찾고 있습니다. 포크나 월드뮤직 느낌의 어쿠스틱 연주를 원합니다.",
+        "desired_genre": "folk or world"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "지역 문화 축제",
+        "event_description_ko": "지역 문화 축제 낮 시간에 어울리는 음악을 찾고 있어요.",
+        "desired_genre": "folk or world"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "friendly, cheerful, welcoming",
+          "tempo_request": "중간에서 빠른 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "folk or world"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Friendly, cheerful folk or world music with acoustic instrumentation for a daytime community cultural festival.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-07",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "졸업 기념 만찬",
+        "event_description_ko": "졸업 기념 만찬에서 편안하게 식사하고 이야기할 수 있도록 부드럽고 희망적인 분위기의 연주곡을 원합니다.",
+        "desired_genre": null
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "졸업 기념 만찬",
+        "event_description_ko": "졸업 기념 만찬에서 편안하게 식사하고 이야기할 수 있도록 부드럽고 희망적인 분위기의 연주곡을 원합니다.",
+        "desired_genre": null
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "gentle, hopeful, warm",
+          "tempo_request": "느리거나 중간 정도",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "interpreted",
+            "value": [
+              "부드러움",
+              "희망적"
+            ],
+            "evidence": [
+              "부드럽고 희망적인 분위기"
+            ]
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "not_requested",
+            "value_ref": null,
+            "evidence": []
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "interpreted",
+            "value": "instrumental",
+            "evidence": [
+              "연주곡"
+            ]
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "interpreted",
+            "value": "편안하게 식사하고 이야기할 수 있도록",
+            "evidence": [
+              "편안하게 식사하고 이야기할 수 있도록"
+            ]
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Gentle, hopeful instrumental music for a graduation dinner, warm and unobtrusive enough for conversation.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-08",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "패션 쇼",
+        "event_description_ko": "패션 쇼의 모델 워킹에 어울리는 자신감 있고 리듬감 있는 음악을 원합니다. 현대적인 팝이나 전자음악이면 좋겠습니다.",
+        "desired_genre": "pop or electronic"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "패션 쇼",
+        "event_description_ko": "패션쇼 모델 워킹에 쓸 음악이 필요해요. 리듬감이 있었으면 합니다.",
+        "desired_genre": "pop or electronic"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "confident, stylish, driving",
+          "tempo_request": "빠르고 추진력 있는 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "pop or electronic"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "interpreted",
+            "value": "패션쇼 모델 워킹에 쓸 음악",
+            "evidence": [
+              "패션쇼 모델 워킹에 쓸 음악"
+            ]
+          },
+          "rhythmic_character": {
+            "state": "interpreted",
+            "value": "리듬감",
+            "evidence": [
+              "리듬감"
+            ]
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Confident, stylish, driving pop or electronic music for a fashion show runway walk.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-09",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "추모식",
+        "event_description_ko": "추모식에서 고인을 조용히 기억할 수 있는 절제된 음악을 원합니다. 피아노나 현악기 중심의 슬프지만 따뜻한 분위기를 바랍니다.",
+        "desired_genre": "piano or strings"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "추모식",
+        "event_description_ko": "추모식에서 고인을 조용히 기억할 수 있도록 피아노 중심의 음악을 찾고 있어요.",
+        "desired_genre": null
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "solemn, tender, reflective",
+          "tempo_request": "느린 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "interpreted",
+            "value": [
+              "조용함"
+            ],
+            "evidence": [
+              "조용히 기억할 수 있도록"
+            ]
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "not_requested",
+            "value_ref": null,
+            "evidence": []
+          },
+          "instrument_preference": {
+            "state": "interpreted",
+            "value": [
+              "피아노 중심"
+            ],
+            "evidence": [
+              "피아노 중심의 음악"
+            ]
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Restrained piano or string music for a memorial service, solemn and reflective with a tender, warm sadness.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-10",
+      "selection_status": "reserve",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "스포츠 결승 응원 행사",
+        "event_description_ko": "스포츠 결승을 응원하는 행사에서 관중의 열기를 끌어올릴 강렬한 음악을 원합니다. 타악기와 록 사운드가 있으면 좋겠습니다.",
+        "desired_genre": "rock"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "스포츠 결승 응원 행사",
+        "event_description_ko": "스포츠 결승을 응원하는 행사에서 관중의 열기를 끌어올릴 강렬한 음악을 원합니다. 타악기와 록 사운드가 있으면 좋겠습니다.",
+        "desired_genre": "rock"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "not_reviewed",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "intense, bold, exciting",
+          "tempo_request": "빠르고 강한 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "not_requested",
+            "value_ref": null,
+            "evidence": []
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Intense, bold rock music with percussion to build excitement at a sports final watch party.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-11",
+      "selection_status": "replace_candidate",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "북토크",
+        "event_description_ko": "저녁 북토크가 시작되기 전 편안한 대화를 돕는 잔잔한 음악을 원합니다. 포근하고 사색적인 분위기면 좋겠습니다.",
+        "desired_genre": null
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "북토크",
+        "event_description_ko": "저녁 북토크가 시작되기 전 편안한 대화를 돕는 잔잔한 음악을 원합니다. 포근하고 사색적인 분위기면 좋겠습니다.",
+        "desired_genre": null
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "not_reviewed",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "cozy, thoughtful, calm",
+          "tempo_request": "느리고 차분한 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "not_requested",
+            "value_ref": null,
+            "evidence": []
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Calm, cozy, thoughtful background music before an evening book talk, gentle enough to support conversation.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-12",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "해변 여름 파티",
+        "event_description_ko": "해변 여름 파티에서 가볍게 춤추고 즐길 수 있는 밝은 음악을 원합니다. 레게나 라틴 느낌도 괜찮고 리듬이 편안했으면 합니다.",
+        "desired_genre": "reggae or Latin"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "해변 여름 파티",
+        "event_description_ko": "해변 여름 파티에서 가볍게 춤출 수 있는 음악을 틀고 싶어요.",
+        "desired_genre": "reggae or Latin"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "sunny, playful, relaxed",
+          "tempo_request": "중간에서 경쾌한 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "reggae or Latin"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "interpreted",
+            "value": "가볍게 춤출 수 있는",
+            "evidence": [
+              "가볍게 춤출 수 있는"
+            ]
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Sunny, playful reggae or Latin music for a relaxed beach summer party, with an easy, danceable feel.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-13",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "제품 발표회",
+        "event_description_ko": "신제품 발표회에서 새로운 시작과 혁신을 표현할 세련된 배경 음악을 원합니다. 미래적이지만 너무 차갑지 않은 전자 사운드를 선호합니다.",
+        "desired_genre": "electronic"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "제품 발표회",
+        "event_description_ko": "제품 발표회에서 사용할 배경 음악이 필요해요. 너무 차갑지 않은 느낌이면 좋겠습니다.",
+        "desired_genre": "electronic"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "modern, optimistic, polished",
+          "tempo_request": "중간 정도",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "interpreted",
+            "value": [
+              "차갑지 않은 느낌"
+            ],
+            "evidence": [
+              "너무 차갑지 않은 느낌"
+            ]
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "electronic"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "interpreted",
+            "value": "제품 발표회에서 사용하는 배경 음악",
+            "evidence": [
+              "제품 발표회에서 사용할 배경 음악"
+            ]
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Polished, modern electronic background music for a product launch, futuristic and optimistic without feeling cold.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-14",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "전통 공연",
+        "event_description_ko": "전통 공연의 시작을 알리는 장면에 어울리는 웅장하고 신비로운 음악을 원합니다. 관현악과 전통 악기 느낌이 함께 있으면 좋겠습니다.",
+        "desired_genre": "orchestral or traditional"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "전통 공연",
+        "event_description_ko": "전통 공연을 시작할 때 쓸 음악을 찾고 있어요. 웅장한 느낌이면 좋겠습니다.",
+        "desired_genre": null
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "majestic, mysterious, ceremonial",
+          "tempo_request": "느리게 시작해 점차 고조되는 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "interpreted",
+            "value": [
+              "웅장함"
+            ],
+            "evidence": [
+              "웅장한 느낌"
+            ]
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "not_requested",
+            "value_ref": null,
+            "evidence": []
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "interpreted",
+            "value": "전통 공연을 시작할 때 쓸 음악",
+            "evidence": [
+              "전통 공연을 시작할 때 쓸 음악"
+            ]
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Majestic, mysterious ceremonial music combining orchestral and traditional sounds for the opening of a performance.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-15",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "친구 모임",
+        "event_description_ko": "친구들이 모이는 캐주얼한 저녁 파티에서 부담 없이 즐길 수 있는 펑크나 디스코 음악을 원합니다. 밝고 그루브가 느껴졌으면 합니다.",
+        "desired_genre": "funk or disco"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "친구 모임",
+        "event_description_ko": "친구들과 하는 저녁 파티에 틀 음악을 찾고 있어요. 그루브 있는 느낌이면 좋겠습니다.",
+        "desired_genre": "funk or disco"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "playful, grooving, upbeat",
+          "tempo_request": "경쾌하고 춤추기 좋은 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "funk or disco"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "interpreted",
+            "value": "그루브 있는",
+            "evidence": [
+              "그루브 있는"
+            ]
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Playful, grooving funk or disco for a casual evening party with friends, upbeat and easy to dance to.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-16",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "명상 워크숍",
+        "event_description_ko": "명상 워크숍에서 집중을 돕는 고요하고 반복적인 음악을 원합니다. 자연스럽고 부드러운 음향이면 좋겠습니다.",
+        "desired_genre": "ambient"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "명상 워크숍",
+        "event_description_ko": "명상 워크숍에서 집중에 방해되지 않을 음악이 필요해요.",
+        "desired_genre": "ambient"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "serene, focused, spacious",
+          "tempo_request": "매우 느리고 안정적인 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "ambient"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "interpreted",
+            "value": "집중에 방해되지 않을",
+            "evidence": [
+              "집중에 방해되지 않을"
+            ]
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Serene, spacious ambient music for a meditation workshop, with gentle and steady sounds that support focus.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-17",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "시상 후 축하 리셉션",
+        "event_description_ko": "시상식이 끝난 뒤 리셉션에서 기쁨과 성취감을 나눌 수 있는 밝은 음악을 원합니다. 팝이나 소울 느낌의 보컬곡도 괜찮습니다.",
+        "desired_genre": "pop or soul"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "시상 후 축하 리셉션",
+        "event_description_ko": "시상식이 끝난 뒤 리셉션에서 틀 음악이 필요해요. 보컬이 있어도 괜찮습니다.",
+        "desired_genre": "pop or soul"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "joyful, celebratory, warm",
+          "tempo_request": "중간에서 빠른 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "pop or soul"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "interpreted",
+            "value": "보컬 허용",
+            "evidence": [
+              "보컬이 있어도 괜찮습니다."
+            ]
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Joyful, celebratory pop or soul music, including vocals, for a post-awards reception.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-18",
+      "selection_status": "reserve",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "독립 영화 상영 후 대화",
+        "event_description_ko": "독립 영화 상영 후 관객과 대화하는 시간에 어울리는 감성적이고 약간 몽환적인 음악을 원합니다. 인디 록이나 신스 질감도 좋아합니다.",
+        "desired_genre": "indie rock or electronic"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "독립 영화 상영 후 대화",
+        "event_description_ko": "독립 영화 상영 후 관객과 대화하는 시간에 어울리는 감성적이고 약간 몽환적인 음악을 원합니다. 인디 록이나 신스 질감도 좋아합니다.",
+        "desired_genre": "indie rock or electronic"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "not_reviewed",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "dreamy, introspective, emotional",
+          "tempo_request": "느리거나 중간 정도",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "not_requested",
+            "value_ref": null,
+            "evidence": []
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Dreamy, introspective music with an emotional indie rock or synth texture for a discussion after an independent film screening.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-19",
+      "selection_status": "replace_candidate",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "자선 바자회",
+        "event_description_ko": "가족이 함께 오는 자선 바자회에서 편안하고 희망적인 분위기를 만들 음악을 원합니다. 포크나 어쿠스틱 팝을 선호합니다.",
+        "desired_genre": "folk or acoustic pop"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "자선 바자회",
+        "event_description_ko": "가족이 함께 오는 자선 바자회에서 편안하고 희망적인 분위기를 만들 음악을 원합니다. 포크나 어쿠스틱 팝을 선호합니다.",
+        "desired_genre": "folk or acoustic pop"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "not_reviewed",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "hopeful, friendly, warm",
+          "tempo_request": "중간 정도의 편안한 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "not_requested",
+            "value_ref": null,
+            "evidence": []
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Hopeful, friendly folk or acoustic pop for a family-oriented charity fair, warm and comfortable.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    },
+    {
+      "query_id": "event-20",
+      "selection_status": "active_v1",
+      "historical_raw_draft": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "무용 공연",
+        "event_description_ko": "현대 무용 공연에서 움직임의 긴장과 해방감을 함께 표현할 음악을 원합니다. 처음에는 절제되어 있다가 점차 강렬해지는 전자음악이나 실험적인 사운드가 좋습니다.",
+        "desired_genre": "electronic or experimental"
+      },
+      "raw_service_input": {
+        "provenance": "representative_synthetic_scenario",
+        "event_type": "무용 공연",
+        "event_description_ko": "현대 무용 공연에서 긴장감이 점점 커지는 장면에 쓸 음악을 찾고 있어요.",
+        "desired_genre": "electronic"
+      },
+      "structured_interpretation": {
+        "status": "calibration_only_not_production_interpretation",
+        "review_status": "reviewed_for_raw_support",
+        "historical_interpretation_draft": {
+          "status": "draft_not_production_interpretation",
+          "mood_request": "restrained, tense, then intense and liberating",
+          "tempo_request": "점차 고조되는 느낌",
+          "provenance": "preserved_existing_draft_fields",
+          "human_review_status": "not_reviewed"
+        },
+        "attributes": {
+          "mood": {
+            "state": "interpreted",
+            "value": [
+              "긴장감"
+            ],
+            "evidence": [
+              "긴장감"
+            ]
+          },
+          "tempo": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "desired_genre": {
+            "state": "interpreted",
+            "value_ref": "#/raw_service_input/desired_genre",
+            "evidence": [
+              "electronic"
+            ]
+          },
+          "instrument_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "vocal_preference": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "acoustic_electronic": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "dynamic_progression": {
+            "state": "interpreted",
+            "value": "점점 커짐",
+            "evidence": [
+              "점점 커지는"
+            ]
+          },
+          "usage_context": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "rhythmic_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          },
+          "activity_character": {
+            "state": "not_requested",
+            "value": null,
+            "evidence": []
+          }
+        }
+      },
+      "msclap_model_input": {
+        "text": "Experimental electronic music for a contemporary dance performance, beginning restrained and tense before building toward an intense, liberating release.",
+        "status": "draft_not_confirmed_model_input",
+        "provenance": "human_authored_draft_translation",
+        "draft_version": "draft-v1",
+        "human_review_status": "not_reviewed"
+      }
+    }
+  ]
+}
