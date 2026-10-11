@@ -42,7 +42,7 @@ Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 
 
 1차 목표는 50곡이다. 같은 아티스트는 가급적 1곡, 최대 2곡으로 제한한다. 장르·분위기, 보컬/인스트루멘탈, electronic/acoustic, 느림/중간/빠름 인상의 편중을 줄인다. 제공자 metadata와 사람이 붙인 label을 별도로 보존하고 출처가 불분명한 label은 unknown으로 둔다. Source metadata의 tempo는 표본 구성 설명으로만 쓸 수 있으며, BPM/Rhythm ranking 구현을 뜻하지 않는다.
 
-정식 calibration 후보는 Incompetech 2곡, 새 FMA 전체곡 20곡, Wikimedia Commons 22곡, ccMixter 6곡으로 총 50곡이다. ccMixter는 개별 트랙의 길이·라이선스·attribution·source dependency를 확인한 항목만 포함하며, sample/remix source chain이 불명확한 트랙은 포함하지 않는다. 기존 FMA 30초 Historical 자료는 사용하지 않고, Phase A 6곡은 기술 검증 fixture로만 유지하며 calibration cohort에서 제외한다. HOLD 판정된 The Wind that Shakes the Barley는 검토 이력에만 보존하고 PASS cohort 및 manifest에서는 제외했다. Audio 다운로드, source SHA 기록, decode 검증, prepared Audio 생성, MSCLAP Embedding, cosine 실험, 청취평가 및 transformation 선정은 아직 수행하지 않았다.
+정식 calibration 후보는 Incompetech 2곡, 새 FMA 전체곡 20곡, Wikimedia Commons 22곡, ccMixter 6곡으로 총 50곡이다. `candidate_selection_complete`는 정확히 50개이며 각 sample의 `commercial_use_status`가 `allowed`, `rights_status`가 `confirmed_from_official_metadata`인 현재 유효 후보 집합을 뜻한다. 재검증으로 sample이 restricted, excluded 또는 그 밖의 부적격 상태가 되면 이 상태를 유지하지 않고 `candidate_selection_incomplete`로 바꾼다. 적격 대체 후보를 검증해 유효한 50곡을 다시 확보한 뒤에만 complete로 되돌린다. ccMixter는 개별 트랙의 길이·라이선스·attribution·source dependency를 확인한 항목만 포함하며, sample/remix source chain이 불명확한 트랙은 포함하지 않는다. 기존 FMA 30초 Historical 자료는 사용하지 않고, Phase A 6곡은 기술 검증 fixture로만 유지하며 calibration cohort에서 제외한다. HOLD 판정된 The Wind that Shakes the Barley는 검토 이력에만 보존하고 PASS cohort 및 manifest에서는 제외했다. Audio 다운로드, source SHA 기록, decode 검증, prepared Audio 생성, MSCLAP Embedding, cosine 실험, 청취평가 및 transformation 선정은 아직 수행하지 않았다.
 
 ## Segment 준비 규칙
 

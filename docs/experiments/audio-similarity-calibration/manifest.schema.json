@@ -52,7 +52,21 @@
           "samples": {
             "type": "array",
             "minItems": 50,
-            "maxItems": 50
+            "maxItems": 50,
+            "items": {
+              "properties": {
+                "commercial_use_status": {
+                  "const": "allowed"
+                },
+                "rights_status": {
+                  "const": "confirmed_from_official_metadata"
+                }
+              },
+              "required": [
+                "commercial_use_status",
+                "rights_status"
+              ]
+            }
           }
         }
       }

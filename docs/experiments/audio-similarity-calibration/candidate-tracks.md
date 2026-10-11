@@ -78,7 +78,7 @@ ccMixter 약관은 track별 라이선스 확인과 attribution을 요구하고, 
 1. 추가 선정은 개별 공식 track/file page에서 full-track 길이·녹음물 license·source/artist/attribution을 확인할 수 있을 때만 한다. ccMixter는 source dependency가 없는 독립 트랙을 우선한다. FMA는 FMA-small 중복을 track identity 기준으로 배제할 수 있어야 한다.
 2. 승인된 취득 절차가 시작된 뒤 원본 SHA-256, decoder duration, sample rate, channel, codec을 실제 파일에서 측정한다. catalog duration을 decoded duration으로 간주하지 않는다.
 3. Schema에 manual mood/tempo field가 없으므로 임의로 확장하지 않는다. 나중에 manual label을 만들면 기존 `labelSource.kind=manual_label`에 annotator/protocol을 기록한다.
-4. 이전 batch의 20곡은 당시 candidate selection 전체 완료를 뜻하지 않았다. 현재도 34/50으로 후보 검증은 미완료이며, 부족한 수량은 개별 조건을 검증한 뒤에만 보충한다.
+4. 해당 batch 기록 당시의 후보 수는 34/50으로, 그 시점에서는 candidate selection이 미완료였다. 이후 manifest-only 재검증과 마지막 대체 후보 검토를 거쳐 앞부분의 현재 상태와 아래 최종 집계에 기록한 PASS 50곡을 확정했다.
 
 ## ccMixter 검토 batch 2
 
@@ -100,7 +100,7 @@ ccMixter 약관은 track별 라이선스 확인과 attribution을 요구하고, 
 ccMixter 페이지의 track license는 개별 업로더의 표시 및 권리 진술을 근거로 기록했다. ccMixter 자체도 업로더 권리 진술과 별개로 제3자 권리 비침해를 보증하지 않으므로, 후보 채택은 독립적인 법률 검토를 뜻하지 않는다. 다운로드·decode·SHA-256은 하지 않았다.
 ## 후보 확장 batch — Wikimedia Commons, FMA, ccMixter
 
-이번 batch에서 기존 20곡과 중복되지 않는 개별 페이지 27개를 검토했다. Wikimedia Commons 11곡과 FMA 3곡을 추가 채택했고, FMA 후보 3곡과 ccMixter 10곡은 채택하지 않았다. 검토 후 cohort는 34/50이며 16곡이 부족하다. source_catalog_duration은 제공자 페이지의 표기값으로 실제 decoder 측정값이 아니다. 모든 채택 곡은 아직 다운로드·decode·SHA-256 측정을 하지 않았다.
+이번 batch에서 기존 20곡과 중복되지 않는 개별 페이지 27개를 검토했다. Wikimedia Commons 11곡과 FMA 3곡을 추가 채택했고, FMA 후보 3곡과 ccMixter 10곡은 채택하지 않았다. 해당 batch 직후 당시 cohort는 34/50으로 16곡이 부족했다. source_catalog_duration은 제공자 페이지의 표기값으로 실제 decoder 측정값이 아니다. 모든 채택 곡은 아직 다운로드·decode·SHA-256 측정을 하지 않았다.
 
 ### 추가 채택
 

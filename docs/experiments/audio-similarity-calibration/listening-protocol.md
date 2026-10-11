@@ -8,13 +8,13 @@
 
 ## 표본 추출
 
-NSUAI-37이 각 query에 대한 cosine 결과를 생성한 뒤, query별로 다음을 추출한다.
+NSUAI-37이 각 query에 대한 cosine 결과를 생성한 뒤, raw cosine 내림차순 ranking의 rank를 기준으로 query별 다음 위치를 추출한다. 동일 raw cosine의 순서는 ranking을 생성한 기존 검색 경로의 tie-break 규칙을 그대로 사용하며, 표본 추출 단계에서 동점 순서를 다시 정렬하지 않는다. 이 프로토콜의 위치는 각 query ranking의 50개 후보를 전제로 하며 top은 rank 1·2, middle은 중앙에 인접한 rank 25·26, bottom은 rank 49·50이다. 따라서 같은 입력과 같은 ranking이면 항상 같은 stratified pair가 선택된다.
 
-- 상위 2개 후보
-- 중간 rank 부근 2개 후보
-- 하위 2개 후보
+- Top: rank 1, 2
+- Middle: rank 25, 26
+- Bottom: rank 49, 50
 
-ACTIVE v1 16개 기준 전체 cosine pair는 50곡 × 16 query = 800개다. query별 상위 2개, 중간 rank 부근 2개, 하위 2개를 추출하면 최대 16 × 6 = 96쌍이다. Tie 또는 중복 sample/query 조합 발생 시 사전 고정된 규칙으로 대체하고, stratified 추출 seed와 선택 사유를 evidence에 기록한다. 추가 무작위 20–40쌍은 전체 800개 조합에서 이미 선택된 stratified pair를 제외한 나머지 모집단에서 비복원 추출한다. 재현을 위해 random 추출 seed와 eligible pair ID 집합/버전을 evidence에 기록한다. stratified 96쌍과 random 20–40쌍을 확보한 경우 예상 고유 pair는 116–136개이며, 실제 표본 수를 기록한다. 이는 통계적 충분성을 뜻하지 않는다.
+ACTIVE v1 16개 기준 전체 cosine pair는 50곡 × 16 query = 800개다. query별 rank 1·2, rank 25·26, rank 49·50을 추출하면 최대 16 × 6 = 96쌍이다. 이미 정의한 ranking/tie-break 순서를 유지하며, 같은 sample/query pair가 중복되면 고정된 rank 순서에서 다음 미선택 rank로 대체하고 선택 사유를 기록한다. 이 stratified 선택은 random 추출과 독립적으로 먼저 고정한다. 추가 무작위 20–40쌍은 전체 800개 조합에서 이미 선택된 stratified pair를 제외한 나머지 모집단에서 비복원 추출한다. 재현을 위해 random 추출 seed와 eligible pair ID 집합/버전을 evidence에 기록한다. stratified 96쌍과 random 20–40쌍을 확보한 경우 예상 고유 pair는 116–136개이며, 실제 표본 수를 기록한다. 이는 통계적 충분성을 뜻하지 않는다.
 
 3명의 evaluator가 모든 고유 쌍을 각각 평가한다면 산술상 약 348–408건의 rating이다. 실제 표본 수와 evaluator 수는 실행 전에 기록한다.
 
