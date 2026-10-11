@@ -34,6 +34,43 @@ def duplicate_query_ids(event_queries):
     return sorted(duplicates)
 
 
+def duplicate_raw_service_inputs(event_queries):
+    """Return exact normalized Raw input tuples shared by multiple query records."""
+    if not isinstance(event_queries, dict) or not isinstance(event_queries.get('queries'), list):
+        raise ValueError("event query inventory must contain a 'queries' array")
+
+    seen = {}
+    duplicates = set()
+    for index, query in enumerate(event_queries['queries']):
+        if not isinstance(query, dict):
+            raise ValueError(f'queries[{index}] must be an object')
+        raw_input = query.get('raw_service_input')
+        if not isinstance(raw_input, dict):
+            continue  # JSON Schema reports structural errors.
+
+        values = []
+        malformed = False
+        for field in ('event_type', 'event_description_ko', 'desired_genre'):
+            value = raw_input.get(field)
+            if isinstance(value, str):
+                value = ' '.join(value.split()).casefold()
+            elif value is not None:
+                malformed = True
+                break
+            values.append(value)
+        if malformed:
+            continue  # JSON Schema reports malformed Raw input fields.
+        identity = tuple(values)
+        query_id = query.get('query_id')
+        if not isinstance(query_id, str) or not query_id:
+            query_id = f'queries[{index}]'
+        if identity in seen:
+            duplicates.add((seen[identity], query_id))
+        else:
+            seen[identity] = query_id
+    return sorted(duplicates)
+
+
 def event_query_raw_reference_errors(event_queries):
     """Validate reviewed annotations against their own raw service input."""
     if not isinstance(event_queries, dict) or not isinstance(event_queries.get('queries'), list):
@@ -64,29 +101,49 @@ def event_query_raw_reference_errors(event_queries):
             if not isinstance(annotation, dict):
                 continue
 
+            state = annotation.get('state')
+            value_key = 'value_ref' if attribute == 'desired_genre' else 'value'
+            value = annotation.get(value_key)
             evidence = annotation.get('evidence')
             if not isinstance(evidence, list):
                 continue  # JSON Schema reports structural errors.
 
+            location = f'query {query_id} structured_interpretation.attributes.{attribute}'
+            if state == 'interpreted':
+                if attribute != 'desired_genre' and value in (None, '', []):
+                    errors.append(f'{location} is interpreted but has no value')
+                if not evidence:
+                    errors.append(f'{location} is interpreted but has no evidence')
+            elif state == 'not_requested':
+                if value is not None:
+                    errors.append(f'{location} is not_requested but has a value')
+                if evidence:
+                    errors.append(f'{location} is not_requested but has evidence')
+            elif state == 'unable_to_interpret':
+                if value is not None:
+                    errors.append(f'{location} is unable_to_interpret but has a value')
+                if not evidence:
+                    errors.append(f'{location} is unable_to_interpret but has no evidence')
+
             for evidence_index, excerpt in enumerate(evidence):
-                location = (
+                evidence_location = (
                     f'query {query_id} structured_interpretation.attributes.'
                     f'{attribute}.evidence[{evidence_index}]'
                 )
                 if not isinstance(excerpt, str) or not excerpt.strip():
-                    errors.append(f'{location} must be a non-empty Raw excerpt')
+                    errors.append(f'{evidence_location} must be a non-empty Raw excerpt')
                     continue
 
                 if attribute == 'desired_genre':
                     raw_genre = raw_input.get('desired_genre')
                     if not isinstance(raw_genre, str) or excerpt not in raw_genre:
                         errors.append(
-                            f'{location} must be an exact substring of '
+                            f'{evidence_location} must be an exact substring of '
                             'raw_service_input.desired_genre'
                         )
                 elif not any(excerpt in source for source in raw_sources.values()):
                     errors.append(
-                        f'{location} must be an exact substring of this query\'s '
+                        f'{evidence_location} must be an exact substring of this query\'s '
                         'raw_service_input.event_type, event_description_ko, or desired_genre'
                     )
 
@@ -109,7 +166,9 @@ def event_query_raw_reference_errors(event_queries):
             errors.append(
                 f'{location} is not_requested but raw_service_input.desired_genre contains a request'
             )
-        elif state == 'unable_to_interpret' and raw_genre is None:
+        elif state == 'unable_to_interpret' and (
+            not isinstance(raw_genre, str) or not raw_genre.strip()
+        ):
             errors.append(
                 f'{location} is unable_to_interpret but raw_service_input.desired_genre has no request'
             )

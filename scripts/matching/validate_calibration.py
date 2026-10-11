@@ -9,9 +9,14 @@ from jsonschema import Draft202012Validator, FormatChecker, SchemaError
 
 from scripts.matching.validate_calibration_event_queries import (
     duplicate_query_ids,
+    duplicate_raw_service_inputs,
     event_query_raw_reference_errors,
 )
-from scripts.matching.validate_calibration_manifest import duplicate_sample_ids
+from scripts.matching.validate_calibration_manifest import (
+    duplicate_provider_track_identities,
+    duplicate_sample_ids,
+    duplicate_source_urls,
+)
 
 
 CALIBRATION_DIR = (
@@ -46,6 +51,13 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
         duplicates = duplicate_sample_ids(manifest)
         if duplicates:
             errors.append('Duplicate sample_id values: ' + ', '.join(duplicates))
+        duplicates = duplicate_source_urls(manifest)
+        if duplicates:
+            errors.append('Duplicate source_url values: ' + ', '.join(duplicates))
+        duplicates = duplicate_provider_track_identities(manifest)
+        if duplicates:
+            formatted = ', '.join(f'({provider}, {track_id})' for provider, track_id in duplicates)
+            errors.append('Duplicate (provider, provider_track_id) identities: ' + formatted)
     except ValueError as exc:
         errors.append(str(exc))
 
@@ -53,6 +65,10 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
         duplicates = duplicate_query_ids(event_queries)
         if duplicates:
             errors.append('Duplicate query_id values: ' + ', '.join(duplicates))
+        duplicate_inputs = duplicate_raw_service_inputs(event_queries)
+        if duplicate_inputs:
+            formatted = ', '.join(f'({left}, {right})' for left, right in duplicate_inputs)
+            errors.append('Duplicate normalized raw_service_input records: ' + formatted)
     except ValueError as exc:
         errors.append(str(exc))
 
@@ -105,7 +121,7 @@ def main(argv=None):
         return 1
 
     print(
-        'Calibration validation passed: both schemas, sample_id/query_id uniqueness, '
+        'Calibration validation passed: schemas, unique sample/query/track identities and Raw scenarios, '
         'and ACTIVE Event interpretation Raw references.'
     )
     return 0

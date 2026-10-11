@@ -34,6 +34,50 @@ def duplicate_sample_ids(manifest):
     return sorted(duplicates)
 
 
+def duplicate_source_urls(manifest):
+    """Return duplicate track source URLs in a complete calibration cohort."""
+    if not isinstance(manifest, dict) or not isinstance(manifest.get('samples'), list):
+        raise ValueError("manifest must contain a 'samples' array")
+    if manifest.get('cohort_status') != 'candidate_selection_complete':
+        return []
+
+    seen = set()
+    duplicates = set()
+    for index, sample in enumerate(manifest['samples']):
+        if not isinstance(sample, dict):
+            raise ValueError(f'samples[{index}] must be an object')
+        source_url = sample.get('source_url')
+        if not isinstance(source_url, str) or not source_url:
+            continue  # JSON Schema reports malformed URLs.
+        if source_url in seen:
+            duplicates.add(source_url)
+        seen.add(source_url)
+    return sorted(duplicates)
+
+
+def duplicate_provider_track_identities(manifest):
+    """Return duplicate (provider, provider_track_id) identities in a complete cohort."""
+    if not isinstance(manifest, dict) or not isinstance(manifest.get('samples'), list):
+        raise ValueError("manifest must contain a 'samples' array")
+    if manifest.get('cohort_status') != 'candidate_selection_complete':
+        return []
+
+    seen = set()
+    duplicates = set()
+    for index, sample in enumerate(manifest['samples']):
+        if not isinstance(sample, dict):
+            raise ValueError(f'samples[{index}] must be an object')
+        provider = sample.get('provider')
+        provider_track_id = sample.get('provider_track_id')
+        if not isinstance(provider, str) or not provider or not isinstance(provider_track_id, str) or not provider_track_id:
+            continue  # A missing provider ID falls back to source_url uniqueness.
+        identity = (provider, provider_track_id)
+        if identity in seen:
+            duplicates.add(identity)
+        seen.add(identity)
+    return sorted(duplicates)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('manifest', nargs='?', type=Path, default=DEFAULT_MANIFEST)

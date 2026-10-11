@@ -1,6 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Audio Similarity Calibration Manifest",
+  "description": "Calibration experiment manifest. JSON Schema checks per-sample eligibility and complete-cohort size; the integrated calibration validator additionally enforces cross-record sample and real-track identity uniqueness.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -31,6 +32,7 @@
       "const": "offline_calibration_decoded_audio_center_exact_60_seconds"
     },
     "samples": {
+      "description": "For candidate_selection_complete, the integrated validator requires unique sample_id and source_url values plus unique (provider, provider_track_id) pairs when provider_track_id is present. A missing provider_track_id relies on source_url uniqueness.",
       "type": "array",
       "items": {
         "$ref": "#/$defs/sample"

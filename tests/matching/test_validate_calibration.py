@@ -53,7 +53,8 @@ def test_documented_module_invocation_runs_from_repository_root():
     )
 
     assert result.returncode == 0, result.stderr
-    assert 'both schemas' in result.stdout
+    assert 'schemas' in result.stdout
+    assert 'track identities' in result.stdout
 
 
 def test_missing_manifest_required_field_fails(tmp_path, capsys):
@@ -96,6 +97,73 @@ def test_duplicate_identifiers_fail(tmp_path, capsys, identifier):
     assert f'Duplicate {identifier} values:' in output.err
 
 
+def test_duplicate_source_url_fails_even_when_logical_ids_differ(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    first, second = manifest['samples'][:2]
+    second['sample_id'] = 'cal-distinct-sample-id'
+    second['provider_track_id'] = 'distinct-provider-track-id'
+    second['source_url'] = first['source_url']
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'Duplicate source_url values:' in output.err
+
+
+def test_duplicate_provider_track_identity_fails_with_distinct_source_urls(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    first, second = manifest['samples'][:2]
+    second['sample_id'] = 'cal-distinct-sample-id'
+    second['provider'] = first['provider']
+    second['provider_track_id'] = first['provider_track_id']
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'Duplicate (provider, provider_track_id) identities:' in output.err
+
+
+def test_distinct_track_identities_pass(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
+def test_missing_provider_track_id_falls_back_to_source_url(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['provider_track_id'] = None
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
+def test_provider_track_id_can_repeat_across_different_providers(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    first, second = manifest['samples'][:2]
+    second['provider'] = 'Separate Provider'
+    second['provider_track_id'] = first['provider_track_id']
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
+def test_incomplete_cohort_allows_duplicate_track_candidates(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['cohort_status'] = 'candidate_selection_incomplete'
+    manifest['samples'].pop()
+    manifest['samples'][1]['source_url'] = manifest['samples'][0]['source_url']
+    manifest['samples'][1]['provider'] = manifest['samples'][0]['provider']
+    manifest['samples'][1]['provider_track_id'] = manifest['samples'][0]['provider_track_id']
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
 def test_active_query_not_reviewed_fails(tmp_path, capsys):
     event_queries = _load_json('event-queries.json')
     active = next(query for query in event_queries['queries'] if query['selection_status'] == 'active_v1')
@@ -105,6 +173,17 @@ def test_active_query_not_reviewed_fails(tmp_path, capsys):
 
     assert result == 1
     assert 'reviewed_for_raw_support' in output.err
+
+
+def test_duplicate_raw_scenario_fails_even_when_query_ids_differ(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    first, second = event_queries['queries'][:2]
+    second['raw_service_input'] = json.loads(json.dumps(first['raw_service_input']))
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'Duplicate normalized raw_service_input records:' in output.err
 
 
 @pytest.mark.parametrize(
@@ -172,6 +251,70 @@ def test_uninterpreted_states_allow_null_value_with_expected_evidence(
         'state': state,
         'value': value,
         'evidence': evidence,
+    }
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 0, output.err
+
+
+def test_unable_to_interpret_requires_evidence(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['mood'] = {
+        'state': 'unable_to_interpret',
+        'value': None,
+        'evidence': [],
+    }
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert 'minItems' in output.err or 'no evidence' in output.err
+
+
+@pytest.mark.parametrize(
+    ('attribute', 'value_key'),
+    [
+        ('mood', 'value'),
+        ('tempo', 'value'),
+        ('desired_genre', 'value_ref'),
+        ('instrument_preference', 'value'),
+        ('vocal_preference', 'value'),
+        ('acoustic_electronic', 'value'),
+        ('dynamic_progression', 'value'),
+        ('usage_context', 'value'),
+        ('rhythmic_character', 'value'),
+        ('activity_character', 'value'),
+    ],
+)
+def test_unable_to_interpret_empty_evidence_fails_for_every_attribute(
+    tmp_path,
+    capsys,
+    attribute,
+    value_key,
+):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes'][attribute] = {
+        'state': 'unable_to_interpret',
+        value_key: None,
+        'evidence': [],
+    }
+
+    result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
+
+    assert result == 1
+    assert attribute in output.err
+
+
+def test_unable_to_interpret_with_valid_raw_evidence_passes(tmp_path, capsys):
+    event_queries = _load_json('event-queries.json')
+    active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    active['structured_interpretation']['attributes']['mood'] = {
+        'state': 'unable_to_interpret',
+        'value': None,
+        'evidence': ['같이 즐길 수 있는'],
     }
 
     result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)
@@ -423,10 +566,13 @@ def test_desired_genre_unable_to_interpret_without_raw_request_fails(tmp_path, c
 def test_unable_to_interpret_evidence_must_reference_current_raw(tmp_path, capsys):
     event_queries = _load_json('event-queries.json')
     active = next(query for query in event_queries['queries'] if query['query_id'] == 'event-01')
+    other_query = next(query for query in event_queries['queries'] if query['query_id'] == 'event-02')
+    foreign_excerpt = other_query['raw_service_input']['event_description_ko']
+    assert foreign_excerpt not in active['raw_service_input']['event_description_ko']
     active['structured_interpretation']['attributes']['mood'] = {
         'state': 'unable_to_interpret',
         'value': None,
-        'evidence': ['excerpt absent from current Raw'],
+        'evidence': [foreign_excerpt],
     }
 
     result, output = _run_validator(tmp_path, capsys, event_queries=event_queries)

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Audio Similarity Calibration Event Query Experiment Data",
-  "description": "Calibration experiment inventory only. This schema is not a Spring request/response API contract.",
+  "description": "Calibration experiment inventory only, not a Spring API contract. The integrated validator enforces cross-record query/raw-scenario uniqueness and checks evidence against each query's current raw_service_input.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -34,7 +34,7 @@
       "const": "engineering-calibration-v1"
     },
     "queries": {
-      "description": "Historical draft inventory retained in full; exactly 20 records, of which 16 are active_v1, 2 reserve, and 2 replace_candidate. Validate the status counts as an additional cross-record rule.",
+      "description": "Historical draft inventory retained in full; exactly 20 records, of which 16 are active_v1, 2 reserve, and 2 replace_candidate. The integrated validator requires unique query_id values and unique normalized (event_type, event_description_ko, desired_genre) Raw scenarios.",
       "type": "array",
       "minItems": 20,
       "maxItems": 20,
@@ -257,7 +257,7 @@
                 }
               },
               "attributes": {
-                "description": "Per-attribute calibration review placeholders. The three states are interpreted, not_requested, and unable_to_interpret. While review_status is not_reviewed, placeholder state values are not semantic findings.",
+                "description": "Calibration-only annotations, not production interpretation DTOs. interpreted requires a non-empty value/value_ref and evidence; not_requested requires null value/value_ref and empty evidence; unable_to_interpret requires null value/value_ref and at least one related Raw excerpt. The integrated validator checks every excerpt is an exact substring of this query's current raw_service_input. While review_status is not_reviewed, placeholder states are not semantic findings.",
                 "type": "object",
                 "additionalProperties": false,
                 "required": [
@@ -351,7 +351,8 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
+                            "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
+                            "minItems": 1
                           }
                         }
                       }
@@ -431,7 +432,8 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
+                            "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
+                            "minItems": 1
                           }
                         }
                       }
@@ -511,7 +513,8 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
+                            "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
+                            "minItems": 1
                           }
                         }
                       }
@@ -595,7 +598,8 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
+                            "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
+                            "minItems": 1
                           }
                         }
                       }
@@ -675,7 +679,8 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
+                            "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
+                            "minItems": 1
                           }
                         }
                       }
@@ -759,7 +764,8 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
+                            "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
+                            "minItems": 1
                           }
                         }
                       }
@@ -839,7 +845,8 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "For interpreted attributes, evidence is non-empty; any supplied excerpt for interpreted or unable_to_interpret must be an exact substring of this query's raw_service_input.event_type, event_description_ko, or desired_genre; not_requested evidence is empty."
+                            "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
+                            "minItems": 1
                           }
                         }
                       }
@@ -919,7 +926,8 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Raw excerpt(s) were present but could not be interpreted."
+                            "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
+                            "minItems": 1
                           }
                         }
                       }
@@ -999,7 +1007,8 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Raw excerpt(s) were present but could not be interpreted."
+                            "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
+                            "minItems": 1
                           }
                         }
                       }
@@ -1079,7 +1088,8 @@
                             "items": {
                               "type": "string"
                             },
-                            "description": "Raw excerpt(s) were present but could not be interpreted."
+                            "description": "At least one related Raw excerpt is required; each excerpt must be an exact substring of this query raw_service_input. The integrated validator checks the current Raw fields.",
+                            "minItems": 1
                           }
                         }
                       }
