@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Audio Similarity Calibration Manifest",
-  "description": "Calibration experiment manifest, not a production API schema. For candidate_selection_complete the integrated validator also enforces no more than two samples per credited artist (normalized by whitespace and case), in addition to unique sample and real-track identities.",
+  "description": "Calibration experiment manifest, not a production API schema. For candidate_selection_complete the integrated validator also enforces no more than two samples per credited artist (normalized by whitespace and case), in addition to unique sample and real-track identities. When a prepared segment is present, frame counts and durations must describe the exact centered 60-second extraction.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -155,8 +155,15 @@
                       "decoded_duration": {
                         "type": "number",
                         "minimum": 60
+                      },
+                      "decoded_frame_count": {
+                        "type": "integer",
+                        "minimum": 1
                       }
-                    }
+                    },
+                    "required": [
+                      "decoded_frame_count"
+                    ]
                   }
                 },
                 {
@@ -389,6 +396,10 @@
         "decoded_duration": {
           "$ref": "#/$defs/nullableNumber"
         },
+        "decoded_frame_count": {
+          "$ref": "#/$defs/nullablePositiveInteger",
+          "description": "Exact decoded source frame count; required when decoded_duration is recorded and for any prepared segment, so frame bounds and centered extraction can be validated without rounded-duration arithmetic."
+        },
         "source_sample_rate": {
           "$ref": "#/$defs/nullablePositiveInteger"
         },
@@ -519,7 +530,241 @@
         "notes": {
           "type": "string"
         }
-      }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "acquisition_method": {
+                "enum": [
+                  "official_direct_download",
+                  "other_confirmed_method"
+                ]
+              }
+            },
+            "required": [
+              "acquisition_method"
+            ]
+          },
+          "then": {
+            "required": [
+              "source_sha256"
+            ],
+            "properties": {
+              "source_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "acquisition_method": {
+                "const": "not_acquired"
+              }
+            },
+            "required": [
+              "acquisition_method"
+            ]
+          },
+          "then": {
+            "properties": {
+              "source_sha256": {
+                "type": "null"
+              },
+              "source_file_size": {
+                "type": "null"
+              },
+              "decoded_duration": {
+                "type": "null"
+              },
+              "decoded_frame_count": {
+                "type": "null"
+              },
+              "source_sample_rate": {
+                "type": "null"
+              },
+              "source_channels": {
+                "type": "null"
+              },
+              "source_codec": {
+                "type": "null"
+              },
+              "segment_start_frame": {
+                "type": "null"
+              },
+              "segment_end_frame_exclusive": {
+                "type": "null"
+              },
+              "prepared_sha256": {
+                "type": "null"
+              },
+              "prepared_duration": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "decoded_duration": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "decoded_duration"
+            ]
+          },
+          "then": {
+            "required": [
+              "decoded_frame_count",
+              "source_sample_rate",
+              "source_channels"
+            ],
+            "properties": {
+              "decoded_frame_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "source_sample_rate": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "source_channels": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "decoded_frame_count": {
+                "type": "integer"
+              }
+            },
+            "required": [
+              "decoded_frame_count"
+            ]
+          },
+          "then": {
+            "required": [
+              "decoded_duration",
+              "source_sample_rate",
+              "source_channels"
+            ],
+            "properties": {
+              "decoded_duration": {
+                "type": "number",
+                "minimum": 0
+              },
+              "source_sample_rate": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "source_channels": {
+                "type": "integer",
+                "minimum": 1
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "anyOf": [
+              {
+                "properties": {
+                  "prepared_sha256": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "prepared_duration": {
+                    "type": "number"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "segment_start_frame": {
+                    "type": "integer"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "segment_end_frame_exclusive": {
+                    "type": "integer"
+                  }
+                }
+              }
+            ]
+          },
+          "then": {
+            "required": [
+              "acquisition_method",
+              "source_sha256",
+              "decoded_duration",
+              "decoded_frame_count",
+              "source_sample_rate",
+              "source_channels",
+              "segment_start_frame",
+              "segment_end_frame_exclusive",
+              "prepared_sha256",
+              "prepared_duration"
+            ],
+            "properties": {
+              "acquisition_method": {
+                "enum": [
+                  "official_direct_download",
+                  "other_confirmed_method"
+                ]
+              },
+              "source_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "decoded_duration": {
+                "type": "number",
+                "minimum": 60
+              },
+              "decoded_frame_count": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "source_sample_rate": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "source_channels": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "segment_start_frame": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "segment_end_frame_exclusive": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "prepared_sha256": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "prepared_duration": {
+                "const": 60
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

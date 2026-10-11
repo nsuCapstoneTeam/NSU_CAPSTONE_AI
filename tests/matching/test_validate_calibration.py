@@ -586,8 +586,12 @@ def test_source_file_size_must_be_an_integer(tmp_path, capsys):
 def test_finite_source_measurements_with_valid_integer_units_pass(tmp_path, capsys):
     manifest = _load_json('manifest.json')
     sample = manifest['samples'][0]
+    sample['acquisition_method'] = 'official_direct_download'
+    sample['source_sha256'] = 'a' * 64
     sample['source_sample_rate'] = 44100
     sample['source_channels'] = 2
+    sample['decoded_duration'] = 100
+    sample['decoded_frame_count'] = 100 * 44100
     sample['source_file_size'] = 4096
 
     result, output = _run_validator(tmp_path, capsys, manifest=manifest)
@@ -752,12 +756,93 @@ def test_acquired_complete_sample_requires_decoded_duration(tmp_path, capsys):
 
 def test_acquired_complete_sample_with_60_second_decode_passes(tmp_path, capsys):
     manifest = _load_json('manifest.json')
-    manifest['samples'][0]['acquisition_method'] = 'official_direct_download'
-    manifest['samples'][0]['decoded_duration'] = 60
+    sample = manifest['samples'][0]
+    sample['acquisition_method'] = 'official_direct_download'
+    sample['source_sha256'] = 'a' * 64
+    sample['decoded_duration'] = 60
+    sample['decoded_frame_count'] = 60 * 44100
+    sample['source_sample_rate'] = 44100
+    sample['source_channels'] = 2
 
     result, output = _run_validator(tmp_path, capsys, manifest=manifest)
 
     assert result == 0, output.err
+
+
+def _set_valid_prepared_segment(sample):
+    sample['acquisition_method'] = 'official_direct_download'
+    sample['source_sha256'] = 'a' * 64
+    sample['decoded_frame_count'] = 80 * 44100
+    sample['decoded_duration'] = 80
+    sample['source_sample_rate'] = 44100
+    sample['source_channels'] = 2
+    sample['segment_start_frame'] = 10 * 44100
+    sample['segment_end_frame_exclusive'] = 70 * 44100
+    sample['prepared_sha256'] = 'b' * 64
+    sample['prepared_duration'] = 60
+
+
+def test_exact_centered_prepared_60_second_segment_passes(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    _set_valid_prepared_segment(manifest['samples'][0])
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
+@pytest.mark.parametrize(
+    ('mutate', 'expected_error'),
+    [
+        (lambda sample: sample.update(prepared_duration=60, segment_end_frame_exclusive=441001),
+         'prepared frame span'),
+        (lambda sample: sample.update(segment_start_frame=-1), 'segment_start_frame'),
+        (lambda sample: sample.update(segment_end_frame_exclusive=segment_start(sample)),
+         'segment_end_frame_exclusive'),
+        (lambda sample: sample.update(segment_end_frame_exclusive=sample['segment_start_frame'] + 1),
+         'prepared frame span'),
+        (lambda sample: sample.update(segment_end_frame_exclusive=sample['decoded_frame_count'] + 1),
+         'exceeds decoded_frame_count'),
+        (lambda sample: sample.update(source_sample_rate=0), 'source_sample_rate'),
+        (lambda sample: sample.update(decoded_duration=79), 'decoded_duration must equal'),
+    ],
+)
+def test_prepared_segment_inconsistent_derived_metadata_fails(
+    tmp_path, capsys, mutate, expected_error
+):
+    manifest = _load_json('manifest.json')
+    sample = manifest['samples'][0]
+    _set_valid_prepared_segment(sample)
+    mutate(sample)
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert expected_error in output.err
+
+
+def segment_start(sample):
+    return sample['segment_start_frame']
+
+
+def test_partial_prepared_metadata_fails(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['prepared_duration'] = 60
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'prepared_sha256' in output.err or 'decoded_frame_count' in output.err
+
+
+def test_unacquired_sample_cannot_claim_decode_or_prepared_metadata(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0]['source_sample_rate'] = 44100
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 1
+    assert 'source_sample_rate' in output.err
 
 
 def test_incomplete_cohort_does_not_apply_complete_only_eligibility_rules(tmp_path, capsys):
@@ -767,7 +852,7 @@ def test_incomplete_cohort_does_not_apply_complete_only_eligibility_rules(tmp_pa
     manifest['samples'][0]['rights_status'] = 'excluded'
     manifest['samples'][0]['commercial_use_status'] = 'restricted'
     manifest['samples'][0]['source_catalog_duration'] = None
-    manifest['samples'][0]['decoded_duration'] = 0
+    manifest['samples'][0]['decoded_duration'] = None
     manifest['samples'][0]['license_name'] = None
     manifest['samples'][0]['license_url'] = None
     manifest['samples'][0]['attribution_required'] = None

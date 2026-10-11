@@ -138,6 +138,77 @@ def complete_cohort_license_evidence_errors(manifest):
     return errors
 
 
+def decoded_audio_consistency_errors(manifest):
+    """Check exact decoder metadata and centered prepared-frame arithmetic."""
+    if not isinstance(manifest, dict) or not isinstance(manifest.get('samples'), list):
+        raise ValueError("manifest must contain a 'samples' array")
+
+    errors = []
+    for index, sample in enumerate(manifest['samples']):
+        if not isinstance(sample, dict):
+            raise ValueError(f'samples[{index}] must be an object')
+        sample_id = sample.get('sample_id', f'samples[{index}]')
+        decoded_duration = sample.get('decoded_duration')
+        decoded_frames = sample.get('decoded_frame_count')
+        sample_rate = sample.get('source_sample_rate')
+
+        if decoded_duration is not None:
+            if (type(decoded_frames) is not int or decoded_frames <= 0
+                    or type(sample_rate) is not int or sample_rate <= 0):
+                # JSON Schema reports missing or wrongly typed decode metadata.
+                continue
+            if decoded_duration != decoded_frames / sample_rate:
+                errors.append(
+                    f'{sample_id}.decoded_duration must equal '
+                    'decoded_frame_count / source_sample_rate'
+                )
+
+        prepared_fields = (
+            'prepared_sha256',
+            'prepared_duration',
+            'segment_start_frame',
+            'segment_end_frame_exclusive',
+        )
+        if not any(sample.get(field) is not None for field in prepared_fields):
+            continue
+
+        start = sample.get('segment_start_frame')
+        end = sample.get('segment_end_frame_exclusive')
+        if (type(start) is not int or type(end) is not int
+                or type(decoded_frames) is not int or decoded_frames <= 0
+                or type(sample_rate) is not int or sample_rate <= 0):
+            # Schema reports incomplete, null, or wrongly typed prepared metadata.
+            continue
+
+        expected_span = 60 * sample_rate
+        if start < 0:
+            errors.append(f'{sample_id}.segment_start_frame must be non-negative')
+        if end <= start:
+            errors.append(
+                f'{sample_id}.segment_end_frame_exclusive must be greater than segment_start_frame'
+            )
+            continue
+        if end - start != expected_span:
+            errors.append(
+                f'{sample_id} prepared frame span must equal 60 * source_sample_rate'
+            )
+        if end > decoded_frames:
+            errors.append(
+                f'{sample_id}.segment_end_frame_exclusive exceeds decoded_frame_count'
+            )
+        expected_start = (decoded_frames - expected_span) // 2
+        if decoded_frames < expected_span:
+            errors.append(f'{sample_id} decoded audio is shorter than 60 seconds')
+        elif start != expected_start or end != expected_start + expected_span:
+            errors.append(
+                f'{sample_id} segment frame range is not the centered exact 60-second extraction'
+            )
+        if sample.get('prepared_duration') != 60:
+            errors.append(f'{sample_id}.prepared_duration must equal 60 seconds')
+
+    return errors
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('manifest', nargs='?', type=Path, default=DEFAULT_MANIFEST)

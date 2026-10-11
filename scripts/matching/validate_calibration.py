@@ -16,6 +16,7 @@ from scripts.matching.validate_calibration_event_queries import (
 from scripts.matching.validate_calibration_manifest import (
     artist_count_errors,
     complete_cohort_license_evidence_errors,
+    decoded_audio_consistency_errors,
     duplicate_provider_track_identities,
     duplicate_sample_ids,
     duplicate_source_urls,
@@ -53,6 +54,7 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
     try:
         errors.extend(complete_cohort_license_evidence_errors(manifest))
         errors.extend(artist_count_errors(manifest))
+        errors.extend(decoded_audio_consistency_errors(manifest))
     except ValueError as exc:
         errors.append(str(exc))
 
