@@ -1,0 +1,206 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Audio Similarity Calibration Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "dataset_version",
+    "cohort_target",
+    "cohort_status",
+    "segment_rule",
+    "samples"
+  ],
+  "properties": {
+    "dataset_version": {
+      "type": "string",
+      "const": "audio-similarity-calibration-v1"
+    },
+    "cohort_target": {
+      "type": "integer",
+      "const": 50
+    },
+    "cohort_status": {
+      "type": "string",
+      "enum": [
+        "candidate_selection_incomplete",
+        "candidate_selection_complete"
+      ]
+    },
+    "segment_rule": {
+      "type": "string",
+      "const": "offline_calibration_decoded_audio_center_exact_60_seconds"
+    },
+    "samples": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/sample"
+      }
+    }
+  },
+  "$defs": {
+    "nullableString": {
+      "type": ["string", "null"]
+    },
+    "nullableNumber": {
+      "type": ["number", "null"],
+      "minimum": 0
+    },
+    "nullableNonNegativeInteger": {
+      "type": ["integer", "null"],
+      "minimum": 0
+    },
+    "labelSource": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "provider", "url"],
+          "properties": {
+            "kind": {"const": "source_metadata"},
+            "provider": {"type": "string", "minLength": 1},
+            "url": {"type": "string", "format": "uri"}
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "annotator_id", "protocol_version"],
+          "properties": {
+            "kind": {"const": "manual_label"},
+            "annotator_id": {"type": "string", "minLength": 1},
+            "protocol_version": {"type": "string", "minLength": 1}
+          }
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "sample_id",
+        "title",
+        "artist",
+        "provider",
+        "provider_track_id",
+        "source_url",
+        "source_sha256",
+        "source_catalog_duration",
+        "decoded_duration",
+        "source_sample_rate",
+        "source_channels",
+        "source_codec",
+        "license_name",
+        "license_url",
+        "attribution",
+        "commercial_use_status",
+        "attribution_required",
+        "rights_status",
+        "acquisition_method",
+        "segment_rule",
+        "segment_start_frame",
+        "segment_end_frame_exclusive",
+        "prepared_sha256",
+        "prepared_duration",
+        "genre_value",
+        "genre_source",
+        "mood_value",
+        "mood_source",
+        "vocal_instrumental",
+        "label_status",
+        "notes"
+      ],
+      "properties": {
+        "sample_id": {"type": "string", "pattern": "^cal-[a-z0-9-]+$"},
+        "title": {"type": "string", "minLength": 1},
+        "artist": {"type": "string", "minLength": 1},
+        "provider": {"type": "string", "minLength": 1},
+        "provider_track_id": {"$ref": "#/$defs/nullableString"},
+        "source_url": {"type": "string", "format": "uri"},
+        "source_sha256": {
+          "oneOf": [
+            {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            {"type": "null"}
+          ]
+        },
+        "source_catalog_duration": {
+          "type": ["number", "null"],
+          "exclusiveMinimum": 0
+        },
+        "decoded_duration": {"$ref": "#/$defs/nullableNumber"},
+        "source_sample_rate": {"$ref": "#/$defs/nullableNonNegativeInteger"},
+        "source_channels": {"$ref": "#/$defs/nullableNonNegativeInteger"},
+        "source_codec": {"$ref": "#/$defs/nullableString"},
+        "license_name": {"$ref": "#/$defs/nullableString"},
+        "license_url": {
+          "oneOf": [
+            {"type": "string", "format": "uri"},
+            {"type": "null"}
+          ]
+        },
+        "attribution": {"$ref": "#/$defs/nullableString"},
+        "commercial_use_status": {
+          "type": "string",
+          "enum": ["allowed", "restricted", "unknown"]
+        },
+        "attribution_required": {"type": ["boolean", "null"]},
+        "rights_status": {
+          "type": "string",
+          "enum": [
+            "confirmed_from_official_metadata",
+            "pending",
+            "excluded"
+          ]
+        },
+        "acquisition_method": {
+          "type": "string",
+          "enum": [
+            "not_acquired",
+            "official_direct_download",
+            "other_confirmed_method",
+            "pending"
+          ]
+        },
+        "segment_rule": {
+          "type": "string",
+          "const": "offline_calibration_decoded_audio_center_exact_60_seconds"
+        },
+        "segment_start_frame": {"$ref": "#/$defs/nullableNonNegativeInteger"},
+        "segment_end_frame_exclusive": {
+          "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "prepared_sha256": {
+          "oneOf": [
+            {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+            {"type": "null"}
+          ]
+        },
+        "prepared_duration": {"$ref": "#/$defs/nullableNumber"},
+        "genre_value": {"$ref": "#/$defs/nullableString"},
+        "genre_source": {"$ref": "#/$defs/labelSource"},
+        "mood_value": {
+          "type": ["array", "null"],
+          "items": {"type": "string"}
+        },
+        "mood_source": {"$ref": "#/$defs/labelSource"},
+        "vocal_instrumental": {
+          "type": "string",
+          "enum": ["vocal", "instrumental", "mixed", "unknown"]
+        },
+        "label_status": {
+          "type": "string",
+          "enum": [
+            "source_metadata_only",
+            "manual_labels_pending",
+            "partially_labeled",
+            "reviewed",
+            "unknown"
+          ]
+        },
+        "notes": {"type": "string"}
+      }
+    }
+  }
+}

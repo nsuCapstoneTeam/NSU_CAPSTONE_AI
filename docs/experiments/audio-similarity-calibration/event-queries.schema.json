@@ -1,0 +1,1111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Audio Similarity Calibration Event Query Experiment Data",
+  "description": "Calibration experiment inventory only. This schema is not a Spring request/response API contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "query_set_version",
+    "status",
+    "benchmark_purpose",
+    "service_input_semantics",
+    "active_set_version",
+    "queries"
+  ],
+  "properties": {
+    "query_set_version": {
+      "type": "string",
+      "const": "event-queries-draft-v1"
+    },
+    "status": {
+      "type": "string",
+      "const": "synthetic_scenario_inventory_not_production_interpretation"
+    },
+    "benchmark_purpose": {
+      "type": "string",
+      "const": "representative_synthetic_scenario_benchmark"
+    },
+    "service_input_semantics": {
+      "type": "string",
+      "const": "Calibration-only semantic labels; not Spring JSON field names or an API schema."
+    },
+    "active_set_version": {
+      "type": "string",
+      "const": "engineering-calibration-v1"
+    },
+    "queries": {
+      "description": "Historical draft inventory retained in full; exactly 20 records, of which 16 are active_v1, 2 reserve, and 2 replace_candidate. Validate the status counts as an additional cross-record rule.",
+      "type": "array",
+      "minItems": 20,
+      "maxItems": 20,
+      "contains": {
+        "type": "object",
+        "properties": {
+          "selection_status": {
+            "const": "active_v1"
+          }
+        },
+        "required": [
+          "selection_status"
+        ]
+      },
+      "minContains": 16,
+      "maxContains": 16,
+      "allOf": [
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "selection_status": {
+                "const": "reserve"
+              }
+            },
+            "required": [
+              "selection_status"
+            ]
+          },
+          "minContains": 2,
+          "maxContains": 2
+        },
+        {
+          "contains": {
+            "type": "object",
+            "properties": {
+              "selection_status": {
+                "const": "replace_candidate"
+              }
+            },
+            "required": [
+              "selection_status"
+            ]
+          },
+          "minContains": 2,
+          "maxContains": 2
+        }
+      ],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "query_id",
+          "selection_status",
+          "historical_raw_draft",
+          "raw_service_input",
+          "structured_interpretation",
+          "msclap_model_input"
+        ],
+        "properties": {
+          "query_id": {
+            "type": "string",
+            "pattern": "^event-[0-9]{2}$"
+          },
+          "selection_status": {
+            "type": "string",
+            "enum": [
+              "active_v1",
+              "reserve",
+              "replace_candidate"
+            ]
+          },
+          "historical_raw_draft": {
+            "description": "Snapshot of the initial synthetic calibration draft for document history only; not a production revision history or user input log.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "provenance",
+              "event_type",
+              "event_description_ko",
+              "desired_genre"
+            ],
+            "properties": {
+              "provenance": {
+                "const": "representative_synthetic_scenario"
+              },
+              "event_type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "event_description_ko": {
+                "type": "string",
+                "minLength": 1
+              },
+              "desired_genre": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "raw_service_input": {
+            "description": "Synthetic benchmark source material with meanings aligned to Accepted 012; these labels are not API property names.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "provenance",
+              "event_type",
+              "event_description_ko",
+              "desired_genre"
+            ],
+            "properties": {
+              "provenance": {
+                "const": "representative_synthetic_scenario"
+              },
+              "event_type": {
+                "type": "string",
+                "minLength": 1
+              },
+              "event_description_ko": {
+                "type": "string",
+                "minLength": 1
+              },
+              "desired_genre": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "structured_interpretation": {
+            "description": "Calibration-only intermediate interpretation annotations; not a production AI result, Spring API DTO, or service contract. Placeholder attributes remain unreviewed until human review.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "status",
+              "review_status",
+              "historical_interpretation_draft",
+              "attributes"
+            ],
+            "properties": {
+              "status": {
+                "const": "calibration_only_not_production_interpretation"
+              },
+              "review_status": {
+                "type": "string",
+                "enum": [
+                  "not_reviewed",
+                  "reviewed_for_raw_support"
+                ]
+              },
+              "historical_interpretation_draft": {
+                "description": "Unmodified snapshot of the previously stored mood_request/tempo_request draft and its provenance/review status; retained for calibration history, not a current interpretation.",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "status",
+                  "mood_request",
+                  "tempo_request",
+                  "provenance",
+                  "human_review_status"
+                ],
+                "properties": {
+                  "status": {
+                    "const": "draft_not_production_interpretation"
+                  },
+                  "mood_request": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "tempo_request": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "provenance": {
+                    "const": "preserved_existing_draft_fields"
+                  },
+                  "human_review_status": {
+                    "type": "string",
+                    "enum": [
+                      "not_reviewed",
+                      "reviewed_for_semantic_fidelity"
+                    ]
+                  }
+                }
+              },
+              "attributes": {
+                "description": "Per-attribute calibration review placeholders. The three states are interpreted, not_requested, and unable_to_interpret. While review_status is not_reviewed, placeholder state values are not semantic findings.",
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "mood",
+                  "tempo",
+                  "desired_genre",
+                  "instrument_preference",
+                  "vocal_preference",
+                  "acoustic_electronic",
+                  "dynamic_progression",
+                  "usage_context",
+                  "rhythmic_character",
+                  "activity_character"
+                ],
+                "properties": {
+                  "mood": {
+                    "description": "Calibration annotation placeholder. Until the enclosing review_status is reviewed_for_raw_support, state/value/evidence are unreviewed placeholders and must not be treated as findings.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "interpreted"
+                          },
+                          "value": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "minItems": 1
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "not_requested"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "maxItems": 0
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "unable_to_interpret"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "tempo": {
+                    "description": "Calibration annotation placeholder. Until the enclosing review_status is reviewed_for_raw_support, state/value/evidence are unreviewed placeholders and must not be treated as findings.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "interpreted"
+                          },
+                          "value": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "minLength": 1
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "minItems": 1
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "not_requested"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "maxItems": 0
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "unable_to_interpret"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "desired_genre": {
+                    "description": "Calibration annotation placeholder. Until the enclosing review_status is reviewed_for_raw_support, state/value/evidence are unreviewed placeholders and must not be treated as findings.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value_ref",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "interpreted"
+                          },
+                          "value_ref": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "pattern": "^#/raw_service_input/desired_genre$"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "minItems": 1
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value_ref",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "not_requested"
+                          },
+                          "value_ref": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "maxItems": 0
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value_ref",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "unable_to_interpret"
+                          },
+                          "value_ref": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "instrument_preference": {
+                    "description": "Record explicit instrument requests only (for example, piano). “연주곡” describes an instrumental/vocal preference and belongs in vocal_preference, not this field.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "interpreted"
+                          },
+                          "value": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "minItems": 1
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "not_requested"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "maxItems": 0
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "unable_to_interpret"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "vocal_preference": {
+                    "description": "Record explicit vocal or instrumental preference/allowance. In particular, “연주곡” is represented here as an instrumental preference, not as an instrument request.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "interpreted"
+                          },
+                          "value": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "minLength": 1
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "minItems": 1
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "not_requested"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "maxItems": 0
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "unable_to_interpret"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "acoustic_electronic": {
+                    "description": "Calibration annotation placeholder. Until the enclosing review_status is reviewed_for_raw_support, state/value/evidence are unreviewed placeholders and must not be treated as findings.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "interpreted"
+                          },
+                          "value": {
+                            "type": "array",
+                            "minItems": 1,
+                            "items": {
+                              "type": "string",
+                              "minLength": 1
+                            }
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "minItems": 1
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "not_requested"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "maxItems": 0
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "unable_to_interpret"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "dynamic_progression": {
+                    "description": "Calibration annotation placeholder. Until the enclosing review_status is reviewed_for_raw_support, state/value/evidence are unreviewed placeholders and must not be treated as findings.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "interpreted"
+                          },
+                          "value": {
+                            "type": [
+                              "string",
+                              "null"
+                            ],
+                            "minLength": 1
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "minItems": 1
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "not_requested"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested.",
+                            "maxItems": 0
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "unable_to_interpret"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Exact Korean evidence excerpt(s) from raw_service_input.event_description_ko; empty only for not_requested."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "usage_context": {
+                    "description": "Record a music-use purpose or listening context only when raw_service_input states it directly and it can affect music selection. Do not infer usage_context from event_type alone.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "interpreted"
+                          },
+                          "value": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "description": "Exact excerpt(s) from the corresponding raw_service_input describing this request."
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "not_requested"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "maxItems": 0,
+                            "description": "Empty because this request was not made."
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "unable_to_interpret"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Raw excerpt(s) were present but could not be interpreted."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "rhythmic_character": {
+                    "description": "Explicit requested rhythm or groove characteristic, recorded only when supported by raw_service_input.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "interpreted"
+                          },
+                          "value": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "description": "Exact excerpt(s) from the corresponding raw_service_input describing this request."
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "not_requested"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "maxItems": 0,
+                            "description": "Empty because this request was not made."
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "unable_to_interpret"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Raw excerpt(s) were present but could not be interpreted."
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  "activity_character": {
+                    "description": "Explicit activity affordance requested for the music, such as being suitable for dancing; do not infer tempo or rhythm.",
+                    "oneOf": [
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "interpreted"
+                          },
+                          "value": {
+                            "type": "string",
+                            "minLength": 1
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "minItems": 1,
+                            "description": "Exact excerpt(s) from the corresponding raw_service_input describing this request."
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "not_requested"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "maxItems": 0,
+                            "description": "Empty because this request was not made."
+                          }
+                        }
+                      },
+                      {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "state",
+                          "value",
+                          "evidence"
+                        ],
+                        "properties": {
+                          "state": {
+                            "const": "unable_to_interpret"
+                          },
+                          "value": {
+                            "type": "null"
+                          },
+                          "evidence": {
+                            "type": "array",
+                            "items": {
+                              "type": "string"
+                            },
+                            "description": "Raw excerpt(s) were present but could not be interpreted."
+                          }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "msclap_model_input": {
+            "description": "English text draft only; not yet an approved MSCLAP input.",
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "text",
+              "status",
+              "provenance",
+              "draft_version",
+              "human_review_status"
+            ],
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "status": {
+                "const": "draft_not_confirmed_model_input"
+              },
+              "provenance": {
+                "const": "human_authored_draft_translation"
+              },
+              "draft_version": {
+                "const": "draft-v1"
+              },
+              "human_review_status": {
+                "type": "string",
+                "enum": [
+                  "not_reviewed",
+                  "reviewed_for_semantic_fidelity"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
