@@ -90,7 +90,7 @@
         }
       },
       "msclap_model_input": {
-        "text": "Rock or pop music for a university festival that the audience can enjoy together.",
+        "text": "Rock or pop music for an outdoor university festival that the audience can enjoy together.",
         "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
