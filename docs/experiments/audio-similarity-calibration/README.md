@@ -41,9 +41,9 @@ Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 
 
 1. `raw_service_input`: 대표 합성 시나리오의 행사 종류·한국어 행사 설명·희망 Genre 의미를 보존한다. 이는 실제 사용자 입력이나 실제 사용자 데이터가 아니다. ACTIVE v1은 16개이며 Raw 수정안은 15개에 반영했고 event-07은 유지했다. Genre 지정은 12개, 미지정은 4개다. 이 수와 비율은 통계적으로 최적이라고 검증된 값이 아니다.
 2. `structured_interpretation`: calibration-only 의미 주석이며 production AI 결과나 Spring API 계약이 아니다. 속성은 mood, tempo, desired_genre, instrument_preference, vocal_preference, acoustic_electronic, dynamic_progression, usage_context, rhythmic_character, activity_character다. ACTIVE 16개는 Raw 근거 검수를 완료했고 RESERVE/REPLACE는 미검수 placeholder로 유지한다.
-3. `msclap_model_input`: 기존 영어 문장을 그대로 보존한 사람이 작성한 번역 초안이다. 새 Raw와의 정합성 검수 전이며 `draft_not_confirmed_model_input` / `not_reviewed` 상태다. 확정된 MSCLAP 입력이 아니다.
+3. `msclap_model_input`: 사람이 작성한 영어 calibration 입력이다. ACTIVE 16개는 semantic fidelity 검수를 마쳤고, `approved_for_calibration_v1_experiment`로 calibration v1 Text Embedding/cosine 실험 입력으로 승인했다. 이는 모델 성능 검증이나 production query 확정이 아니다. RESERVE/REPLACE 4개는 `draft_not_confirmed_model_input` 및 `not_reviewed`를 유지한다.
 
-현재 자료는 실제 사용자 데이터가 아닌 representative synthetic scenario benchmark다. ACTIVE 16개 Structured Interpretation의 Raw 근거 검수는 완료했지만, 영어 MSCLAP model input 검수는 미완료다. MSCLAP cosine calibration 실험도 시작하지 않았다.
+현재 자료는 실제 사용자 데이터가 아닌 representative synthetic scenario benchmark다. ACTIVE 16개의 Structured Interpretation Raw 근거 검수와 영어 입력 semantic fidelity 검수 및 calibration v1 실험 입력 승인은 완료했다. MSCLAP Text Embedding, cosine 검색 성능 검증은 아직 수행하지 않았고, 입력은 production query로 확정되지 않았다.
 
 
 ## Dataset 구성
