@@ -109,10 +109,61 @@
                   "required": [
                     "review_status"
                   ]
+                },
+                "msclap_model_input": {
+                  "properties": {
+                    "status": {
+                      "const": "approved_for_calibration_v1_experiment"
+                    },
+                    "human_review_status": {
+                      "const": "reviewed_for_semantic_fidelity"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "human_review_status"
+                  ]
                 }
               },
               "required": [
-                "structured_interpretation"
+                "structured_interpretation",
+                "msclap_model_input"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "selection_status": {
+                  "enum": [
+                    "reserve",
+                    "replace_candidate"
+                  ]
+                }
+              },
+              "required": [
+                "selection_status"
+              ]
+            },
+            "then": {
+              "properties": {
+                "msclap_model_input": {
+                  "properties": {
+                    "status": {
+                      "const": "draft_not_confirmed_model_input"
+                    },
+                    "human_review_status": {
+                      "const": "not_reviewed"
+                    }
+                  },
+                  "required": [
+                    "status",
+                    "human_review_status"
+                  ]
+                }
+              },
+              "required": [
+                "msclap_model_input"
               ]
             }
           }
@@ -1186,7 +1237,7 @@
             }
           },
           "msclap_model_input": {
-            "description": "English text draft only; not yet an approved MSCLAP input.",
+            "description": "Calibration-only English input. ACTIVE v1 must be approved_for_calibration_v1_experiment after semantic fidelity review; this approval fixes the text for calibration v1 Text Embedding/cosine experiments only. It is not model-performance validation or production query confirmation. RESERVE/REPLACE remain unreviewed drafts.",
             "type": "object",
             "additionalProperties": false,
             "required": [
@@ -1203,7 +1254,11 @@
                 "pattern": "\\S"
               },
               "status": {
-                "const": "draft_not_confirmed_model_input"
+                "type": "string",
+                "enum": [
+                  "draft_not_confirmed_model_input",
+                  "approved_for_calibration_v1_experiment"
+                ]
               },
               "provenance": {
                 "const": "human_authored_draft_translation"

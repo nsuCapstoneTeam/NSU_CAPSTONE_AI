@@ -90,11 +90,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Bright, energetic rock or pop music for an outdoor university festival, with a lively communal feel.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Rock or pop music for an outdoor university festival that the audience can enjoy together.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -184,11 +184,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Warm, romantic acoustic music for the pre-ceremony part of an outdoor wedding, with a calm and relaxed mood.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Calm acoustic music for the pre-wedding period at an outdoor wedding.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -278,11 +278,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Grand, confident orchestral or soundtrack-style music for award winners entering a corporate ceremony, with an uplifting feel.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Grand soundtrack music for an award recipient's entrance at a corporate ceremony.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -368,11 +368,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Subtle, refined jazz or lounge background music for a small art exhibition opening, relaxed enough for conversation.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Jazz or lounge background music for an art exhibition opening, to play while people converse.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -460,11 +460,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Mysterious electronic music with a slightly dark and suspenseful mood for a nighttime gaming event, intriguing rather than frightening.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Slightly tense electronic music for a nighttime gaming event.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -548,11 +548,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Friendly, cheerful folk or world music with acoustic instrumentation for a daytime community cultural festival.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Folk or world music for a daytime local cultural festival.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -643,11 +643,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Gentle, hopeful instrumental music for a graduation dinner, warm and unobtrusive enough for conversation.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Gentle, hopeful instrumental music for a graduation dinner, suitable for dining and conversation.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -735,11 +735,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Confident, stylish, driving pop or electronic music for a fashion show runway walk.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Rhythmic pop or electronic music for a fashion runway.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -829,11 +829,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Restrained piano or string music for a memorial service, solemn and reflective with a tender, warm sadness.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Piano-centered music for quiet remembrance at a memorial service.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -1091,11 +1091,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Sunny, playful reggae or Latin music for a relaxed beach summer party, with an easy, danceable feel.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Reggae or Latin music for a beach summer party, with a light, danceable feel.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -1185,11 +1185,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Polished, modern electronic background music for a product launch, futuristic and optimistic without feeling cold.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Electronic background music for a product presentation, with a feel that is not too cold.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -1277,11 +1277,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Majestic, mysterious ceremonial music combining orchestral and traditional sounds for the opening of a performance.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Grand music for the opening of a traditional performance.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -1367,11 +1367,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Playful, grooving funk or disco for a casual evening party with friends, upbeat and easy to dance to.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Groovy funk or disco for an evening party with friends.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -1457,11 +1457,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Serene, spacious ambient music for a meditation workshop, with gentle and steady sounds that support focus.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Ambient music for a meditation workshop that should not interfere with concentration.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -1547,11 +1547,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Joyful, celebratory pop or soul music, including vocals, for a post-awards reception.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Pop or soul music for a reception after an awards ceremony; vocals are acceptable.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     },
     {
@@ -1813,11 +1813,11 @@
         }
       },
       "msclap_model_input": {
-        "text": "Experimental electronic music for a contemporary dance performance, beginning restrained and tense before building toward an intense, liberating release.",
-        "status": "draft_not_confirmed_model_input",
+        "text": "Electronic music for a contemporary dance scene, with tension that gradually builds.",
+        "status": "approved_for_calibration_v1_experiment",
         "provenance": "human_authored_draft_translation",
         "draft_version": "draft-v1",
-        "human_review_status": "not_reviewed"
+        "human_review_status": "reviewed_for_semantic_fidelity"
       }
     }
   ]
