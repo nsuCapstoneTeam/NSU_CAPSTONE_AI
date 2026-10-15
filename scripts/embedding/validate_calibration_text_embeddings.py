@@ -179,6 +179,76 @@ def difference_report(first: Any, second: Any) -> dict[str, Any]:
     }
 
 
+def require_exact_batch_repeat(repeated_batch: dict[str, Any]) -> None:
+    """Require bitwise repeatability for the fixed-size canonical batch."""
+    require(
+        repeated_batch.get("exact_equal") is True,
+        "repeated 16-query batch outputs are not bitwise identical; refusing canonical result",
+    )
+
+
+def experiment_result_status(
+    repeated_batch: dict[str, Any], single_rows: list[dict[str, Any]]
+) -> str:
+    """Separate the hard batch-repeat gate from diagnostic batch/single differences."""
+    require_exact_batch_repeat(repeated_batch)
+    if any(not row["exact_equal"] for row in single_rows):
+        return "PASS_WITH_BATCH_SINGLE_DIFFERENCE_RECORDED"
+    return "PASS"
+
+
+def write_canonical_artifact(
+    path: Path,
+    embeddings: np.ndarray,
+    query_ids: list[str],
+    repeated_batch: dict[str, Any],
+) -> str:
+    """Persist a verified artifact atomically and return its bytes SHA-256."""
+    require_exact_batch_repeat(repeated_batch)
+    require(embeddings.ndim == 2, "canonical artifact embeddings must be a 2-D matrix")
+    require(embeddings.shape[0] == len(query_ids), "artifact row count does not match query_id count")
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb", prefix=f".{path.name}.", suffix=".tmp", dir=path.parent, delete=False
+        ) as stream:
+            temporary_path = Path(stream.name)
+            np.savez_compressed(stream, embeddings=embeddings, query_ids=np.asarray(query_ids))
+
+        with np.load(temporary_path, allow_pickle=False) as archive:
+            stored_embeddings = archive["embeddings"]
+            stored_query_ids = archive["query_ids"].tolist()
+            require(stored_query_ids == query_ids, "artifact query_id order does not match selected query order")
+            require(stored_embeddings.shape == embeddings.shape, "artifact embedding shape changed during serialization")
+            require(stored_embeddings.dtype == embeddings.dtype, "artifact embedding dtype changed during serialization")
+            require(np.array_equal(stored_embeddings, embeddings), "artifact embedding rows changed during serialization")
+
+        temporary_hash = sha256_file(temporary_path)
+        os.replace(temporary_path, path)
+        temporary_path = None
+        artifact_hash = sha256_file(path)
+        require(artifact_hash == temporary_hash, "canonical artifact hash changed after finalization")
+        return artifact_hash
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
+def validate_repeated_batch_outputs(
+    first_raw: Any,
+    repeated_raw: Any,
+    expected_count: int,
+    expected_dimension: int,
+) -> tuple[torch.Tensor, torch.Tensor, dict[str, Any]]:
+    first = validate_embedding_matrix(first_raw, expected_count, expected_dimension)
+    repeated = validate_embedding_matrix(repeated_raw, expected_count, expected_dimension)
+    report = difference_report(first, repeated)
+    require_exact_batch_repeat(report)
+    return first, repeated, report
+
+
 def _git_value(root: Path, *args: str) -> str:
     return subprocess.check_output(["git", *args], cwd=root, text=True, encoding="utf-8").strip()
 
@@ -225,9 +295,9 @@ def run_experiment(
         batch_repeat_raw = clap_model.encode_text(texts)
 
     configured_dimension = int(getattr(wrapper.args, "d_proj", as_tensor(batch_first_raw).shape[1]))
-    batch_first = validate_embedding_matrix(batch_first_raw, ACTIVE_COUNT, configured_dimension)
-    batch_repeat = validate_embedding_matrix(batch_repeat_raw, ACTIVE_COUNT, configured_dimension)
-    repeated_batch = difference_report(batch_first, batch_repeat)
+    batch_first, batch_repeat, repeated_batch = validate_repeated_batch_outputs(
+        batch_first_raw, batch_repeat_raw, ACTIVE_COUNT, configured_dimension
+    )
 
     single_rows = []
     for index, query in enumerate(selected):
@@ -244,8 +314,6 @@ def run_experiment(
     checkpoint_hash = sha256_file(checkpoint)
     embeddings = np.asarray(batch_first.cpu().numpy(), dtype="<f4", order="C")
     embedding_path = embedding_path if embedding_path.is_absolute() else root / embedding_path
-    embedding_path.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(embedding_path, embeddings=embeddings, query_ids=np.asarray([q["query_id"] for q in selected]))
 
     require(sha256_bytes(input_path.read_bytes()) == input_hash, "event-queries.json changed during inference")
     require(not _git_value(root, "status", "--porcelain", "--untracked-files=all"), "working tree changed during inference")
@@ -262,14 +330,18 @@ def run_experiment(
     ]
     require(all(row["finite"] and not row["zero_vector"] for row in vector_checks), "invalid text vector detected")
 
+    result_status = experiment_result_status(repeated_batch, single_rows)
+    artifact_hash = write_canonical_artifact(
+        embedding_path,
+        embeddings,
+        [query["query_id"] for query in selected],
+        repeated_batch,
+    )
+
     result = {
         "schema_version": 1,
         "experiment": "NSUAI-36 calibration v1 Text Embedding",
-        "result_status": (
-            "PASS_WITH_BATCH_SINGLE_DIFFERENCE_RECORDED"
-            if any(not row["exact_equal"] for row in single_rows)
-            else "PASS"
-        ),
+        "result_status": result_status,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "scope_limitations": [
             "Text Embeddings only; Audio Embeddings were not generated",
@@ -293,7 +365,8 @@ def run_experiment(
             "output": validator_output,
         },
         "review_notes": [
-            "The same-size batch repeat and batch-versus-single differences are diagnostics; no project tolerance is established.",
+            "The repeated fixed-size batch must be bitwise identical or the run fails before canonical artifact/evidence finalization.",
+            "Batch-versus-single differences are diagnostic only; no project tolerance is established.",
             "If batch and single outputs differ, downstream cosine work must use the recorded fixed-batch artifact consistently.",
         ] if any(not row["exact_equal"] for row in single_rows) else [],
         "model_runtime": {
@@ -334,11 +407,11 @@ def run_experiment(
             "reproducibility_status": (
                 "repeated_batch_exact; batch_vs_single_difference_observed_no_acceptance_tolerance"
                 if repeated_batch["exact_equal"] and any(not row["exact_equal"] for row in single_rows)
-                else "see repeated_batch and batch_vs_single measurements"
+                else "repeated_batch_exact; no_batch_vs_single_difference_observed"
             ),
             "artifact": {
                 "path": embedding_path.relative_to(root).as_posix() if embedding_path.is_relative_to(root) else str(embedding_path),
-                "sha256": sha256_file(embedding_path),
+                "sha256": artifact_hash,
                 "format": "compressed NPZ: float32 little-endian embeddings and query_id order",
             },
         },

@@ -45,7 +45,7 @@ Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 
 
 현재 자료는 실제 사용자 데이터가 아닌 representative synthetic scenario benchmark다. ACTIVE 16개의 Structured Interpretation Raw 근거 검수, 영어 입력 semantic fidelity 검수 및 calibration v1 실험 입력 승인은 완료했다. 2026-10-15 ACTIVE 16개를 MSCLAP 2023 Text Encoder로 batch 생성했고, 결과와 실행 identity는 [Text Embedding evidence](./text-embedding-evidence.json)에 기록했다. 출력은 `[16, 1024]`, `float32`, CPU였으며 Text Encoder 출력에 L2 normalization을 적용하지 않았다. 같은 16-query batch의 반복 출력은 정확히 같았지만, batch와 single 입력은 bitwise 동일하지 않았다(상세 차이는 evidence 참조). 임의 허용 오차는 정하지 않았으므로 이후 cosine 실행은 이 evidence의 batch artifact를 입력으로 사용해야 한다. 임베딩 artifact는 ignored `tmp/calibration-v1-text-embeddings.npz`에만 저장했고 Git에 포함하지 않는다. Audio Embedding/acquisition, cosine 계산, 검색 성능 검증, 청취 평가와 transformation 선정은 미수행이며, 입력은 production query로 확정되지 않았다.
 
-같은 Text Embedding 검증 경로는 저장소 루트에서 Python 3.11 및 프로젝트의 MSCLAP CPU 의존성이 설치된 환경에서 `python -m scripts.embedding.validate_calibration_text_embeddings`로 실행한다. 실행 전 통합 calibration validator를 수행하고, dirty worktree에서는 모델 추론을 시작하지 않는다.
+같은 Text Embedding 검증 경로는 저장소 루트에서 Python 3.11 및 프로젝트의 MSCLAP CPU 의존성이 설치된 환경에서 `python -m scripts.embedding.validate_calibration_text_embeddings`로 실행한다. 실행 전 통합 calibration validator를 수행하고, dirty worktree에서는 모델 추론을 시작하지 않는다. 동일한 16-query batch의 반복 출력은 bitwise identical이어야 성공하며, 불일치하면 canonical artifact/evidence를 확정하지 않고 실패한다. batch와 single 입력의 차이는 별도 진단으로만 기록하며 허용 오차는 정하지 않았다.
 
 
 Text Embedding evidence는 temporary harness가 아닌 저장소의 canonical runner에서 생성했으며, clean working tree의 implementation commit `d3fa00b130502e615ad9ed63fde8ce483321c90b`을 실행 identity로 기록한다.
