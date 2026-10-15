@@ -14,7 +14,7 @@ Audio Embedding은 manifest의 중앙 60초 prepared 파일을 공통 `AudioEmbe
 
 Text 쪽은 실제 Text Encoder 입력에 승인된 calibration v1 문자열을 byte-for-byte 그대로 사용한다. 각 vector는 `query_id`, 실제 영어 문자열, `draft_version`, `event-queries.json` bytes SHA-256 및 Git commit으로 연결한다. 2026-10-15 실행 결과는 evidence 파일에 있으며, runner는 동일 batch 반복 출력의 bitwise equality를 성공 조건으로 강제한다. batch 대 single 차이는 별도 진단으로 기록하며 수치 허용 오차는 정하지 않았다. 다음 raw cosine 계산은 재현성이 확인된 16개 batch 결과를 그대로 사용한다. `get_text_embeddings()` 출력은 이 실행에서 L2-normalize되지 않았고, raw cosine 단계에서는 Text vector를 L2-normalize한 뒤 ADR-0007 최종 L2-normalized Audio vector와 dot product로 계산한다. `compute_similarity()`/`ClapModel.similarity()`는 logit-scaled 결과이므로 raw cosine에 사용하지 않는다. 현재 raw cosine 및 검색 성능 검증은 미수행이며 production query도 확정되지 않았다.
 
-Text Embedding evidence는 저장소의 canonical runner에서 clean worktree로 생성했고, 실행 당시 clean implementation commit은 `8b38a49e5c00a94204d27a3da030cb07b2959b7e`이다. GPT-2 tokenizer snapshot은 `607a30d783dfa663caf39e06633721c8d4cfcd7e`로 고정했으며, 실제 snapshot 파일 및 runtime tokenizer serialization SHA-256, MSCLAP source/config와 checkpoint identity는 evidence에 기록한다. Audio Embedding, cosine, ranking은 아직 수행하지 않았다.
+Text Embedding evidence는 저장소의 canonical runner에서 clean worktree로 생성했고, 실행 당시 clean implementation commit은 `1a25873e4c3f484546484b3214cd2c4766e42c64`이다. GPT-2 tokenizer snapshot은 `607a30d783dfa663caf39e06633721c8d4cfcd7e`로 고정했으며, 실제 snapshot 파일 및 runtime tokenizer serialization SHA-256, MSCLAP source/config와 checkpoint identity는 evidence에 기록한다. Audio Embedding, cosine, ranking은 아직 수행하지 않았다.
 
 ## 실험 입력의 불변 identity와 증거 연결
 
@@ -28,9 +28,7 @@ Text Embedding evidence는 저장소의 canonical runner에서 clean worktree로
 - 기존 `query_set_version`과 `active_set_version`, 실험 당시 `event-queries.json` 저장 bytes의 SHA-256, full Git commit SHA 및 clean worktree 상태
 - query별 실제 Text Encoder 입력 문자열, `query_id` 및 `draft_version`, query 파일 hash, Text model/checkpoint/profile identity, 생성된 Text Embedding을 보존한다면 그 artifact identity/hash
 - cosine 결과의 query/sample ID, 두 Embedding identity, raw cosine; 각 query의 전체 ranking과 ranking/tie-break 코드 identity; stratified/random pair ID, sampling 규칙·PRNG·seed·입력 모집단 및 최종 순서표
-- playback/rating row와 정확한 query/sample ID 및 playback artifact SHA-256의 연결. transformation을 비교·선정한 뒤에는 적용한 formula/config와 별도 calibration/result version을 함께 보존한다.
-
-무시된 원본·prepared/playback Audio와 embedding binary는 Git에 추가하지 않는다. Text vector artifact는 local ignored `tmp/calibration-v1-text-embeddings.npz`에 있으며 evidence에 SHA-256과 query 순서를 기록했다. 그 대신 실험 입력 파일별 SHA-256과 manifest의 sample ID를 evidence에 남긴다. 실행 중 생성되는 ranking, 표본 목록, playback 순서와 rating의 실제 결과도 당시 값 그대로 보존한다. 설정 이름, manifest version 또는 seed만으로 파일 내용·실행 순서·결과를 재현했다고 간주하지 않는다. 현재 Audio acquisition/embedding, raw cosine, listening 또는 transformation 선정 evidence는 생성되지 않았다. Text Embedding evidence는 별도 기록되어 있다.
+- playback/rating row와 정확한 query/sample ID 및 playback artifact SHA-256의 연결. 원본·prepared/playback Audio와 대규모 embedding binary는 Git에 추가하지 않는다. 단, 16×1024 float32인 canonical calibration Text vector(61,228 bytes)는 후속 cosine 입력을 정확히 복원하기 위해 `docs/experiments/audio-similarity-calibration/artifacts/calibration-v1-text-embeddings.npz`에 예외적으로 Git 보존한다. cosine 전에 evidence의 SHA-256, query_id 순서, shape/dtype, finite 여부와 execution identity를 대조하며, 불일치하면 사용을 중단한다. 추가로 실험 입력 파일별 SHA-256과 manifest의 sample ID를 evidence에 남긴다. 실행 중 생성되는 ranking, 표본 목록, playback 순서와 rating의 실제 결과도 당시 값 그대로 보존한다. 설정 이름, manifest version 또는 seed만으로 파일 내용·실행 순서·결과를 재현했다고 간주하지 않는다. 현재 Audio acquisition/embedding, raw cosine, listening 또는 transformation 선정 evidence는 생성되지 않았다. Text Embedding evidence는 별도 기록되어 있다.
 
 ## 표본 추출
 

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "experiment": "NSUAI-36 calibration v1 Text Embedding",
   "result_status": "PASS_WITH_BATCH_SINGLE_DIFFERENCE_RECORDED",
-  "generated_at_utc": "2026-10-15T15:31:44.424418+00:00",
+  "generated_at_utc": "2026-10-15T15:41:58.669184+00:00",
   "scope_limitations": [
     "Text Embeddings only; Audio Embeddings were not generated",
     "No cosine calculation or ranking was performed",
@@ -10,7 +10,7 @@
     "Calibration input approval is not production query confirmation"
   ],
   "input_identity": {
-    "git_commit_sha": "8b38a49e5c00a94204d27a3da030cb07b2959b7e",
+    "git_commit_sha": "1a25873e4c3f484546484b3214cd2c4766e42c64",
     "working_tree_clean_before_and_after_inference": true,
     "query_set_version": "event-queries-draft-v1",
     "active_set_version": "engineering-calibration-v1",
@@ -115,7 +115,7 @@
     "model_version": "2023",
     "embedding_generation_profile": "ClapModel.encode_text/msclap-default-v1",
     "runner_path": "scripts/embedding/validate_calibration_text_embeddings.py",
-    "runner_sha256": "7c86841a7428c0cdfe91045d15c5c318b8e16229c04383d929ab7a29429c75d5",
+    "runner_sha256": "27749dd38a08ad69e9fdcef9baed5e1b8b1c5475d1846509bd3511a52075bcf7",
     "package_version": "1.3.3",
     "checkpoint_file": "CLAP_weights_2023.pth",
     "checkpoint_sha256": "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6",
@@ -606,7 +606,7 @@
     ],
     "reproducibility_status": "repeated_batch_exact; batch_vs_single_difference_observed_no_acceptance_tolerance",
     "artifact": {
-      "path": "tmp/calibration-v1-text-embeddings.npz",
+      "path": "docs/experiments/audio-similarity-calibration/artifacts/calibration-v1-text-embeddings.npz",
       "sha256": "eb370847471982448e0532665729ecd834a0fabd61fc4541ab15c710db497a1f",
       "format": "compressed NPZ: float32 little-endian embeddings and query_id order"
     }

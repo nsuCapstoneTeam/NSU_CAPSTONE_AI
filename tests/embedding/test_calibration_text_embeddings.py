@@ -120,6 +120,10 @@ def test_current_canonical_evidence_has_nonblank_required_identities():
     tool.require_sha256(runtime["runner_sha256"], "runner SHA-256")
     tool.require_sha256(runtime["checkpoint_sha256"], "checkpoint SHA-256")
     tool.require_sha256(artifact["sha256"], "artifact SHA-256")
+    artifact_path = Path(artifact["path"])
+    assert artifact_path == tool.DEFAULT_EMBEDDING_PATH
+    assert artifact_path.is_file()
+    assert tool.sha256_file(artifact_path) == artifact["sha256"]
     assert input_identity["working_tree_clean_before_and_after_inference"] is True
     assert input_identity["active_query_count"] == 16
     assert evidence["preflight_validation"]["status"] == "PASS"
@@ -145,6 +149,11 @@ def test_current_canonical_evidence_has_nonblank_required_identities():
     tool.require_non_blank_string(evidence["embedding_output"]["device"], "embedding device")
     assert evidence["embedding_output"]["all_finite"] is True
     assert evidence["embedding_output"]["zero_vector_count"] == 0
+    with np.load(artifact_path, allow_pickle=False) as stored:
+        assert stored["embeddings"].shape == (16, 1024)
+        assert stored["embeddings"].dtype == np.float32
+        assert np.isfinite(stored["embeddings"]).all()
+        assert stored["query_ids"].tolist() == [query["query_id"] for query in input_identity["queries"]]
 
 
 def test_default_embedding_path_is_persistent_calibration_artifact():
