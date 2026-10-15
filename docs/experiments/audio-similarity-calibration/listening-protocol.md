@@ -14,6 +14,8 @@ Audio Embedding은 manifest의 중앙 60초 prepared 파일을 공통 `AudioEmbe
 
 Text 쪽은 실제 Text Encoder 입력에 승인된 calibration v1 문자열을 byte-for-byte 그대로 사용한다. 각 vector는 `query_id`, 실제 영어 문자열, `draft_version`, `event-queries.json` bytes SHA-256 및 Git commit으로 연결한다. 2026-10-15 실행 결과는 evidence 파일에 있으며, batch 반복은 정확히 일치했고 batch 대 single 차이도 함께 기록했다. 수치 허용 오차는 미리 정하지 않았으므로 다음 raw cosine 계산은 재현성이 확인된 16개 batch 결과를 그대로 사용한다. `get_text_embeddings()` 출력은 이 실행에서 L2-normalize되지 않았고, raw cosine 단계에서는 Text vector를 L2-normalize한 뒤 ADR-0007 최종 L2-normalized Audio vector와 dot product로 계산한다. `compute_similarity()`/`ClapModel.similarity()`는 logit-scaled 결과이므로 raw cosine에 사용하지 않는다. 현재 raw cosine 및 검색 성능 검증은 미수행이며 production query도 확정되지 않았다.
 
+Text Embedding evidence는 저장소의 canonical runner에서 생성했고, 실행 당시 clean commit은 `d3fa00b130502e615ad9ed63fde8ce483321c90b`이다. Audio Embedding, cosine, ranking은 아직 수행하지 않았다.
+
 ## 실험 입력의 불변 identity와 증거 연결
 
 실제 실행 시 version label만으로 입력을 식별하지 않는다. 실험 시작 전에 추적 파일의 변경을 commit하고 calibration 입력·검증 코드가 있는 worktree를 clean 상태로 둔다. Evidence에는 repository 식별자와 full Git commit SHA, 그리고 아래 파일 각각의 **저장된 bytes 기준 SHA-256**을 기록한다. Git commit은 commit된 파일을 찾게 하고, 파일 hash는 실제 읽은 bytes를 직접 확인하게 한다.

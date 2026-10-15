@@ -48,6 +48,8 @@ Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 
 같은 Text Embedding 검증 경로는 저장소 루트에서 Python 3.11 및 프로젝트의 MSCLAP CPU 의존성이 설치된 환경에서 `python -m scripts.embedding.validate_calibration_text_embeddings`로 실행한다. 실행 전 통합 calibration validator를 수행하고, dirty worktree에서는 모델 추론을 시작하지 않는다.
 
 
+Text Embedding evidence는 temporary harness가 아닌 저장소의 canonical runner에서 생성했으며, clean working tree의 implementation commit `d3fa00b130502e615ad9ed63fde8ce483321c90b`을 실행 identity로 기록한다.
+
 ## Dataset 구성
 
 1차 목표는 50곡이다. 같은 아티스트는 가급적 1곡, 최대 2곡으로 제한한다. Complete 상태의 통합 validator는 manifest `artist` 표기를 공백 정리 및 대소문자 무시 후 세어 최대 2곡을 강제한다. artist alias와 여러 기여자 표기의 실체 식별은 자동 판정하지 않으므로 후보 선정 기록에서 사람이 검토한다. 장르·분위기, 보컬/인스트루멘탈, electronic/acoustic, 느림/중간/빠름 인상의 편중은 수치화된 완료 조건이 아니라 후보 구성 시 사람이 검토하는 다양성 기준이다. 제공자 metadata와 사람이 붙인 label을 별도로 보존하고 출처가 불분명한 label은 unknown으로 둔다. Source metadata의 tempo는 표본 구성 설명으로만 쓸 수 있으며, BPM/Rhythm ranking 구현을 뜻하지 않는다.

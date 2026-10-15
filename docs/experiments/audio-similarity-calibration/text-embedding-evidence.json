@@ -1,18 +1,23 @@
 {
   "schema_version": 1,
-  "experiment": "NSUAI-36 calibration v1 Text Embedding preflight",
+  "experiment": "NSUAI-36 calibration v1 Text Embedding",
+  "execution_provenance": {
+    "mode": "canonical_repository_runner",
+    "runner_path": "scripts/embedding/validate_calibration_text_embeddings.py",
+    "runner_sha256": "ffafaa2bb0d93c5526628c06df14a748baf99825ea76e6d000f1db4d2c817260",
+    "model_cache_policy": "preexisting local Hugging Face cache; HF_HUB_OFFLINE=1; cache outside repository"
+  },
   "result_status": "PASS_WITH_BATCH_SINGLE_DIFFERENCE_RECORDED",
-  "generated_at_utc": "2026-10-15T13:45:27.661536+00:00",
+  "generated_at_utc": "2026-10-15T14:39:15.796367+00:00",
   "scope_limitations": [
-    "Text embeddings only",
-    "No Audio Embedding",
-    "No cosine or ranking",
-    "No model performance validation",
-    "Not production query confirmation"
+    "Text Embeddings only; Audio Embeddings were not generated",
+    "No cosine calculation or ranking was performed",
+    "No MSCLAP search-performance validation was performed",
+    "Calibration input approval is not production query confirmation"
   ],
   "input_identity": {
-    "git_commit_sha": "c85766499de7b5a4733e1cacd79d4f3d5e86a2b5",
-    "working_tree_clean_before_and_after": true,
+    "git_commit_sha": "d3fa00b130502e615ad9ed63fde8ce483321c90b",
+    "working_tree_clean_before_and_after_inference": true,
     "query_set_version": "event-queries-draft-v1",
     "active_set_version": "engineering-calibration-v1",
     "event_queries_path": "docs/experiments/audio-similarity-calibration/event-queries.json",
@@ -101,15 +106,25 @@
       }
     ]
   },
+  "preflight_validation": {
+    "command": "python -m scripts.matching.validate_calibration",
+    "status": "PASS",
+    "output": "Calibration validation passed: schemas, unique sample/query/track identities, credited-artist cap, unique Raw scenarios, and ACTIVE Event interpretation Raw references."
+  },
+  "review_notes": [
+    "The same-size batch repeat and batch-versus-single differences are diagnostics; no project tolerance is established.",
+    "If batch and single outputs differ, downstream cosine work must use the recorded fixed-batch artifact consistently."
+  ],
   "model_runtime": {
     "model": "MSCLAP",
-    "embedding_generation_profile": "ClapModel.encode_text/msclap-default-v1",
     "model_version": "2023",
+    "embedding_generation_profile": "ClapModel.encode_text/msclap-default-v1",
+    "runner_sha256": "ffafaa2bb0d93c5526628c06df14a748baf99825ea76e6d000f1db4d2c817260",
     "package_version": "1.3.3",
     "checkpoint_file": "CLAP_weights_2023.pth",
     "checkpoint_sha256": "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6",
     "text_model": "gpt2",
-    "text_token_limit": 77,
+    "token_limit": 77,
     "projection_dimension_config": 1024,
     "tokenizer_name_or_path": "gpt2",
     "tokenizer_vocab_size": 50257,
@@ -121,12 +136,7 @@
     "device": "cpu",
     "dtype": "torch.float32",
     "model_eval_mode": true,
-    "torch_num_threads": 6,
-    "execution_path": "app.inference.clap_model.ClapModel.encode_text -> msclap.CLAP.get_text_embeddings",
-    "executed_temporary_harness_sha256": "e1ab12b9065ad19fe02958f2e72180db84f003d648e7640e757edeaa82b3c912",
-    "repository_runner_sha256_at_recording": "ffafaa2bb0d93c5526628c06df14a748baf99825ea76e6d000f1db4d2c817260",
-    "harness_note": "Inference ran from a temporary harness outside the repository so the committed input checkout remained clean; repository runner implements the same approved-input selection, tokenizer preflight, ClapModel.encode_text batch/repeat/single checks, and output validation.",
-    "model_cache_location": "system temporary directory outside repository"
+    "torch_num_threads": 6
   },
   "tokenizer_preflight": [
     {
@@ -398,7 +408,7 @@
         "zero_vector": false
       }
     ],
-    "normalization_observation": "Raw get_text_embeddings output retained; norms recorded; no L2 normalization applied by this runner.",
+    "normalization_observation": "The raw get_text_embeddings output is unnormalized; no normalization was applied in this run.",
     "repeat_batch": {
       "exact_equal": true,
       "max_absolute_difference": 0.0,
@@ -570,38 +580,11 @@
         "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
       }
     ],
+    "reproducibility_status": "repeated_batch_exact; batch_vs_single_difference_observed_no_acceptance_tolerance",
     "artifact": {
       "path": "tmp/calibration-v1-text-embeddings.npz",
       "sha256": "eb370847471982448e0532665729ecd834a0fabd61fc4541ab15c710db497a1f",
-      "format": "compressed NPZ, float32 little-endian matrix plus query_id ordering",
-      "git_tracking": "ignored local tmp artifact; not included in Git"
-    },
-    "batch_vs_single_summary": {
-      "query_count": 16,
-      "bitwise_equal_count": 0,
-      "pytorch_default_allclose_count": 0,
-      "max_absolute_difference": 7.152557373046875e-06,
-      "max_rms_difference": 9.996715362552216e-07,
-      "acceptance_tolerance": "not set; reported diagnostics only"
-    },
-    "reproducibility_status": "repeated_batch_exact; batch_vs_single_difference_observed_no_acceptance_tolerance"
-  },
-  "preflight_validation": {
-    "command": "python -m scripts.matching.validate_calibration",
-    "status": "PASS",
-    "output": "Calibration validation passed before Text Encoder execution."
-  },
-  "review_notes": [
-    "The repeated 16-query batch was bitwise identical.",
-    "All 16 batch-versus-single comparisons were bitwise different and failed PyTorch default allclose; the largest absolute difference was 7.152557373046875e-06.",
-    "No project tolerance was established. Subsequent cosine work must consume the recorded 16-query batch artifact as one fixed batch and must not mix it with separately encoded single-query vectors."
-  ],
-  "implementation_validation": {
-    "command": "pytest -p no:cacheprovider tests/embedding/test_calibration_text_embeddings.py plus selected non-filesystem calibration validator tests",
-    "result": "PASS",
-    "passed": 20,
-    "integrated_validator": "PASS in project Python 3.14 environment and temporary Python 3.11 inference environment",
-    "py_compile": "PASS",
-    "tracked_runner_end_to_end": "not rerun after implementation because its required clean-worktree gate would reject this uncommitted working tree; the actual inference was performed on the clean recorded HEAD using the temporary harness identified above"
+      "format": "compressed NPZ: float32 little-endian embeddings and query_id order"
+    }
   }
 }
