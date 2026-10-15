@@ -129,8 +129,12 @@ def test_current_canonical_evidence_has_nonblank_required_identities():
     for field in (
         "package_version", "model_version", "checkpoint_file", "text_model", "python_version",
         "torch_version", "transformers_version", "numpy_version", "dtype", "device",
+        "runtime_tokenizer_backend_sha256", "msclap_config_sha256", "model_config_sha256",
     ):
         tool.require_non_blank_string(runtime[field], field)
+    assert runtime["tokenizer_snapshot"]["resolved_revision"]
+    assert runtime["tokenizer_snapshot"]["snapshot_files_sha256"]["tokenizer.json"]
+    assert runtime["msclap_package_source"]["file_count"] > 0
     tool.require_non_blank_string(artifact["path"], "artifact path")
     assert len(input_identity["queries"]) == 16
     for query in input_identity["queries"]:
@@ -170,9 +174,39 @@ def test_required_positive_integer_identity_fails(value):
         tool.require_positive_integer(value, "configured embedding dimension")
 
 
+def test_tokenizer_snapshot_identity_records_resolved_commit_and_present_file_hashes(tmp_path):
+    revision = "a" * 40
+    snapshot = tmp_path / "models--gpt2"
+    (snapshot / "refs").mkdir(parents=True)
+    (snapshot / "snapshots" / revision).mkdir(parents=True)
+    (snapshot / "refs" / "main").write_text(revision, encoding="utf-8")
+    (snapshot / "snapshots" / revision / "tokenizer.json").write_bytes(b"tokenizer bytes")
+    (snapshot / "snapshots" / revision / "config.json").write_bytes(b"model config")
+
+    result = tool.tokenizer_snapshot_identity("gpt2", tmp_path)
+
+    assert result["resolved_revision"] == revision
+    assert result["snapshot_files_sha256"] == {
+        "tokenizer.json": tool.sha256_bytes(b"tokenizer bytes"),
+        "config.json": tool.sha256_bytes(b"model config"),
+    }
+
+
+def test_tokenizer_snapshot_identity_rejects_mutable_or_missing_revision(tmp_path):
+    repo_cache = tmp_path / "models--gpt2"
+    (repo_cache / "refs").mkdir(parents=True)
+    (repo_cache / "refs" / "main").write_text("main", encoding="utf-8")
+
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="immutable commit SHA"):
+        tool.tokenizer_snapshot_identity("gpt2", tmp_path)
+
+
 class FakeTokenizer:
     eos_token_id = 50256
     name_or_path = "gpt2"
+    pad_token = "!"
+    pad_token_id = 50257
+    backend_tokenizer = SimpleNamespace(to_str=lambda: '{"fake":"tokenizer"}')
 
     def __len__(self):
         return 50257
@@ -312,6 +346,11 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
     runner_path = root / "scripts" / "embedding" / "runner.py"
     runner_path.parent.mkdir(parents=True)
     runner_path.write_bytes(b"test runner")
+    package_root = root / "site-packages" / "msclap"
+    (package_root / "configs").mkdir(parents=True)
+    (package_root / "configs" / "config_2023.yml").write_text("text_len: 77\n", encoding="utf-8")
+    wrapper_path = package_root / "CLAPWrapper.py"
+    wrapper_path.write_text("# fake wrapper\n", encoding="utf-8")
     dirty_marker = root / "during-inference-change.txt"
     artifact_path = root / "tmp" / "canonical.npz"
     evidence_path = root / "evidence.json"
@@ -321,6 +360,7 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
         args = SimpleNamespace(text_model="gpt2", text_len=77, d_proj=2)
         model_fp = str(checkpoint)
         clap = SimpleNamespace(training=False)
+        file_path = str(wrapper_path)
 
     class FakeClapModel:
         def __init__(self):
@@ -340,6 +380,17 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
     monkeypatch.setattr(tool, "INPUT_PATH", Path("event-queries.json"))
     monkeypatch.setattr(tool, "__file__", str(runner_path))
     monkeypatch.setattr(tool, "ClapModel", lambda: fake_model)
+    monkeypatch.setenv("TRANSFORMERS_CACHE", str(root / "cache"))
+    monkeypatch.setattr(
+        tool,
+        "tokenizer_snapshot_identity",
+        lambda _model, _cache: {
+            "repository_id": "gpt2",
+            "resolved_revision": "a" * 40,
+            "snapshot_files_sha256": {"tokenizer.json": "b" * 64, "config.json": "c" * 64},
+        },
+    )
+    monkeypatch.setattr(tool, "package_source_identity", lambda _root: {"file_count": 1, "sha256": "d" * 64})
     monkeypatch.setattr(
         tool,
         "_git_value",

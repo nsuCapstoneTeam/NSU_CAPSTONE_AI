@@ -25,6 +25,7 @@ _MODEL_CACHE_ROOT.mkdir(parents=True, exist_ok=True)
 os.environ.setdefault("HF_HOME", str(_MODEL_CACHE_ROOT))
 os.environ.setdefault("HF_HUB_CACHE", str(_MODEL_CACHE_ROOT / "hub"))
 os.environ.setdefault("TRANSFORMERS_CACHE", str(_MODEL_CACHE_ROOT / "transformers"))
+os.environ["HF_HUB_OFFLINE"] = "1"
 
 from app.inference.clap_model import ClapModel
 
@@ -88,6 +89,56 @@ def sha256_file(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def tokenizer_snapshot_identity(text_model: str, cache_root: Path) -> dict[str, Any]:
+    """Identify the exact cached Hugging Face snapshot and tokenizer bytes."""
+    repo_cache = cache_root / f"models--{text_model.replace('/', '--')}"
+    ref_path = repo_cache / "refs" / "main"
+    require(ref_path.is_file(), f"Hugging Face tokenizer main revision is missing: {text_model}")
+    revision = require_non_blank_string(ref_path.read_text(encoding="utf-8").strip(), "tokenizer snapshot revision")
+    require(re.fullmatch(r"[0-9a-fA-F]{40,64}", revision) is not None,
+            "tokenizer snapshot revision is not an immutable commit SHA")
+    snapshot_path = repo_cache / "snapshots" / revision
+    require(snapshot_path.is_dir(), f"tokenizer snapshot directory is missing for revision {revision}")
+
+    tokenizer_names = (
+        "tokenizer.json",
+        "vocab.json",
+        "merges.txt",
+        "tokenizer_config.json",
+        "special_tokens_map.json",
+        "added_tokens.json",
+        "config.json",
+    )
+    files = {
+        name: sha256_file(snapshot_path / name)
+        for name in tokenizer_names
+        if (snapshot_path / name).is_file()
+    }
+    require("tokenizer.json" in files, "resolved tokenizer snapshot has no tokenizer.json")
+    return {
+        "repository_id": text_model,
+        "resolved_revision": revision.lower(),
+        "snapshot_files_sha256": files,
+    }
+
+
+def package_source_identity(package_root: Path) -> dict[str, Any]:
+    """Hash installed MSCLAP Python/config sources, excluding model weights."""
+    files = sorted(
+        path for path in package_root.rglob("*")
+        if path.is_file() and path.suffix.lower() in {".py", ".yml", ".yaml"}
+    )
+    require(bool(files), "installed MSCLAP source/config files are missing")
+    digest = hashlib.sha256()
+    for path in files:
+        relative = path.relative_to(package_root).as_posix()
+        digest.update(relative.encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(bytes.fromhex(sha256_file(path)))
+        digest.update(b"\n")
+    return {"file_count": len(files), "sha256": digest.hexdigest()}
 
 
 def select_approved_queries(document: dict[str, Any]) -> list[dict[str, str]]:
@@ -327,7 +378,23 @@ def run_experiment(
     tokenizer_name = require_non_blank_string(
         getattr(tokenizer, "name_or_path", None), "tokenizer name_or_path"
     )
+    require(tokenizer_name == text_model, "loaded tokenizer name does not match the configured MSCLAP text model")
     tokenizer_vocab_size = require_positive_integer(len(tokenizer), "tokenizer vocabulary size")
+    transformers_cache = Path(require_non_blank_string(
+        os.environ.get("TRANSFORMERS_CACHE"), "TRANSFORMERS_CACHE"
+    ))
+    tokenizer_snapshot = tokenizer_snapshot_identity(text_model, transformers_cache)
+    model_config_hash = require_sha256(
+        tokenizer_snapshot["snapshot_files_sha256"].get("config.json"),
+        "Hugging Face model config SHA-256",
+    )
+    backend_tokenizer = getattr(tokenizer, "backend_tokenizer", None)
+    backend_serializer = getattr(backend_tokenizer, "to_str", None)
+    require(callable(backend_serializer), "runtime tokenizer backend serialization is unavailable")
+    runtime_tokenizer_sha256 = sha256_bytes(backend_serializer().encode("utf-8"))
+    pad_token = require_non_blank_string(getattr(tokenizer, "pad_token", None), "tokenizer padding token")
+    pad_token_id = getattr(tokenizer, "pad_token_id", None)
+    require(isinstance(pad_token_id, int) and pad_token_id >= 0, "tokenizer padding token ID is missing or invalid")
     require_non_blank_string(MODEL_VERSION, "MSCLAP model version")
     require_non_blank_string(TOOL_PROFILE, "embedding generation profile")
     clap_module = getattr(wrapper, "clap", None)
@@ -342,6 +409,15 @@ def run_experiment(
     require(checkpoint.is_file(), f"MSCLAP checkpoint not found: {checkpoint.name}")
     checkpoint_file = require_non_blank_string(checkpoint.name, "checkpoint filename")
     checkpoint_hash_before = require_sha256(sha256_file(checkpoint), "checkpoint SHA-256")
+    checkpoint_snapshot_revision = None
+    checkpoint_parts = checkpoint.parts
+    if "snapshots" in checkpoint_parts:
+        revision_index = checkpoint_parts.index("snapshots") + 1
+        if revision_index < len(checkpoint_parts):
+            candidate_revision = checkpoint_parts[revision_index]
+            require(re.fullmatch(r"[0-9a-fA-F]{40,64}", candidate_revision) is not None,
+                    "checkpoint snapshot revision is malformed")
+            checkpoint_snapshot_revision = candidate_revision.lower()
     package_versions = {
         package: require_non_blank_string(importlib.metadata.version(package), f"{package} package version")
         for package in ("msclap", "torch", "transformers", "numpy")
@@ -354,6 +430,11 @@ def run_experiment(
         raise CalibrationTextEmbeddingError("runner path is outside the repository root") from exc
     runner_relative_path = require_non_blank_string(runner_relative_path, "runner path")
     runner_hash = require_sha256(sha256_file(runner_path), "runner SHA-256")
+    package_root = Path(require_non_blank_string(getattr(wrapper, "file_path", None), "MSCLAP package source path")).parent
+    msclap_source_identity = package_source_identity(package_root)
+    config_path = package_root / "configs" / f"config_{MODEL_VERSION}.yml"
+    require(config_path.is_file(), "installed MSCLAP model configuration is missing")
+    msclap_config_hash_before = require_sha256(sha256_file(config_path), "MSCLAP configuration SHA-256")
     eos_token_id = getattr(tokenizer, "eos_token_id", None)
     require(isinstance(eos_token_id, int) and eos_token_id >= 0, "tokenizer end-token identity is missing or invalid")
 
@@ -381,6 +462,15 @@ def run_experiment(
 
     checkpoint_hash = require_sha256(sha256_file(checkpoint), "checkpoint SHA-256 after inference")
     require(checkpoint_hash == checkpoint_hash_before, "MSCLAP checkpoint changed during inference")
+    require(tokenizer_snapshot_identity(text_model, transformers_cache) == tokenizer_snapshot,
+            "tokenizer snapshot changed during inference")
+    require(sha256_bytes(backend_serializer().encode("utf-8")) == runtime_tokenizer_sha256,
+            "runtime tokenizer state changed during inference")
+    require(package_source_identity(package_root) == msclap_source_identity,
+            "installed MSCLAP source/config changed during inference")
+    require(sha256_file(config_path) == msclap_config_hash_before,
+            "MSCLAP configuration changed during inference")
+    require(sha256_file(runner_path) == runner_hash, "runner source changed during inference")
     embeddings = np.asarray(batch_first.cpu().numpy(), dtype="<f4", order="C")
     embedding_path = embedding_path if embedding_path.is_absolute() else root / embedding_path
     artifact_display_path = (
@@ -453,12 +543,27 @@ def run_experiment(
             "package_version": package_versions["msclap"],
             "checkpoint_file": checkpoint_file,
             "checkpoint_sha256": checkpoint_hash,
+            "checkpoint_snapshot_revision": checkpoint_snapshot_revision,
+            "msclap_package_source": msclap_source_identity,
+            "msclap_config_sha256": msclap_config_hash_before,
             "text_model": text_model,
+            "model_config_sha256": model_config_hash,
             "token_limit": token_limit,
             "projection_dimension_config": configured_dimension,
             "tokenizer_name_or_path": tokenizer_name,
+            "tokenizer_snapshot": tokenizer_snapshot,
+            "runtime_tokenizer_backend_sha256": runtime_tokenizer_sha256,
             "tokenizer_vocab_size": int(tokenizer_vocab_size),
             "eos_token_id": eos_token_id,
+            "padding_token": pad_token,
+            "padding_token_id": pad_token_id,
+            "text_preprocessing": {
+                "text_len": token_limit,
+                "eos_marker_appended_by_msclap": " <|endoftext|>" if "gpt" in text_model else None,
+                "add_special_tokens": True,
+                "padding": "max_length",
+                "truncation": "not enabled; over-limit inputs fail preflight",
+            },
             "python_version": python_version,
             "torch_version": package_versions["torch"],
             "transformers_version": package_versions["transformers"],
