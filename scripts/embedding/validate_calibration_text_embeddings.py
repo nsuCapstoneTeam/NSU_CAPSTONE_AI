@@ -320,6 +320,28 @@ def write_canonical_artifact(
             temporary_path.unlink(missing_ok=True)
 
 
+def write_canonical_evidence(path: Path, evidence: dict[str, Any]) -> None:
+    """Persist canonical evidence atomically without truncating an existing file."""
+    serialized = json.dumps(evidence, ensure_ascii=False, indent=2) + "\n"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w", encoding="utf-8", prefix=f".{path.name}.", suffix=".tmp",
+            dir=path.parent, delete=False,
+        ) as stream:
+            temporary_path = Path(stream.name)
+            stream.write(serialized)
+
+        temporary_evidence = json.loads(temporary_path.read_text(encoding="utf-8"))
+        require(temporary_evidence == evidence, "evidence changed during serialization")
+        os.replace(temporary_path, path)
+        temporary_path = None
+    finally:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+
+
 def validate_repeated_batch_outputs(
     first_raw: Any,
     repeated_raw: Any,
@@ -350,13 +372,44 @@ def _run_calibration_validator(root: Path) -> str:
     return completed.stdout.strip()
 
 
+def resolve_experiment_paths(
+    root: Path,
+    evidence_path: Path,
+    embedding_path: Path,
+) -> tuple[Path, Path, Path]:
+    """Resolve experiment I/O paths and reject any input/output alias."""
+    root = root.resolve()
+    input_path = (root / INPUT_PATH).resolve()
+    evidence_path = evidence_path if evidence_path.is_absolute() else root / evidence_path
+    embedding_path = embedding_path if embedding_path.is_absolute() else root / embedding_path
+    evidence_path = evidence_path.resolve()
+    embedding_path = embedding_path.resolve()
+
+    paths = {
+        "event-queries input": input_path,
+        "evidence output": evidence_path,
+        "embedding output": embedding_path,
+    }
+    normalized = {name: os.path.normcase(str(path)) for name, path in paths.items()}
+    names = list(paths)
+    for index, left_name in enumerate(names):
+        for right_name in names[index + 1:]:
+            if normalized[left_name] == normalized[right_name]:
+                raise CalibrationTextEmbeddingError(
+                    f"path collision: {left_name} and {right_name} resolve to the same path ({paths[left_name]})"
+                )
+    return input_path, evidence_path, embedding_path
+
+
 def run_experiment(
     root: Path,
     evidence_path: Path = DEFAULT_EVIDENCE_PATH,
     embedding_path: Path = DEFAULT_EMBEDDING_PATH,
 ) -> dict[str, Any]:
     root = root.resolve()
-    input_path = root / INPUT_PATH
+    input_path, evidence_path, embedding_path = resolve_experiment_paths(
+        root, evidence_path, embedding_path
+    )
     input_bytes = input_path.read_bytes()
     input_hash = sha256_bytes(input_bytes)
     document = json.loads(input_bytes.decode("utf-8"))
@@ -472,7 +525,6 @@ def run_experiment(
             "MSCLAP configuration changed during inference")
     require(sha256_file(runner_path) == runner_hash, "runner source changed during inference")
     embeddings = np.asarray(batch_first.cpu().numpy(), dtype="<f4", order="C")
-    embedding_path = embedding_path if embedding_path.is_absolute() else root / embedding_path
     artifact_display_path = (
         embedding_path.relative_to(root).as_posix()
         if embedding_path.is_relative_to(root)
@@ -597,9 +649,7 @@ def run_experiment(
             },
         },
     }
-    evidence_path = evidence_path if evidence_path.is_absolute() else root / evidence_path
-    evidence_path.parent.mkdir(parents=True, exist_ok=True)
-    evidence_path.write_text(json.dumps(result, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_canonical_evidence(evidence_path, result)
     return result
 
 

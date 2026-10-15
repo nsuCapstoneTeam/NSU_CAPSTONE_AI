@@ -108,7 +108,7 @@ def test_required_query_set_identity_must_be_nonblank(document, field, value):
         tool.query_set_identity(changed)
 
 
-def test_current_canonical_evidence_has_nonblank_required_identities():
+def test_current_canonical_evidence_has_nonblank_required_identities(tmp_path, monkeypatch):
     evidence_path = DATA_PATH.with_name("text-embedding-evidence.json")
     evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
     input_identity = evidence["input_identity"]
@@ -120,8 +120,12 @@ def test_current_canonical_evidence_has_nonblank_required_identities():
     tool.require_sha256(runtime["runner_sha256"], "runner SHA-256")
     tool.require_sha256(runtime["checkpoint_sha256"], "checkpoint SHA-256")
     tool.require_sha256(artifact["sha256"], "artifact SHA-256")
-    artifact_path = Path(artifact["path"])
-    assert artifact_path == tool.DEFAULT_EMBEDDING_PATH
+    artifact_relative_path = Path(artifact["path"])
+    assert artifact_relative_path == tool.DEFAULT_EMBEDDING_PATH
+    repo_root = DATA_PATH.parents[3]
+    assert (repo_root / "AGENTS.md").is_file()
+    artifact_path = repo_root / artifact_relative_path
+    monkeypatch.chdir(tmp_path)
     assert artifact_path.is_file()
     assert tool.sha256_file(artifact_path) == artifact["sha256"]
     assert input_identity["working_tree_clean_before_and_after_inference"] is True
@@ -341,12 +345,112 @@ def test_canonical_artifact_preserves_query_row_order_and_hash(tmp_path):
     assert digest == tool.sha256_file(path)
 
 
+def test_canonical_evidence_is_written_atomically_and_remains_valid(tmp_path):
+    path = tmp_path / "evidence.json"
+    evidence = {"result_status": "PASS", "artifact": {"sha256": "a" * 64}}
+
+    tool.write_canonical_evidence(path, evidence)
+
+    assert json.loads(path.read_text(encoding="utf-8")) == evidence
+    assert list(tmp_path.iterdir()) == [path]
+
+
+@pytest.mark.parametrize("failure", ["serialization", "write", "replace"])
+def test_evidence_write_failure_preserves_existing_file_and_cleans_temp(
+    tmp_path, monkeypatch, failure
+):
+    path = tmp_path / "evidence.json"
+    original = '{"existing": "canonical evidence"}\n'
+    path.write_text(original, encoding="utf-8")
+
+    if failure == "serialization":
+        monkeypatch.setattr(tool.json, "dumps", lambda *_args, **_kwargs: (_ for _ in ()).throw(TypeError("serialize failed")))
+    elif failure == "write":
+        real_factory = tool.tempfile.NamedTemporaryFile
+
+        def failing_factory(**kwargs):
+            stream = real_factory(**kwargs)
+
+            class FailingStream:
+                name = stream.name
+
+                def __enter__(self):
+                    return self
+
+                def write(self, value):
+                    stream.write(value[:5])
+                    raise OSError("write failed")
+
+                def __exit__(self, *args):
+                    return stream.__exit__(*args)
+
+            return FailingStream()
+
+        monkeypatch.setattr(tool.tempfile, "NamedTemporaryFile", failing_factory)
+    else:
+        monkeypatch.setattr(tool.os, "replace", lambda *_args: (_ for _ in ()).throw(OSError("replace failed")))
+
+    with pytest.raises((TypeError, OSError)):
+        tool.write_canonical_evidence(path, {"result_status": "PASS"})
+
+    assert path.read_text(encoding="utf-8") == original
+    assert list(tmp_path.iterdir()) == [path]
+
+
+@pytest.mark.parametrize("collision", ["evidence_embedding", "evidence_input", "embedding_input", "resolved_alias"])
+def test_run_rejects_path_collisions_before_read_or_write(tmp_path, monkeypatch, collision):
+    root = tmp_path / "repo"
+    query_path = root / "event-queries.json"
+    query_path.parent.mkdir(parents=True)
+    original = b'{"sentinel": "input must remain untouched"}'
+    query_path.write_bytes(original)
+    output_dir = root / "tmp"
+    output_dir.mkdir()
+
+    if collision == "evidence_embedding":
+        evidence_path = output_dir / "same.out"
+        embedding_path = output_dir / "same.out"
+    elif collision == "evidence_input":
+        evidence_path = Path("event-queries.json")
+        embedding_path = output_dir / "embedding.npz"
+    elif collision == "embedding_input":
+        evidence_path = output_dir / "evidence.json"
+        embedding_path = Path("event-queries.json")
+    else:
+        evidence_path = Path("tmp/./same.out")
+        embedding_path = output_dir / "same.out"
+
+    monkeypatch.setattr(tool, "INPUT_PATH", Path("event-queries.json"))
+    monkeypatch.setattr(tool, "ClapModel", lambda: pytest.fail("model must not load on path collision"))
+
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="path collision"):
+        tool.run_experiment(root, evidence_path=evidence_path, embedding_path=embedding_path)
+
+    assert query_path.read_bytes() == original
+    assert list(output_dir.iterdir()) == []
+
+
+def test_resolved_experiment_paths_accept_three_distinct_paths(tmp_path, monkeypatch):
+    root = tmp_path / "repo"
+    monkeypatch.setattr(tool, "INPUT_PATH", Path("event-queries.json"))
+
+    input_path, evidence_path, embedding_path = tool.resolve_experiment_paths(
+        root, Path("tmp/evidence.json"), Path("tmp/embedding.npz")
+    )
+
+    assert input_path == (root / "event-queries.json").resolve()
+    assert evidence_path == (root / "tmp/evidence.json").resolve()
+    assert embedding_path == (root / "tmp/embedding.npz").resolve()
+    assert len({input_path, evidence_path, embedding_path}) == 3
+
+
 @pytest.mark.parametrize(
     "failure, message",
     [
         ("repeat_mismatch", "not bitwise identical"),
         ("input_hash", "event-queries.json changed"),
         ("dirty_after_inference", "working tree changed during inference"),
+        ("evidence_write", "evidence write failed"),
     ],
 )
 def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
@@ -418,10 +522,17 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
         ),
     )
     monkeypatch.setattr(tool, "_run_calibration_validator", lambda _root: "PASS")
+    if failure == "evidence_write":
+        monkeypatch.setattr(
+            tool,
+            "write_canonical_evidence",
+            lambda *_args: (_ for _ in ()).throw(OSError("evidence write failed")),
+        )
 
-    with pytest.raises(tool.CalibrationTextEmbeddingError, match=message):
+    expected_error = OSError if failure == "evidence_write" else tool.CalibrationTextEmbeddingError
+    with pytest.raises(expected_error, match=message):
         tool.run_experiment(root, evidence_path=evidence_path, embedding_path=artifact_path)
 
     assert fake_model.calls == (2 if failure == "repeat_mismatch" else 18)
-    assert not artifact_path.exists()
+    assert artifact_path.exists() is (failure == "evidence_write")
     assert not evidence_path.exists()
