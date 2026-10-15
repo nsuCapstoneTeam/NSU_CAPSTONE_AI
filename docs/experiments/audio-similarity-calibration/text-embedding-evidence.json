@@ -1,14 +1,8 @@
 {
   "schema_version": 1,
   "experiment": "NSUAI-36 calibration v1 Text Embedding",
-  "execution_provenance": {
-    "mode": "canonical_repository_runner",
-    "runner_path": "scripts/embedding/validate_calibration_text_embeddings.py",
-    "runner_sha256": "ffafaa2bb0d93c5526628c06df14a748baf99825ea76e6d000f1db4d2c817260",
-    "model_cache_policy": "preexisting local Hugging Face cache; HF_HUB_OFFLINE=1; cache outside repository"
-  },
   "result_status": "PASS_WITH_BATCH_SINGLE_DIFFERENCE_RECORDED",
-  "generated_at_utc": "2026-10-15T14:39:15.796367+00:00",
+  "generated_at_utc": "2026-10-15T15:21:32.072316+00:00",
   "scope_limitations": [
     "Text Embeddings only; Audio Embeddings were not generated",
     "No cosine calculation or ranking was performed",
@@ -16,7 +10,7 @@
     "Calibration input approval is not production query confirmation"
   ],
   "input_identity": {
-    "git_commit_sha": "d3fa00b130502e615ad9ed63fde8ce483321c90b",
+    "git_commit_sha": "f476adab73a0fc1bb409ec6c5dc617491f8b1b89",
     "working_tree_clean_before_and_after_inference": true,
     "query_set_version": "event-queries-draft-v1",
     "active_set_version": "engineering-calibration-v1",
@@ -112,23 +106,53 @@
     "output": "Calibration validation passed: schemas, unique sample/query/track identities, credited-artist cap, unique Raw scenarios, and ACTIVE Event interpretation Raw references."
   },
   "review_notes": [
-    "The same-size batch repeat and batch-versus-single differences are diagnostics; no project tolerance is established.",
+    "The repeated fixed-size batch must be bitwise identical or the run fails before canonical artifact/evidence finalization.",
+    "Batch-versus-single differences are diagnostic only; no project tolerance is established.",
     "If batch and single outputs differ, downstream cosine work must use the recorded fixed-batch artifact consistently."
   ],
   "model_runtime": {
     "model": "MSCLAP",
     "model_version": "2023",
     "embedding_generation_profile": "ClapModel.encode_text/msclap-default-v1",
-    "runner_sha256": "ffafaa2bb0d93c5526628c06df14a748baf99825ea76e6d000f1db4d2c817260",
+    "runner_path": "scripts/embedding/validate_calibration_text_embeddings.py",
+    "runner_sha256": "7c86841a7428c0cdfe91045d15c5c318b8e16229c04383d929ab7a29429c75d5",
     "package_version": "1.3.3",
     "checkpoint_file": "CLAP_weights_2023.pth",
     "checkpoint_sha256": "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6",
+    "checkpoint_snapshot_revision": "c47d441165daa21986ead0850660917636a81775",
+    "msclap_package_source": {
+      "file_count": 13,
+      "sha256": "e867cdbb71f7bcee529afb92a096578faab46c69feb35d8192d4f220de56c181"
+    },
+    "msclap_config_sha256": "41fbc893997f75fe144d93bf2ec44d5ca27fe61beb8870dd815a53c064cb030f",
     "text_model": "gpt2",
+    "model_config_sha256": "0daed7749b4f02b8f76240d5444551d7b08712dab4d0adb8239c56ba823bb7b4",
     "token_limit": 77,
     "projection_dimension_config": 1024,
     "tokenizer_name_or_path": "gpt2",
+    "tokenizer_snapshot": {
+      "repository_id": "gpt2",
+      "resolved_revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+      "snapshot_files_sha256": {
+        "tokenizer.json": "8414cab924d8b9b33013f0d221c5862f365ee9be39c5c2bfae8a5a9e970478a6",
+        "vocab.json": "196139668be63f3b5d6574427317ae82f612a97c5d1cdaf36ed2256dbf636783",
+        "merges.txt": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5",
+        "tokenizer_config.json": "5e04eb606e3a1583530a42e36c2a6b6615c86f34fe77e44d9ddeb43ff940931f",
+        "config.json": "0daed7749b4f02b8f76240d5444551d7b08712dab4d0adb8239c56ba823bb7b4"
+      }
+    },
+    "runtime_tokenizer_backend_sha256": "9660ca46237b4cfba5128e5a275c3c80f12e20ac39e6547d86ea7dfc7ba40bef",
     "tokenizer_vocab_size": 50257,
     "eos_token_id": 50256,
+    "padding_token": "!",
+    "padding_token_id": 0,
+    "text_preprocessing": {
+      "text_len": 77,
+      "eos_marker_appended_by_msclap": " <|endoftext|>",
+      "add_special_tokens": true,
+      "padding": "max_length",
+      "truncation": "not enabled; over-limit inputs fail preflight"
+    },
     "python_version": "3.11.16",
     "torch_version": "2.1.2+cpu",
     "transformers_version": "4.35.2",

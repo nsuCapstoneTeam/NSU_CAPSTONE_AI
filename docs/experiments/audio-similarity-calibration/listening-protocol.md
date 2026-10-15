@@ -14,7 +14,7 @@ Audio Embedding은 manifest의 중앙 60초 prepared 파일을 공통 `AudioEmbe
 
 Text 쪽은 실제 Text Encoder 입력에 승인된 calibration v1 문자열을 byte-for-byte 그대로 사용한다. 각 vector는 `query_id`, 실제 영어 문자열, `draft_version`, `event-queries.json` bytes SHA-256 및 Git commit으로 연결한다. 2026-10-15 실행 결과는 evidence 파일에 있으며, runner는 동일 batch 반복 출력의 bitwise equality를 성공 조건으로 강제한다. batch 대 single 차이는 별도 진단으로 기록하며 수치 허용 오차는 정하지 않았다. 다음 raw cosine 계산은 재현성이 확인된 16개 batch 결과를 그대로 사용한다. `get_text_embeddings()` 출력은 이 실행에서 L2-normalize되지 않았고, raw cosine 단계에서는 Text vector를 L2-normalize한 뒤 ADR-0007 최종 L2-normalized Audio vector와 dot product로 계산한다. `compute_similarity()`/`ClapModel.similarity()`는 logit-scaled 결과이므로 raw cosine에 사용하지 않는다. 현재 raw cosine 및 검색 성능 검증은 미수행이며 production query도 확정되지 않았다.
 
-Text Embedding evidence는 저장소의 canonical runner에서 생성했고, 실행 당시 clean commit은 `d3fa00b130502e615ad9ed63fde8ce483321c90b`이다. Audio Embedding, cosine, ranking은 아직 수행하지 않았다.
+Text Embedding evidence는 저장소의 canonical runner에서 clean worktree로 생성했고, 실행 당시 clean implementation commit은 `f476adab73a0fc1bb409ec6c5dc617491f8b1b89`이다. GPT-2 tokenizer snapshot은 `607a30d783dfa663caf39e06633721c8d4cfcd7e`로 고정했으며, 실제 snapshot 파일 및 runtime tokenizer serialization SHA-256, MSCLAP source/config와 checkpoint identity는 evidence에 기록한다. Audio Embedding, cosine, ranking은 아직 수행하지 않았다.
 
 ## 실험 입력의 불변 identity와 증거 연결
 
@@ -24,6 +24,7 @@ Text Embedding evidence는 저장소의 canonical runner에서 생성했고, 실
 - sample별 원본 Audio SHA-256 (`manifest.source_sha256`), 중앙 60초 prepared Audio SHA-256 (`manifest.prepared_sha256`), 실제 playback artifact SHA-256 및 재생 구간 `[0, 56)`
 - Embedding 입력은 prepared SHA와 일치하는지 확인하고 기록한다. `AudioEmbeddingGenerator`가 반환하는 `metadata.source_sha256`은 호출한 파일 bytes의 hash다. 따라서 prepared 파일을 넘겼다면 이는 원본 취득 파일의 `manifest.source_sha256`가 아니라 `manifest.prepared_sha256`와 일치해야 한다.
 - generator의 `preprocessing_version`과 전체 `generation_profile`, MSCLAP model/version, checkpoint revision과 checkpoint 파일 SHA-256, 관련 package 버전
+- Text tokenizer의 resolved snapshot revision, 실제 존재하는 tokenizer/model-config 파일별 SHA-256, runtime tokenizer serialization SHA-256, MSCLAP source/config SHA-256 및 text_len/EOS/padding/truncation 정책
 - 기존 `query_set_version`과 `active_set_version`, 실험 당시 `event-queries.json` 저장 bytes의 SHA-256, full Git commit SHA 및 clean worktree 상태
 - query별 실제 Text Encoder 입력 문자열, `query_id` 및 `draft_version`, query 파일 hash, Text model/checkpoint/profile identity, 생성된 Text Embedding을 보존한다면 그 artifact identity/hash
 - cosine 결과의 query/sample ID, 두 Embedding identity, raw cosine; 각 query의 전체 ranking과 ranking/tie-break 코드 identity; stratified/random pair ID, sampling 규칙·PRNG·seed·입력 모집단 및 최종 순서표
