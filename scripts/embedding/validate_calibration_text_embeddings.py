@@ -37,7 +37,7 @@ TOOL_PROFILE = "ClapModel.encode_text/msclap-default-v1"
 CALIBRATION_ROOT = Path("docs/experiments/audio-similarity-calibration")
 INPUT_PATH = CALIBRATION_ROOT / "event-queries.json"
 DEFAULT_EVIDENCE_PATH = CALIBRATION_ROOT / "text-embedding-evidence.json"
-DEFAULT_EMBEDDING_PATH = Path("tmp/calibration-v1-text-embeddings.npz")
+DEFAULT_EMBEDDING_PATH = CALIBRATION_ROOT / "artifacts/calibration-v1-text-embeddings.npz"
 
 
 class CalibrationTextEmbeddingError(ValueError):

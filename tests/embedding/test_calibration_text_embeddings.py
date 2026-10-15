@@ -147,6 +147,12 @@ def test_current_canonical_evidence_has_nonblank_required_identities():
     assert evidence["embedding_output"]["zero_vector_count"] == 0
 
 
+def test_default_embedding_path_is_persistent_calibration_artifact():
+    assert tool.DEFAULT_EMBEDDING_PATH == (
+        tool.CALIBRATION_ROOT / "artifacts/calibration-v1-text-embeddings.npz"
+    )
+
+
 @pytest.mark.parametrize(
     "validator, value, message",
     [
