@@ -63,8 +63,119 @@ def test_invalid_active_input_fails(document, mutation, message):
         tool.select_approved_queries(changed)
 
 
+@pytest.mark.parametrize("query_id", [None, "", "   "])
+def test_active_query_id_must_be_nonblank(document, query_id):
+    changed = copy.deepcopy(document)
+    row = next(item for item in changed["queries"] if item["selection_status"] == "active_v1")
+    row["query_id"] = query_id
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="query_id is missing or blank"):
+        tool.select_approved_queries(changed)
+
+
+@pytest.mark.parametrize(
+    "draft_version, missing",
+    [("draft-v1", False), (None, False), ("", False), ("   ", False), (None, True)],
+)
+def test_active_draft_version_must_be_present_and_nonblank(document, draft_version, missing):
+    changed = copy.deepcopy(document)
+    row = next(item for item in changed["queries"] if item["selection_status"] == "active_v1")
+    if missing:
+        row["msclap_model_input"].pop("draft_version")
+    else:
+        row["msclap_model_input"]["draft_version"] = draft_version
+    if draft_version == "draft-v1" and not missing:
+        assert tool.select_approved_queries(changed)[0]["draft_version"] == "draft-v1"
+    else:
+        with pytest.raises(tool.CalibrationTextEmbeddingError, match="draft_version.*missing or blank"):
+            tool.select_approved_queries(changed)
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [
+        ("query_set_version", None),
+        ("query_set_version", ""),
+        ("query_set_version", "   "),
+        ("active_set_version", None),
+        ("active_set_version", ""),
+        ("active_set_version", "   "),
+    ],
+)
+def test_required_query_set_identity_must_be_nonblank(document, field, value):
+    changed = copy.deepcopy(document)
+    changed[field] = value
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match=f"{field} is missing or blank"):
+        tool.query_set_identity(changed)
+
+
+def test_current_canonical_evidence_has_nonblank_required_identities():
+    evidence_path = DATA_PATH.with_name("text-embedding-evidence.json")
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    input_identity = evidence["input_identity"]
+    runtime = evidence["model_runtime"]
+    artifact = evidence["embedding_output"]["artifact"]
+
+    tool.require_full_git_sha(input_identity["git_commit_sha"])
+    tool.require_sha256(input_identity["event_queries_bytes_sha256"], "event-queries.json SHA-256")
+    tool.require_sha256(runtime["runner_sha256"], "runner SHA-256")
+    tool.require_sha256(runtime["checkpoint_sha256"], "checkpoint SHA-256")
+    tool.require_sha256(artifact["sha256"], "artifact SHA-256")
+    assert input_identity["working_tree_clean_before_and_after_inference"] is True
+    assert input_identity["active_query_count"] == 16
+    assert evidence["preflight_validation"]["status"] == "PASS"
+    assert evidence["embedding_output"]["repeat_batch"]["exact_equal"] is True
+    for field in ("query_set_version", "active_set_version"):
+        tool.require_non_blank_string(input_identity[field], field)
+    for field in (
+        "package_version", "model_version", "checkpoint_file", "text_model", "python_version",
+        "torch_version", "transformers_version", "numpy_version", "dtype", "device",
+    ):
+        tool.require_non_blank_string(runtime[field], field)
+    tool.require_non_blank_string(artifact["path"], "artifact path")
+    assert len(input_identity["queries"]) == 16
+    for query in input_identity["queries"]:
+        for field in ("query_id", "draft_version", "text"):
+            tool.require_non_blank_string(query[field], f"{field} in canonical evidence")
+    assert evidence["embedding_output"]["shape"] == [16, 1024]
+    tool.require_non_blank_string(evidence["embedding_output"]["dtype"], "embedding dtype")
+    tool.require_non_blank_string(evidence["embedding_output"]["device"], "embedding device")
+    assert evidence["embedding_output"]["all_finite"] is True
+    assert evidence["embedding_output"]["zero_vector_count"] == 0
+
+
+@pytest.mark.parametrize(
+    "validator, value, message",
+    [
+        (tool.require_non_blank_string, None, "identity is missing or blank"),
+        (tool.require_non_blank_string, "   ", "identity is missing or blank"),
+        (tool.require_sha256, "", "identity is missing or blank"),
+        (tool.require_sha256, "not-a-digest", "not a SHA-256 digest"),
+        (lambda value, _field: tool.require_full_git_sha(value), "short-sha", "not a full SHA"),
+    ],
+)
+def test_required_identity_values_fail_when_missing_or_invalid(validator, value, message):
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match=message):
+        validator(value, "identity")
+
+
+@pytest.mark.parametrize("field", ["MSCLAP model version", "checkpoint filename", "msclap package version"])
+def test_blank_model_and_checkpoint_identity_fails(field):
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match=f"{field} is missing or blank"):
+        tool.require_non_blank_string("   ", field)
+
+
+@pytest.mark.parametrize("value", [None, True, 0, -1])
+def test_required_positive_integer_identity_fails(value):
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="positive integer"):
+        tool.require_positive_integer(value, "configured embedding dimension")
+
+
 class FakeTokenizer:
     eos_token_id = 50256
+    name_or_path = "gpt2"
+
+    def __len__(self):
+        return 50257
 
     def encode_plus(self, *, text, add_special_tokens, max_length, padding, return_tensors):
         assert add_special_tokens is True
@@ -198,6 +309,9 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
     query_path.write_text(json.dumps(document), encoding="utf-8")
     checkpoint = root / "checkpoint.pth"
     checkpoint.write_bytes(b"test checkpoint")
+    runner_path = root / "scripts" / "embedding" / "runner.py"
+    runner_path.parent.mkdir(parents=True)
+    runner_path.write_bytes(b"test runner")
     dirty_marker = root / "during-inference-change.txt"
     artifact_path = root / "tmp" / "canonical.npz"
     evidence_path = root / "evidence.json"
@@ -224,6 +338,7 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
 
     fake_model = FakeClapModel()
     monkeypatch.setattr(tool, "INPUT_PATH", Path("event-queries.json"))
+    monkeypatch.setattr(tool, "__file__", str(runner_path))
     monkeypatch.setattr(tool, "ClapModel", lambda: fake_model)
     monkeypatch.setattr(
         tool,
@@ -233,7 +348,7 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
             if args[0] == "status" and dirty_marker.exists()
             else ""
             if args[0] == "status"
-            else "test-commit"
+            else "a" * 40
         ),
     )
     monkeypatch.setattr(tool, "_run_calibration_validator", lambda _root: "PASS")

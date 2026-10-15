@@ -8,6 +8,7 @@ import importlib.metadata
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
 import tempfile
@@ -30,6 +31,7 @@ from app.inference.clap_model import ClapModel
 ACTIVE_COUNT = 16
 APPROVED_STATUS = "approved_for_calibration_v1_experiment"
 SEMANTIC_REVIEW_STATUS = "reviewed_for_semantic_fidelity"
+MODEL_VERSION = "2023"
 TOOL_PROFILE = "ClapModel.encode_text/msclap-default-v1"
 CALIBRATION_ROOT = Path("docs/experiments/audio-similarity-calibration")
 INPUT_PATH = CALIBRATION_ROOT / "event-queries.json"
@@ -44,6 +46,36 @@ class CalibrationTextEmbeddingError(ValueError):
 def require(condition: bool, message: str) -> None:
     if not condition:
         raise CalibrationTextEmbeddingError(message)
+
+
+def require_non_blank_string(value: Any, field_name: str) -> str:
+    require(isinstance(value, str) and bool(value.strip()), f"{field_name} is missing or blank")
+    return value
+
+
+def require_sha256(value: Any, field_name: str) -> str:
+    digest = require_non_blank_string(value, field_name)
+    require(re.fullmatch(r"[0-9a-fA-F]{64}", digest) is not None, f"{field_name} is not a SHA-256 digest")
+    return digest.lower()
+
+
+def require_full_git_sha(value: Any) -> str:
+    commit = require_non_blank_string(value, "full Git commit SHA")
+    require(re.fullmatch(r"(?:[0-9a-fA-F]{40}|[0-9a-fA-F]{64})", commit) is not None,
+            "Git commit identity is not a full SHA")
+    return commit.lower()
+
+
+def require_positive_integer(value: Any, field_name: str) -> int:
+    require(isinstance(value, int) and not isinstance(value, bool) and value > 0,
+            f"{field_name} is missing or not a positive integer")
+    return value
+
+
+def query_set_identity(document: dict[str, Any]) -> tuple[str, str]:
+    query_set_version = require_non_blank_string(document.get("query_set_version"), "query_set_version")
+    active_set_version = require_non_blank_string(document.get("active_set_version"), "active_set_version")
+    return query_set_version, active_set_version
 
 
 def sha256_bytes(data: bytes) -> str:
@@ -67,7 +99,7 @@ def select_approved_queries(document: dict[str, Any]) -> list[dict[str, str]]:
 
     selected = []
     for row in active:
-        query_id = row.get("query_id", "<missing query_id>")
+        query_id = require_non_blank_string(row.get("query_id"), "query_id")
         model_input = row.get("msclap_model_input", {})
         require(
             row.get("structured_interpretation", {}).get("review_status") == "reviewed_for_raw_support",
@@ -83,10 +115,11 @@ def select_approved_queries(document: dict[str, Any]) -> list[dict[str, str]]:
         )
         text = model_input.get("text")
         require(isinstance(text, str) and bool(text.strip()), f"{query_id}: English text is blank or not a string")
+        draft_version = require_non_blank_string(model_input.get("draft_version"), f"{query_id}: draft_version")
         selected.append(
             {
                 "query_id": query_id,
-                "draft_version": str(model_input.get("draft_version", "")),
+                "draft_version": draft_version,
                 "text": text,
             }
         )
@@ -277,24 +310,61 @@ def run_experiment(
     input_hash = sha256_bytes(input_bytes)
     document = json.loads(input_bytes.decode("utf-8"))
     selected = select_approved_queries(document)
+    query_set_version, active_set_version = query_set_identity(document)
+    require_sha256(input_hash, "event-queries.json SHA-256")
 
     require(not _git_value(root, "status", "--porcelain", "--untracked-files=all"), "working tree is dirty; refusing Text Encoder run")
-    commit = _git_value(root, "rev-parse", "HEAD")
+    commit = require_full_git_sha(_git_value(root, "rev-parse", "HEAD"))
     validator_output = _run_calibration_validator(root)
+    validator_output = require_non_blank_string(validator_output, "calibration validator output")
 
     clap_model = ClapModel()
     wrapper = clap_model.model
     tokenizer = wrapper.tokenizer
-    text_model = str(wrapper.args.text_model)
-    token_limit = int(wrapper.args.text_len)
+    text_model = require_non_blank_string(getattr(wrapper.args, "text_model", None), "MSCLAP text model identity")
+    token_limit = require_positive_integer(getattr(wrapper.args, "text_len", None), "MSCLAP token limit")
     token_rows = tokenizer_preflight(tokenizer, selected, text_model, token_limit)
+    tokenizer_name = require_non_blank_string(
+        getattr(tokenizer, "name_or_path", None), "tokenizer name_or_path"
+    )
+    tokenizer_vocab_size = require_positive_integer(len(tokenizer), "tokenizer vocabulary size")
+    require_non_blank_string(MODEL_VERSION, "MSCLAP model version")
+    require_non_blank_string(TOOL_PROFILE, "embedding generation profile")
+    clap_module = getattr(wrapper, "clap", None)
+    require(clap_module is not None, "MSCLAP model mode is unavailable")
+    training_mode = getattr(clap_module, "training", None)
+    require(isinstance(training_mode, bool), "MSCLAP training/evaluation state is unavailable")
+    model_eval_mode = not training_mode
+    require(model_eval_mode, "MSCLAP model is in training mode; refusing canonical inference")
+
+    checkpoint_value = require_non_blank_string(getattr(wrapper, "model_fp", None), "checkpoint path")
+    checkpoint = Path(checkpoint_value)
+    require(checkpoint.is_file(), f"MSCLAP checkpoint not found: {checkpoint.name}")
+    checkpoint_file = require_non_blank_string(checkpoint.name, "checkpoint filename")
+    checkpoint_hash_before = require_sha256(sha256_file(checkpoint), "checkpoint SHA-256")
+    package_versions = {
+        package: require_non_blank_string(importlib.metadata.version(package), f"{package} package version")
+        for package in ("msclap", "torch", "transformers", "numpy")
+    }
+    python_version = require_non_blank_string(platform.python_version(), "Python version")
+    runner_path = Path(__file__).resolve()
+    try:
+        runner_relative_path = runner_path.relative_to(root).as_posix()
+    except ValueError as exc:
+        raise CalibrationTextEmbeddingError("runner path is outside the repository root") from exc
+    runner_relative_path = require_non_blank_string(runner_relative_path, "runner path")
+    runner_hash = require_sha256(sha256_file(runner_path), "runner SHA-256")
+    eos_token_id = getattr(tokenizer, "eos_token_id", None)
+    require(isinstance(eos_token_id, int) and eos_token_id >= 0, "tokenizer end-token identity is missing or invalid")
 
     texts = [row["text"] for row in selected]
     with torch.inference_mode():
         batch_first_raw = clap_model.encode_text(texts)
         batch_repeat_raw = clap_model.encode_text(texts)
 
-    configured_dimension = int(getattr(wrapper.args, "d_proj", as_tensor(batch_first_raw).shape[1]))
+    configured_dimension = require_positive_integer(
+        getattr(wrapper.args, "d_proj", None), "configured embedding dimension"
+    )
     batch_first, batch_repeat, repeated_batch = validate_repeated_batch_outputs(
         batch_first_raw, batch_repeat_raw, ACTIVE_COUNT, configured_dimension
     )
@@ -309,11 +379,16 @@ def run_experiment(
             **difference_report(batch_first[index:index + 1], single),
         })
 
-    checkpoint = Path(wrapper.model_fp)
-    require(checkpoint.is_file(), f"MSCLAP checkpoint not found: {checkpoint.name}")
-    checkpoint_hash = sha256_file(checkpoint)
+    checkpoint_hash = require_sha256(sha256_file(checkpoint), "checkpoint SHA-256 after inference")
+    require(checkpoint_hash == checkpoint_hash_before, "MSCLAP checkpoint changed during inference")
     embeddings = np.asarray(batch_first.cpu().numpy(), dtype="<f4", order="C")
     embedding_path = embedding_path if embedding_path.is_absolute() else root / embedding_path
+    artifact_display_path = (
+        embedding_path.relative_to(root).as_posix()
+        if embedding_path.is_relative_to(root)
+        else str(embedding_path)
+    )
+    artifact_display_path = require_non_blank_string(artifact_display_path, "artifact path")
 
     require(sha256_bytes(input_path.read_bytes()) == input_hash, "event-queries.json changed during inference")
     require(not _git_value(root, "status", "--porcelain", "--untracked-files=all"), "working tree changed during inference")
@@ -352,8 +427,8 @@ def run_experiment(
         "input_identity": {
             "git_commit_sha": commit,
             "working_tree_clean_before_and_after_inference": True,
-            "query_set_version": document.get("query_set_version"),
-            "active_set_version": document.get("active_set_version"),
+            "query_set_version": query_set_version,
+            "active_set_version": active_set_version,
             "event_queries_path": INPUT_PATH.as_posix(),
             "event_queries_bytes_sha256": input_hash,
             "active_query_count": len(selected),
@@ -371,25 +446,26 @@ def run_experiment(
         ] if any(not row["exact_equal"] for row in single_rows) else [],
         "model_runtime": {
             "model": "MSCLAP",
-            "model_version": "2023",
+            "model_version": MODEL_VERSION,
             "embedding_generation_profile": TOOL_PROFILE,
-            "runner_sha256": sha256_file(Path(__file__).resolve()),
-            "package_version": importlib.metadata.version("msclap"),
-            "checkpoint_file": checkpoint.name,
+            "runner_path": runner_relative_path,
+            "runner_sha256": runner_hash,
+            "package_version": package_versions["msclap"],
+            "checkpoint_file": checkpoint_file,
             "checkpoint_sha256": checkpoint_hash,
             "text_model": text_model,
             "token_limit": token_limit,
             "projection_dimension_config": configured_dimension,
-            "tokenizer_name_or_path": str(getattr(tokenizer, "name_or_path", "unknown")),
-            "tokenizer_vocab_size": int(len(tokenizer)),
-            "eos_token_id": getattr(tokenizer, "eos_token_id", None),
-            "python_version": platform.python_version(),
-            "torch_version": importlib.metadata.version("torch"),
-            "transformers_version": importlib.metadata.version("transformers"),
-            "numpy_version": importlib.metadata.version("numpy"),
-            "device": str(batch_first.device) if isinstance(batch_first_raw, torch.Tensor) else "cpu (non-Torch output)",
+            "tokenizer_name_or_path": tokenizer_name,
+            "tokenizer_vocab_size": int(tokenizer_vocab_size),
+            "eos_token_id": eos_token_id,
+            "python_version": python_version,
+            "torch_version": package_versions["torch"],
+            "transformers_version": package_versions["transformers"],
+            "numpy_version": package_versions["numpy"],
+            "device": str(batch_first.device),
             "dtype": str(batch_first.dtype),
-            "model_eval_mode": not bool(getattr(getattr(wrapper, "clap", None), "training", False)),
+            "model_eval_mode": model_eval_mode,
             "torch_num_threads": torch.get_num_threads(),
         },
         "tokenizer_preflight": token_rows,
@@ -397,7 +473,7 @@ def run_experiment(
             "shape": list(batch_first.shape),
             "dimension": int(batch_first.shape[1]),
             "dtype": str(batch_first.dtype),
-            "device": str(batch_first.device) if isinstance(batch_first_raw, torch.Tensor) else "cpu (non-Torch output)",
+            "device": str(batch_first.device),
             "all_finite": bool(torch.isfinite(batch_first).all()),
             "zero_vector_count": sum(row["zero_vector"] for row in vector_checks),
             "l2_norms": vector_checks,
@@ -410,7 +486,7 @@ def run_experiment(
                 else "repeated_batch_exact; no_batch_vs_single_difference_observed"
             ),
             "artifact": {
-                "path": embedding_path.relative_to(root).as_posix() if embedding_path.is_relative_to(root) else str(embedding_path),
+                "path": artifact_display_path,
                 "sha256": artifact_hash,
                 "format": "compressed NPZ: float32 little-endian embeddings and query_id order",
             },
