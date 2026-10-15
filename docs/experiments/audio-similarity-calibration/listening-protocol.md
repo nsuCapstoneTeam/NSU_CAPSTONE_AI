@@ -4,7 +4,7 @@
 
 이 문서는 NSUAI-36에서 사전 준비하는 프로토콜 초안이다. 실제 청취 평가는 NSUAI-38에서 수행한다. 이번 작업에서 평가 표본을 재생하거나 평가하지 않았다. Likert 응답을 사용자 표시 0–100 값으로 직접 변환하지 않는다.
 
-평가 대상은 representative synthetic scenario benchmark의 ACTIVE v1 16개와 calibration cohort의 60초 prepared segment 쌍이다. ACTIVE 16개 영어 입력은 Raw 및 Structured Interpretation과의 semantic fidelity review를 마쳤고 `approved_for_calibration_v1_experiment` 상태로 calibration v1 Text Embedding/cosine 실험 입력으로 고정했다. RESERVE/REPLACE 4개는 `not_reviewed` draft로 이번 승인 범위 밖이다. 이 승인은 MSCLAP 성능 검증이나 production query 확정을 뜻하지 않는다. MSCLAP Text Embedding과 cosine 검색 성능 검증은 아직 수행하지 않았다. 이 자료는 실제 사용자 요청을 대표한다고 주장하지 않는다. 평가 화면에는 evaluator에게 raw cosine, rank, 점수 구간, 후보 선택 순위를 노출하지 않는다. 현재 50곡은 calibration cohort로만 사용하며, 그 분포와 이 청취 평가는 transformation 선정 자료다. 최종 transformation 선택 후에는 별도의 독립 validation cohort로 검증하고, 현재 calibration cohort를 독립 validation evidence로 재사용하지 않는다. 별도 cohort의 크기·구성 및 validation에서 재사용할 query/evaluation material은 결과 확인 전에 기록한다.
+평가 대상은 representative synthetic scenario benchmark의 ACTIVE v1 16개와 calibration cohort의 60초 prepared segment 쌍이다. ACTIVE 16개 영어 입력은 Raw 및 Structured Interpretation과의 semantic fidelity review를 마쳤고 `approved_for_calibration_v1_experiment` 상태로 calibration v1 실험 입력에 고정했다. RESERVE/REPLACE 4개는 `not_reviewed` draft로 이번 승인 범위 밖이다. 2026-10-15 ACTIVE 16개의 MSCLAP 2023 Text Embedding 생성을 완료했으며 실행 identity·tokenizer preflight·출력 검사는 [Text Embedding evidence](./text-embedding-evidence.json)에 기록했다. 이는 cosine 검색 성능 검증이나 production query 확정을 뜻하지 않는다. Audio acquisition/embedding, cosine 계산, 청취 평가는 아직 수행하지 않았다. 이 자료는 실제 사용자 요청을 대표한다고 주장하지 않는다. 평가 화면에는 evaluator에게 raw cosine, rank, 점수 구간, 후보 선택 순위를 노출하지 않는다. 현재 50곡은 calibration cohort로만 사용하며, 그 분포와 이 청취 평가는 transformation 선정 자료다. 최종 transformation 선택 후에는 별도의 독립 validation cohort로 검증하고, 현재 calibration cohort를 독립 validation evidence로 재사용하지 않는다. 별도 cohort의 크기·구성 및 validation에서 재사용할 query/evaluation material은 결과 확인 전에 기록한다.
 
 ## 모델 입력과 재생 입력의 일치
 
@@ -12,7 +12,7 @@ Audio Embedding은 manifest의 중앙 60초 prepared 파일을 공통 `AudioEmbe
 
 각 평가 sample의 playback은 generator와 같은 decode/downmix/resample 경로에서 얻은 `[0초, 56초)` 파형이어야 한다. 가장 직접적인 재생 자료는 MSCLAP에 실제 전달한 8개 PCM chunk를 시간 순서대로 이어 붙인 56초 playback artifact다. 별도 loudness 처리, crop, resampling 또는 손실 재인코딩을 더하지 않는다. artifact는 local ignored 경로에 보관하고 SHA-256을 계산한다. 파일 생성 시 이 경로를 보존할 수 없다면, 기존 공통 generator의 동일한 전처리 결과를 보존하는 방법을 실험 실행 전에 마련해야 하며 원본 60초를 그대로 들은 결과를 같은 playback 조건으로 간주하지 않는다. 이는 ADR-0007의 Embedding 정책을 바꾸지 않고 사람에게 제시하는 파형을 모델의 실제 분석 파형과 맞추기 위한 기록 조건이다.
 
-Text 쪽은 NSUAI-37에서 실제 Text Encoder에 전달할 문자열을 이 승인된 calibration v1 입력과 byte-for-byte 동일하게 사용한다. 각 pair는 `query_id`와 승인된 영어 문자열을 식별하며 사후 번역·정규화·재작성하지 않는다. `approved_for_calibration_v1_experiment`는 calibration 실험 입력만 승인한다. 현재 Text Embedding 및 cosine 검색 성능은 검증되지 않았고 production query로 확정된 것도 아니다. 실행 전 실제 Text-to-Audio 경로와 그 identity를 기록하며, 이를 마치기 전에는 Embedding/cosine/rating을 생성하지 않는다.
+Text 쪽은 실제 Text Encoder 입력에 승인된 calibration v1 문자열을 byte-for-byte 그대로 사용한다. 각 vector는 `query_id`, 실제 영어 문자열, `draft_version`, `event-queries.json` bytes SHA-256 및 Git commit으로 연결한다. 2026-10-15 실행 결과는 evidence 파일에 있으며, batch 반복은 정확히 일치했고 batch 대 single 차이도 함께 기록했다. 수치 허용 오차는 미리 정하지 않았으므로 다음 raw cosine 계산은 재현성이 확인된 16개 batch 결과를 그대로 사용한다. `get_text_embeddings()` 출력은 이 실행에서 L2-normalize되지 않았고, raw cosine 단계에서는 Text vector를 L2-normalize한 뒤 ADR-0007 최종 L2-normalized Audio vector와 dot product로 계산한다. `compute_similarity()`/`ClapModel.similarity()`는 logit-scaled 결과이므로 raw cosine에 사용하지 않는다. 현재 raw cosine 및 검색 성능 검증은 미수행이며 production query도 확정되지 않았다.
 
 ## 실험 입력의 불변 identity와 증거 연결
 
@@ -27,7 +27,7 @@ Text 쪽은 NSUAI-37에서 실제 Text Encoder에 전달할 문자열을 이 승
 - cosine 결과의 query/sample ID, 두 Embedding identity, raw cosine; 각 query의 전체 ranking과 ranking/tie-break 코드 identity; stratified/random pair ID, sampling 규칙·PRNG·seed·입력 모집단 및 최종 순서표
 - playback/rating row와 정확한 query/sample ID 및 playback artifact SHA-256의 연결. transformation을 비교·선정한 뒤에는 적용한 formula/config와 별도 calibration/result version을 함께 보존한다.
 
-무시된 원본·prepared/playback Audio와 큰 vector는 Git에 추가하지 않는다. 그 대신 실제 입력 파일별 SHA-256과 manifest의 sample ID를 evidence에 남긴다. 실행 중 생성되는 ranking, 표본 목록, playback 순서와 rating의 실제 결과도 당시 값 그대로 보존한다. 설정 이름, manifest version 또는 seed만으로 파일 내용·실행 순서·결과를 재현했다고 간주하지 않는다. 현재 어떤 Audio acquisition, embedding, cosine, listening 또는 transformation 선정 evidence도 생성되지 않았다.
+무시된 원본·prepared/playback Audio와 embedding binary는 Git에 추가하지 않는다. Text vector artifact는 local ignored `tmp/calibration-v1-text-embeddings.npz`에 있으며 evidence에 SHA-256과 query 순서를 기록했다. 그 대신 실험 입력 파일별 SHA-256과 manifest의 sample ID를 evidence에 남긴다. 실행 중 생성되는 ranking, 표본 목록, playback 순서와 rating의 실제 결과도 당시 값 그대로 보존한다. 설정 이름, manifest version 또는 seed만으로 파일 내용·실행 순서·결과를 재현했다고 간주하지 않는다. 현재 Audio acquisition/embedding, raw cosine, listening 또는 transformation 선정 evidence는 생성되지 않았다. Text Embedding evidence는 별도 기록되어 있다.
 
 ## 표본 추출
 

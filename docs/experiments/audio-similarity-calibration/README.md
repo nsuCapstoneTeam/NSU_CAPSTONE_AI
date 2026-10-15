@@ -16,12 +16,12 @@ Event query는 실제 사용자 데이터가 아니라 대표적인 합성 시�
 - source SHA-256 기록: 아직 없음
 - 실제 decoder 기반 decode 검증: 아직 안 함
 - deterministic 중앙 60초 prepared Audio 생성: 아직 안 함
-- MSCLAP Embedding 생성: 아직 안 함
+- Audio MSCLAP Embedding 생성: 아직 안 함 (ACTIVE 16개 Text Embedding은 2026-10-15 생성, 아래 Event query 상태 참조)
 - raw cosine 실험: 아직 안 함
 - 청취평가: 아직 안 함
 - 사용자 표시용 0~100 transformation 선정: 아직 안 함
 
-따라서 candidate selection complete ≠ calibration experiment complete다. 후보 목록 확정과 Audio 준비·생성·평가 결과를 별도 단계로 관리한다. 실제 실험 전에는 clean worktree의 Git commit SHA와 manifest/query/schema/protocol/실행 코드의 파일 bytes SHA-256을 기록하고, source·prepared·playback Audio도 각각 SHA-256으로 연결한다. 청취평가는 공통 AudioEmbeddingGenerator가 분석하는 동일한 전처리 파형의 `[0초, 56초)`만 대상으로 하며 prepared 60초 전체를 재생하지 않는다. 세부 기록 조건은 [청취 평가 프로토콜](./listening-protocol.md)을 따른다. 이 identity와 playback evidence는 아직 생성되지 않았다.
+따라서 candidate selection complete ≠ calibration experiment complete다. 후보 목록 확정과 Audio 준비·생성·평가 결과를 별도 단계로 관리한다. Audio/cosine/listening 실행 전에는 clean worktree의 Git commit SHA와 manifest/query/schema/protocol/실행 코드의 파일 bytes SHA-256을 기록하고, source·prepared·playback Audio도 각각 SHA-256으로 연결한다. 청취평가는 공통 AudioEmbeddingGenerator가 분석하는 동일한 전처리 파형의 `[0초, 56초)`만 대상으로 하며 prepared 60초 전체를 재생하지 않는다. 세부 기록 조건은 [청취 평가 프로토콜](./listening-protocol.md)을 따른다. Audio input 및 playback identity는 아직 생성되지 않았으며, Text Embedding identity는 [별도 evidence](./text-embedding-evidence.json)에 기록했다.
 
 현재 PASS 50곡은 calibration cohort다. 이 cohort의 raw cosine 분포와 청취평가는 transformation 선정 자료이며 독립 validation 자료가 아니다. 최종 transformation 선택 후 별도로 구성한 독립 validation cohort에서 검증한다. 현재 50곡을 validation holdout으로 간주하지 않으며, 별도 validation cohort의 크기와 구성은 아직 정하지 않았다.
 
@@ -43,7 +43,9 @@ Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 
 2. `structured_interpretation`: calibration-only 의미 주석이며 production AI 결과나 Spring API 계약이 아니다. 속성은 mood, tempo, desired_genre, instrument_preference, vocal_preference, acoustic_electronic, dynamic_progression, usage_context, rhythmic_character, activity_character다. ACTIVE 16개는 Raw 근거 검수를 완료했고 RESERVE/REPLACE는 미검수 placeholder로 유지한다.
 3. `msclap_model_input`: 사람이 작성한 영어 calibration 입력이다. ACTIVE 16개는 semantic fidelity 검수를 마쳤고, `approved_for_calibration_v1_experiment`로 calibration v1 Text Embedding/cosine 실험 입력으로 승인했다. 이는 모델 성능 검증이나 production query 확정이 아니다. RESERVE/REPLACE 4개는 `draft_not_confirmed_model_input` 및 `not_reviewed`를 유지한다.
 
-현재 자료는 실제 사용자 데이터가 아닌 representative synthetic scenario benchmark다. ACTIVE 16개의 Structured Interpretation Raw 근거 검수와 영어 입력 semantic fidelity 검수 및 calibration v1 실험 입력 승인은 완료했다. MSCLAP Text Embedding, cosine 검색 성능 검증은 아직 수행하지 않았고, 입력은 production query로 확정되지 않았다.
+현재 자료는 실제 사용자 데이터가 아닌 representative synthetic scenario benchmark다. ACTIVE 16개의 Structured Interpretation Raw 근거 검수, 영어 입력 semantic fidelity 검수 및 calibration v1 실험 입력 승인은 완료했다. 2026-10-15 ACTIVE 16개를 MSCLAP 2023 Text Encoder로 batch 생성했고, 결과와 실행 identity는 [Text Embedding evidence](./text-embedding-evidence.json)에 기록했다. 출력은 `[16, 1024]`, `float32`, CPU였으며 Text Encoder 출력에 L2 normalization을 적용하지 않았다. 같은 16-query batch의 반복 출력은 정확히 같았지만, batch와 single 입력은 bitwise 동일하지 않았다(상세 차이는 evidence 참조). 임의 허용 오차는 정하지 않았으므로 이후 cosine 실행은 이 evidence의 batch artifact를 입력으로 사용해야 한다. 임베딩 artifact는 ignored `tmp/calibration-v1-text-embeddings.npz`에만 저장했고 Git에 포함하지 않는다. Audio Embedding/acquisition, cosine 계산, 검색 성능 검증, 청취 평가와 transformation 선정은 미수행이며, 입력은 production query로 확정되지 않았다.
+
+같은 Text Embedding 검증 경로는 저장소 루트에서 Python 3.11 및 프로젝트의 MSCLAP CPU 의존성이 설치된 환경에서 `python -m scripts.embedding.validate_calibration_text_embeddings`로 실행한다. 실행 전 통합 calibration validator를 수행하고, dirty worktree에서는 모델 추론을 시작하지 않는다.
 
 
 ## Dataset 구성
