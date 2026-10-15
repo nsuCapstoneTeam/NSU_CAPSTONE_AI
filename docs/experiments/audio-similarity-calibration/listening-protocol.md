@@ -14,7 +14,7 @@ Audio Embedding은 manifest의 중앙 60초 prepared 파일을 공통 `AudioEmbe
 
 Text 쪽은 실제 Text Encoder 입력에 승인된 calibration v1 문자열을 byte-for-byte 그대로 사용한다. 각 vector는 `query_id`, 실제 영어 문자열, `draft_version`, `event-queries.json` bytes SHA-256 및 Git commit으로 연결한다. 2026-10-15 실행 결과는 evidence 파일에 있으며, runner는 동일 batch 반복 출력의 bitwise equality를 성공 조건으로 강제한다. batch 대 single 차이는 별도 진단으로 기록하며 수치 허용 오차는 정하지 않았다. 다음 raw cosine 계산은 재현성이 확인된 16개 batch 결과를 그대로 사용한다. `get_text_embeddings()` 출력은 이 실행에서 L2-normalize되지 않았고, raw cosine 단계에서는 Text vector를 L2-normalize한 뒤 ADR-0007 최종 L2-normalized Audio vector와 dot product로 계산한다. `compute_similarity()`/`ClapModel.similarity()`는 logit-scaled 결과이므로 raw cosine에 사용하지 않는다. 현재 raw cosine 및 검색 성능 검증은 미수행이며 production query도 확정되지 않았다.
 
-Text Embedding evidence는 저장소의 canonical runner에서 clean worktree로 생성했고, 실행 당시 clean implementation commit은 `f476adab73a0fc1bb409ec6c5dc617491f8b1b89`이다. GPT-2 tokenizer snapshot은 `607a30d783dfa663caf39e06633721c8d4cfcd7e`로 고정했으며, 실제 snapshot 파일 및 runtime tokenizer serialization SHA-256, MSCLAP source/config와 checkpoint identity는 evidence에 기록한다. Audio Embedding, cosine, ranking은 아직 수행하지 않았다.
+Text Embedding evidence는 저장소의 canonical runner에서 clean worktree로 생성했고, 실행 당시 clean implementation commit은 `8b38a49e5c00a94204d27a3da030cb07b2959b7e`이다. GPT-2 tokenizer snapshot은 `607a30d783dfa663caf39e06633721c8d4cfcd7e`로 고정했으며, 실제 snapshot 파일 및 runtime tokenizer serialization SHA-256, MSCLAP source/config와 checkpoint identity는 evidence에 기록한다. Audio Embedding, cosine, ranking은 아직 수행하지 않았다.
 
 ## 실험 입력의 불변 identity와 증거 연결
 

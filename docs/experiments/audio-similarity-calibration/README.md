@@ -48,7 +48,7 @@ Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 
 같은 Text Embedding 검증 경로는 저장소 루트에서 Python 3.11 및 프로젝트의 MSCLAP CPU 의존성이 설치된 환경에서 `python -m scripts.embedding.validate_calibration_text_embeddings`로 실행한다. 실행 전 통합 calibration validator를 수행하고, dirty worktree에서는 모델 추론을 시작하지 않는다. 동일한 16-query batch의 반복 출력은 bitwise identical이어야 성공하며, 불일치하면 canonical artifact/evidence를 확정하지 않고 실패한다. batch와 single 입력의 차이는 별도 진단으로만 기록하며 허용 오차는 정하지 않았다.
 
 
-Text Embedding evidence는 임시 harness가 아니라 저장소의 canonical runner에서 clean worktree로 생성했다. 실행 commit은 `f476adab73a0fc1bb409ec6c5dc617491f8b1b89`이며, GPT-2 tokenizer snapshot `607a30d783dfa663caf39e06633721c8d4cfcd7e`, 실제 snapshot 파일 SHA-256, runtime tokenizer serialization hash, MSCLAP source/config hash와 checkpoint hash를 evidence에 기록했다. Audio Embedding, cosine, ranking 및 production validation은 미수행이다.
+Text Embedding evidence는 임시 harness가 아니라 저장소의 canonical runner에서 clean worktree로 생성했다. 실행 commit은 `8b38a49e5c00a94204d27a3da030cb07b2959b7e`이며, GPT-2 tokenizer snapshot `607a30d783dfa663caf39e06633721c8d4cfcd7e`, 실제 snapshot 파일 SHA-256, runtime tokenizer serialization hash, MSCLAP source/config hash와 checkpoint hash를 evidence에 기록했다. Audio Embedding, cosine, ranking 및 production validation은 미수행이다.
 
 ## Dataset 구성
 

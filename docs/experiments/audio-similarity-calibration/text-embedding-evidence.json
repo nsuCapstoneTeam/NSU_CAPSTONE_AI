@@ -2,7 +2,7 @@
   "schema_version": 1,
   "experiment": "NSUAI-36 calibration v1 Text Embedding",
   "result_status": "PASS_WITH_BATCH_SINGLE_DIFFERENCE_RECORDED",
-  "generated_at_utc": "2026-10-15T15:21:32.072316+00:00",
+  "generated_at_utc": "2026-10-15T15:31:44.424418+00:00",
   "scope_limitations": [
     "Text Embeddings only; Audio Embeddings were not generated",
     "No cosine calculation or ranking was performed",
@@ -10,7 +10,7 @@
     "Calibration input approval is not production query confirmation"
   ],
   "input_identity": {
-    "git_commit_sha": "f476adab73a0fc1bb409ec6c5dc617491f8b1b89",
+    "git_commit_sha": "8b38a49e5c00a94204d27a3da030cb07b2959b7e",
     "working_tree_clean_before_and_after_inference": true,
     "query_set_version": "event-queries-draft-v1",
     "active_set_version": "engineering-calibration-v1",
