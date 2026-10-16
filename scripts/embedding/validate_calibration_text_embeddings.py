@@ -9,6 +9,7 @@ import json
 import os
 import platform
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -281,13 +282,13 @@ def experiment_result_status(
     return "PASS"
 
 
-def write_canonical_artifact(
+def prepare_canonical_artifact(
     path: Path,
     embeddings: np.ndarray,
     query_ids: list[str],
     repeated_batch: dict[str, Any],
-) -> str:
-    """Persist a verified artifact atomically and return its bytes SHA-256."""
+) -> tuple[Path, str]:
+    """Write and verify an artifact beside its destination without publishing it."""
     require_exact_batch_repeat(repeated_batch)
     require(embeddings.ndim == 2, "canonical artifact embeddings must be a 2-D matrix")
     require(embeddings.shape[0] == len(query_ids), "artifact row count does not match query_id count")
@@ -310,18 +311,36 @@ def write_canonical_artifact(
             require(np.array_equal(stored_embeddings, embeddings), "artifact embedding rows changed during serialization")
 
         temporary_hash = sha256_file(temporary_path)
-        os.replace(temporary_path, path)
+        result_path = temporary_path
         temporary_path = None
+        return result_path, temporary_hash
+    except Exception:
+        if temporary_path is not None:
+            temporary_path.unlink(missing_ok=True)
+        raise
+
+
+def write_canonical_artifact(
+    path: Path,
+    embeddings: np.ndarray,
+    query_ids: list[str],
+    repeated_batch: dict[str, Any],
+) -> str:
+    """Persist a verified artifact atomically and return its bytes SHA-256."""
+    temporary_path, temporary_hash = prepare_canonical_artifact(
+        path, embeddings, query_ids, repeated_batch
+    )
+    try:
+        os.replace(temporary_path, path)
         artifact_hash = sha256_file(path)
         require(artifact_hash == temporary_hash, "canonical artifact hash changed after finalization")
         return artifact_hash
     finally:
-        if temporary_path is not None:
-            temporary_path.unlink(missing_ok=True)
+        temporary_path.unlink(missing_ok=True)
 
 
-def write_canonical_evidence(path: Path, evidence: dict[str, Any]) -> None:
-    """Persist canonical evidence atomically without truncating an existing file."""
+def prepare_canonical_evidence(path: Path, evidence: dict[str, Any]) -> Path:
+    """Write and parse evidence beside its destination without publishing it."""
     serialized = json.dumps(evidence, ensure_ascii=False, indent=2) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path: Path | None = None
@@ -335,11 +354,158 @@ def write_canonical_evidence(path: Path, evidence: dict[str, Any]) -> None:
 
         temporary_evidence = json.loads(temporary_path.read_text(encoding="utf-8"))
         require(temporary_evidence == evidence, "evidence changed during serialization")
-        os.replace(temporary_path, path)
+        result_path = temporary_path
         temporary_path = None
-    finally:
+        return result_path
+    except Exception:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
+        raise
+
+
+def write_canonical_evidence(path: Path, evidence: dict[str, Any]) -> None:
+    """Persist canonical evidence atomically without truncating an existing file."""
+    temporary_path = prepare_canonical_evidence(path, evidence)
+    try:
+        os.replace(temporary_path, path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+
+
+def require_execution_commit_ancestor(root: Path, execution_sha: str, head_sha: str) -> None:
+    """Reject evidence tied to implementation history unavailable from this HEAD."""
+    execution_sha = require_full_git_sha(execution_sha)
+    head_sha = require_full_git_sha(head_sha)
+    completed = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", execution_sha, head_sha],
+        cwd=root,
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    require(
+        completed.returncode == 0,
+        f"execution commit {execution_sha} is not an ancestor of current HEAD {head_sha}",
+    )
+
+
+def validate_artifact_evidence_pair(
+    artifact_path: Path,
+    evidence_path: Path,
+    expected_artifact_sha: str | None = None,
+    root: Path | None = None,
+) -> str:
+    """Check the published NPZ bytes and evidence metadata describe one result."""
+    actual_sha = require_sha256(sha256_file(artifact_path), "published artifact SHA-256")
+    evidence = json.loads(evidence_path.read_text(encoding="utf-8"))
+    execution_sha = require_full_git_sha(evidence["input_identity"]["git_commit_sha"])
+    if root is not None:
+        head_sha = require_full_git_sha(_git_value(root, "rev-parse", "HEAD"))
+        require_execution_commit_ancestor(root, execution_sha, head_sha)
+    artifact_record = evidence["embedding_output"]["artifact"]
+    require(artifact_record["sha256"] == actual_sha, "evidence artifact SHA does not match stored NPZ")
+    if expected_artifact_sha is not None:
+        require(actual_sha == expected_artifact_sha, "published NPZ SHA differs from prepared artifact")
+
+    expected_query_ids = [row["query_id"] for row in evidence["input_identity"]["queries"]]
+    with np.load(artifact_path, allow_pickle=False) as archive:
+        embeddings = archive["embeddings"]
+        query_ids = archive["query_ids"].tolist()
+    require(query_ids == expected_query_ids, "published NPZ query order differs from evidence")
+    require(evidence["embedding_output"]["shape"] == list(embeddings.shape),
+            "published NPZ shape differs from evidence")
+    evidence_dtype = str(evidence["embedding_output"]["dtype"]).removeprefix("torch.")
+    require(evidence_dtype == str(embeddings.dtype), "published NPZ dtype differs from evidence")
+    require(bool(np.isfinite(embeddings).all()), "published NPZ contains non-finite values")
+    return actual_sha
+
+
+def _backup_output(path: Path) -> tuple[bool, Path | None]:
+    if not path.exists():
+        return False, None
+    backup_path: Path | None = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="wb", prefix=f".{path.name}.", suffix=".rollback", dir=path.parent, delete=False
+        ) as backup:
+            backup_path = Path(backup.name)
+            with path.open("rb") as source:
+                shutil.copyfileobj(source, backup)
+        require(sha256_file(path) == sha256_file(backup_path), f"could not preserve existing output: {path.name}")
+        return True, backup_path
+    except Exception:
+        if backup_path is not None:
+            backup_path.unlink(missing_ok=True)
+        raise
+
+
+def publish_canonical_output_pair(
+    artifact_temp: Path,
+    artifact_path: Path,
+    evidence_temp: Path,
+    evidence_path: Path,
+    root: Path | None = None,
+) -> str:
+    """Publish NPZ and evidence together, restoring the prior pair on failure."""
+    try:
+        staged_sha = require_sha256(sha256_file(artifact_temp), "prepared artifact SHA-256")
+        validate_artifact_evidence_pair(artifact_temp, evidence_temp, staged_sha, root)
+    except Exception:
+        artifact_temp.unlink(missing_ok=True)
+        evidence_temp.unlink(missing_ok=True)
+        raise
+    backup_state: dict[Path, tuple[bool, Path | None]] = {}
+    try:
+        backup_state[artifact_path] = _backup_output(artifact_path)
+        backup_state[evidence_path] = _backup_output(evidence_path)
+    except Exception:
+        for _, backup_path in backup_state.values():
+            if backup_path is not None:
+                backup_path.unlink(missing_ok=True)
+        artifact_temp.unlink(missing_ok=True)
+        evidence_temp.unlink(missing_ok=True)
+        raise
+
+    rollback_failed = False
+    try:
+        os.replace(artifact_temp, artifact_path)
+        os.replace(evidence_temp, evidence_path)
+        return validate_artifact_evidence_pair(artifact_path, evidence_path, staged_sha, root)
+    except Exception as publish_error:
+        rollback_errors: list[str] = []
+        for final_path in (evidence_path, artifact_path):
+            existed, backup_path = backup_state[final_path]
+            try:
+                if existed:
+                    require(backup_path is not None, f"rollback copy missing for {final_path.name}")
+                    os.replace(backup_path, final_path)
+                    backup_state[final_path] = (True, None)
+                else:
+                    final_path.unlink(missing_ok=True)
+            except Exception as rollback_error:
+                rollback_errors.append(f"{final_path.name}: {rollback_error}")
+
+        if rollback_errors:
+            rollback_failed = True
+            recovery_paths = [
+                str(backup_path)
+                for _, backup_path in backup_state.values()
+                if backup_path is not None and backup_path.exists()
+            ]
+            raise CalibrationTextEmbeddingError(
+                "FATAL: canonical output publish failed and rollback failed; "
+                f"publish error: {publish_error}; rollback errors: {'; '.join(rollback_errors)}; "
+                f"preserved recovery files: {', '.join(recovery_paths)}"
+            ) from publish_error
+        raise
+    finally:
+        artifact_temp.unlink(missing_ok=True)
+        evidence_temp.unlink(missing_ok=True)
+        if not rollback_failed:
+            for _, backup_path in backup_state.values():
+                if backup_path is not None:
+                    backup_path.unlink(missing_ok=True)
 
 
 def validate_repeated_batch_outputs(
@@ -419,6 +585,7 @@ def run_experiment(
 
     require(not _git_value(root, "status", "--porcelain", "--untracked-files=all"), "working tree is dirty; refusing Text Encoder run")
     commit = require_full_git_sha(_git_value(root, "rev-parse", "HEAD"))
+    require_execution_commit_ancestor(root, commit, commit)
     validator_output = _run_calibration_validator(root)
     validator_output = require_non_blank_string(validator_output, "calibration validator output")
 
@@ -548,12 +715,7 @@ def run_experiment(
     require(all(row["finite"] and not row["zero_vector"] for row in vector_checks), "invalid text vector detected")
 
     result_status = experiment_result_status(repeated_batch, single_rows)
-    artifact_hash = write_canonical_artifact(
-        embedding_path,
-        embeddings,
-        [query["query_id"] for query in selected],
-        repeated_batch,
-    )
+    artifact_hash = ""
 
     result = {
         "schema_version": 1,
@@ -649,7 +811,26 @@ def run_experiment(
             },
         },
     }
-    write_canonical_evidence(evidence_path, result)
+    artifact_temp: Path | None = None
+    evidence_temp: Path | None = None
+    try:
+        artifact_temp, artifact_hash = prepare_canonical_artifact(
+            embedding_path,
+            embeddings,
+            [query["query_id"] for query in selected],
+            repeated_batch,
+        )
+        result["embedding_output"]["artifact"]["sha256"] = artifact_hash
+        evidence_temp = prepare_canonical_evidence(evidence_path, result)
+        published_hash = publish_canonical_output_pair(
+            artifact_temp, embedding_path, evidence_temp, evidence_path, root
+        )
+        require(published_hash == artifact_hash, "published artifact SHA differs from prepared evidence")
+    finally:
+        if artifact_temp is not None:
+            artifact_temp.unlink(missing_ok=True)
+        if evidence_temp is not None:
+            evidence_temp.unlink(missing_ok=True)
     return result
 
 

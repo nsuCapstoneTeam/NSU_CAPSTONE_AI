@@ -355,6 +355,179 @@ def test_canonical_evidence_is_written_atomically_and_remains_valid(tmp_path):
     assert list(tmp_path.iterdir()) == [path]
 
 
+def _prepare_result_pair(tmp_path, values, query_id):
+    artifact_path = tmp_path / "vectors.npz"
+    evidence_path = tmp_path / "evidence.json"
+    embeddings = np.asarray([values], dtype="<f4")
+    query_ids = [query_id]
+    artifact_temp, artifact_sha = tool.prepare_canonical_artifact(
+        artifact_path, embeddings, query_ids, {"exact_equal": True}
+    )
+    evidence = {
+        "input_identity": {"git_commit_sha": "a" * 40, "queries": [{"query_id": query_id}]},
+        "embedding_output": {
+            "shape": [1, 2],
+            "dtype": "torch.float32",
+            "artifact": {"path": "vectors.npz", "sha256": artifact_sha},
+        },
+    }
+    evidence_temp = tool.prepare_canonical_evidence(evidence_path, evidence)
+    return artifact_path, evidence_path, artifact_temp, evidence_temp, artifact_sha
+
+
+def _write_old_result_pair(tmp_path):
+    artifact_path = tmp_path / "vectors.npz"
+    evidence_path = tmp_path / "evidence.json"
+    old_embeddings = np.asarray([[1.0, 2.0]], dtype="<f4")
+    old_query_ids = ["old-query"]
+    digest = tool.write_canonical_artifact(
+        artifact_path, old_embeddings, old_query_ids, {"exact_equal": True}
+    )
+    old_evidence = {
+        "input_identity": {"git_commit_sha": "a" * 40, "queries": [{"query_id": "old-query"}]},
+        "embedding_output": {
+            "shape": [1, 2],
+            "dtype": "torch.float32",
+            "artifact": {"path": "vectors.npz", "sha256": digest},
+        },
+    }
+    tool.write_canonical_evidence(evidence_path, old_evidence)
+    return artifact_path, evidence_path, digest, evidence_path.read_bytes()
+
+
+def test_transactional_output_pair_publish_succeeds_with_matching_metadata(tmp_path):
+    artifact_path, evidence_path, artifact_temp, evidence_temp, expected_sha = _prepare_result_pair(
+        tmp_path, [3.0, 4.0], "new-query"
+    )
+
+    published_sha = tool.publish_canonical_output_pair(
+        artifact_temp, artifact_path, evidence_temp, evidence_path
+    )
+
+    assert published_sha == expected_sha
+    assert tool.validate_artifact_evidence_pair(artifact_path, evidence_path) == expected_sha
+    with np.load(artifact_path, allow_pickle=False) as archive:
+        assert archive["query_ids"].tolist() == ["new-query"]
+
+
+@pytest.mark.parametrize("failed_replace", ["artifact", "evidence"])
+def test_transactional_replace_failure_restores_previous_pair(tmp_path, monkeypatch, failed_replace):
+    artifact_path, evidence_path, old_sha, old_evidence_bytes = _write_old_result_pair(tmp_path)
+    artifact_path, evidence_path, artifact_temp, evidence_temp, _ = _prepare_result_pair(
+        tmp_path, [3.0, 4.0], "new-query"
+    )
+    real_replace = tool.os.replace
+
+    def fail_one_publish(source, destination):
+        destination = Path(destination)
+        source = Path(source)
+        if destination == (artifact_path if failed_replace == "artifact" else evidence_path):
+            if source.suffix == ".tmp":
+                raise OSError(f"{failed_replace} final replace failed")
+        return real_replace(source, destination)
+
+    monkeypatch.setattr(tool.os, "replace", fail_one_publish)
+    with pytest.raises(OSError, match="final replace failed"):
+        tool.publish_canonical_output_pair(artifact_temp, artifact_path, evidence_temp, evidence_path)
+
+    assert tool.validate_artifact_evidence_pair(artifact_path, evidence_path) == old_sha
+    assert evidence_path.read_bytes() == old_evidence_bytes
+
+
+def test_transactional_publish_rollback_failure_is_fatal_and_preserves_backup(tmp_path, monkeypatch):
+    artifact_path, evidence_path, _, _ = _write_old_result_pair(tmp_path)
+    _, _, artifact_temp, evidence_temp, _ = _prepare_result_pair(
+        tmp_path, [3.0, 4.0], "new-query"
+    )
+    real_replace = tool.os.replace
+
+    def fail_publish_and_rollback(source, destination):
+        source = Path(source)
+        destination = Path(destination)
+        if destination == evidence_path and source.suffix == ".tmp":
+            raise OSError("evidence final replace failed")
+        if destination == artifact_path and source.suffix == ".rollback":
+            raise OSError("artifact rollback failed")
+        return real_replace(source, destination)
+
+    monkeypatch.setattr(tool.os, "replace", fail_publish_and_rollback)
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="FATAL:.*rollback failed"):
+        tool.publish_canonical_output_pair(artifact_temp, artifact_path, evidence_temp, evidence_path)
+
+    assert list(tmp_path.glob("*.rollback")) or list(tmp_path.glob(".*.rollback"))
+
+
+def test_transactional_pair_rejects_sha_mismatch_without_touching_old_pair(tmp_path):
+    artifact_path, evidence_path, old_sha, old_evidence_bytes = _write_old_result_pair(tmp_path)
+    artifact_path, evidence_path, artifact_temp, evidence_temp, _ = _prepare_result_pair(
+        tmp_path, [3.0, 4.0], "new-query"
+    )
+    staged = json.loads(evidence_temp.read_text(encoding="utf-8"))
+    staged["embedding_output"]["artifact"]["sha256"] = "0" * 64
+    evidence_temp.write_text(json.dumps(staged), encoding="utf-8")
+
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="does not match stored NPZ"):
+        tool.publish_canonical_output_pair(artifact_temp, artifact_path, evidence_temp, evidence_path)
+
+    assert tool.validate_artifact_evidence_pair(artifact_path, evidence_path) == old_sha
+    assert evidence_path.read_bytes() == old_evidence_bytes
+
+
+@pytest.mark.parametrize("failed_stage", ["artifact", "evidence"])
+def test_preparation_failure_does_not_change_existing_pair(tmp_path, monkeypatch, failed_stage):
+    artifact_path, evidence_path, old_sha, old_evidence_bytes = _write_old_result_pair(tmp_path)
+
+    if failed_stage == "artifact":
+        monkeypatch.setattr(
+            tool.np,
+            "savez_compressed",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(OSError("NPZ temp write failed")),
+        )
+        with pytest.raises(OSError, match="NPZ temp write failed"):
+            tool.prepare_canonical_artifact(
+                artifact_path, np.asarray([[3.0, 4.0]], dtype="<f4"), ["new-query"],
+                {"exact_equal": True},
+            )
+    else:
+        monkeypatch.setattr(
+            tool.tempfile,
+            "NamedTemporaryFile",
+            lambda **_kwargs: (_ for _ in ()).throw(OSError("evidence temp write failed")),
+        )
+        with pytest.raises(OSError, match="evidence temp write failed"):
+            tool.prepare_canonical_evidence(evidence_path, {"result_status": "PASS"})
+
+    assert tool.validate_artifact_evidence_pair(artifact_path, evidence_path) == old_sha
+    assert evidence_path.read_bytes() == old_evidence_bytes
+
+
+@pytest.mark.parametrize("return_code, should_pass", [(0, True), (1, False)])
+def test_execution_commit_must_be_reachable_from_head(monkeypatch, tmp_path, return_code, should_pass):
+    monkeypatch.setattr(
+        tool.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=return_code),
+    )
+    if should_pass:
+        tool.require_execution_commit_ancestor(tmp_path, "a" * 40, "a" * 40)
+    else:
+        with pytest.raises(tool.CalibrationTextEmbeddingError, match="not an ancestor"):
+            tool.require_execution_commit_ancestor(tmp_path, "a" * 40, "b" * 40)
+
+
+def test_artifact_evidence_pair_rejects_nonancestor_execution_identity(tmp_path, monkeypatch):
+    artifact_path, evidence_path, _, _ = _write_old_result_pair(tmp_path)
+    monkeypatch.setattr(tool, "_git_value", lambda *_args: "b" * 40)
+    monkeypatch.setattr(
+        tool.subprocess,
+        "run",
+        lambda *_args, **_kwargs: SimpleNamespace(returncode=1),
+    )
+
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="not an ancestor"):
+        tool.validate_artifact_evidence_pair(artifact_path, evidence_path, root=tmp_path)
+
+
 @pytest.mark.parametrize("failure", ["serialization", "write", "replace"])
 def test_evidence_write_failure_preserves_existing_file_and_cleans_temp(
     tmp_path, monkeypatch, failure
@@ -522,10 +695,11 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
         ),
     )
     monkeypatch.setattr(tool, "_run_calibration_validator", lambda _root: "PASS")
+    monkeypatch.setattr(tool, "require_execution_commit_ancestor", lambda *_args: None)
     if failure == "evidence_write":
         monkeypatch.setattr(
             tool,
-            "write_canonical_evidence",
+            "prepare_canonical_evidence",
             lambda *_args: (_ for _ in ()).throw(OSError("evidence write failed")),
         )
 
@@ -534,5 +708,5 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
         tool.run_experiment(root, evidence_path=evidence_path, embedding_path=artifact_path)
 
     assert fake_model.calls == (2 if failure == "repeat_mismatch" else 18)
-    assert artifact_path.exists() is (failure == "evidence_write")
+    assert not artifact_path.exists()
     assert not evidence_path.exists()
