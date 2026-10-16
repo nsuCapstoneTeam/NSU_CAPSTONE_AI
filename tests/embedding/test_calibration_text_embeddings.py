@@ -1,7 +1,11 @@
 import copy
 import gc
+import io
 import json
 import os
+import subprocess
+import sys
+import zipfile
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -13,6 +17,83 @@ from scripts.embedding import validate_calibration_text_embeddings as tool
 
 
 DATA_PATH = Path(__file__).parents[2] / "docs/experiments/audio-similarity-calibration/event-queries.json"
+REPOSITORY_ROOT = Path(__file__).parents[2]
+
+
+def _run_cache_resolution_probe(tmp_path, *, mode, cache_environment):
+    env = os.environ.copy()
+    for name in (
+        "HF_HOME", "HF_HUB_CACHE", "TRANSFORMERS_CACHE", "XDG_CACHE_HOME",
+        "HUGGINGFACE_HUB_CACHE", "PYTORCH_TRANSFORMERS_CACHE", "PYTORCH_PRETRAINED_BERT_CACHE",
+    ):
+        env.pop(name, None)
+    env.update({name: str(value) for name, value in cache_environment.items()})
+    user_profile = tmp_path / "user-profile"
+    user_profile.mkdir(exist_ok=True)
+    env["USERPROFILE"] = str(user_profile)
+    env["HOME"] = str(user_profile)
+    env["PYTHONPATH"] = os.pathsep.join(
+        [str(REPOSITORY_ROOT), env.get("PYTHONPATH", "")]
+    ).rstrip(os.pathsep)
+    code = r'''
+import json, os, sys
+from pathlib import Path
+mode = sys.argv[1]
+if mode == "import_side_effect":
+    import huggingface_hub.constants as hub_constants
+    from transformers.utils import hub as transformers_hub
+    watched = ("HF_HOME", "HF_HUB_CACHE", "TRANSFORMERS_CACHE", "XDG_CACHE_HOME")
+    env_before = {key: os.environ.get(key) for key in watched}
+    constants_before = (hub_constants.HF_HUB_CACHE, transformers_hub.TRANSFORMERS_CACHE)
+    from scripts.embedding import validate_calibration_text_embeddings as tool
+    env_after = {key: os.environ.get(key) for key in watched}
+    constants_after = (hub_constants.HF_HUB_CACHE, transformers_hub.TRANSFORMERS_CACHE)
+    hub_cache, transformers_cache = tool.huggingface_cache_paths()
+    result = {
+        "env_before": env_before,
+        "env_after_import": env_after,
+        "constants_before": constants_before,
+        "constants_after_import": constants_after,
+        "hub_cache": str(hub_cache),
+        "transformers_cache": str(transformers_cache),
+        "library_hub_cache": hub_constants.HF_HUB_CACHE,
+        "library_transformers_cache": transformers_hub.TRANSFORMERS_CACHE,
+    }
+elif mode == "resolve":
+    had_tilde_transformers_cache = os.environ.get("TRANSFORMERS_CACHE", "").startswith("~")
+    from scripts.embedding import validate_calibration_text_embeddings as tool
+    hub_cache, transformers_cache = tool.huggingface_cache_paths()
+    import huggingface_hub.constants as hub_constants
+    from transformers.utils import hub as transformers_hub
+    result = {
+        "hub_cache": str(hub_cache),
+        "transformers_cache": str(transformers_cache),
+        "library_hub_cache": hub_constants.HF_HUB_CACHE,
+        "library_transformers_cache": transformers_hub.TRANSFORMERS_CACHE,
+        "transformers_env": os.environ.get("TRANSFORMERS_CACHE"),
+    }
+    if had_tilde_transformers_cache:
+        repo = tool._cache_repo_dir(transformers_cache, tool.TOKENIZER_REPOSITORY_ID)
+        snapshot = repo / "snapshots" / tool.TOKENIZER_REVISION
+        snapshot.mkdir(parents=True, exist_ok=True)
+        (repo / "refs").mkdir(parents=True, exist_ok=True)
+        (repo / "refs" / "main").write_text(tool.TOKENIZER_REVISION, encoding="utf-8")
+        (snapshot / "tokenizer.json").write_text("{}", encoding="utf-8")
+        result["tokenizer_identity"] = tool.tokenizer_snapshot_identity(
+            tool.TOKENIZER_REPOSITORY_ID, transformers_cache
+        )
+        result["snapshot_exists"] = snapshot.is_dir()
+print(json.dumps(result))
+'''
+    completed = subprocess.run(
+        [sys.executable, "-c", code, mode],
+        cwd=REPOSITORY_ROOT,
+        env=env,
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return json.loads(completed.stdout.splitlines()[-1])
 
 
 @pytest.fixture
@@ -401,6 +482,86 @@ def test_canonical_artifact_preserves_query_row_order_and_hash(tmp_path):
     assert digest == tool.sha256_file(path)
 
 
+def test_artifact_content_digest_ignores_npz_zip_timestamps(tmp_path):
+    first_path = tmp_path / "first.npz"
+    second_path = tmp_path / "second.npz"
+    values = np.asarray([[1.25, -3.5], [7.0, 0.125]], dtype="<f4")
+    query_ids = ["event-02", "event-01"]
+    def write_npz(path, timestamp):
+        with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+            for name, array in (("embeddings.npy", values), ("query_ids.npy", np.asarray(query_ids))):
+                payload = io.BytesIO()
+                np.lib.format.write_array(payload, array, allow_pickle=False)
+                info = zipfile.ZipInfo(name, date_time=timestamp)
+                info.compress_type = zipfile.ZIP_DEFLATED
+                archive.writestr(info, payload.getvalue())
+
+    write_npz(first_path, (2025, 1, 2, 3, 4, 6))
+    write_npz(second_path, (2025, 1, 2, 3, 4, 8))
+
+    first_file_sha = tool.sha256_file(first_path)
+    second_file_sha = tool.sha256_file(second_path)
+    first_content_digest = tool.artifact_content_digest(first_path)
+    second_content_digest = tool.artifact_content_digest(second_path)
+    assert first_file_sha != second_file_sha
+    assert first_content_digest == second_content_digest
+    tool.require_same_artifact_content_for_overwrite(first_content_digest, second_content_digest)
+
+    evidence_path = tmp_path / "evidence.json"
+    old_evidence = {
+        "input_identity": {"git_commit_sha": "a" * 40, "queries": [{"query_id": item} for item in query_ids]},
+        "embedding_output": {
+            "shape": list(values.shape),
+            "dtype": "float32",
+            "artifact": {"path": first_path.name, "sha256": first_file_sha},
+        },
+    }
+    tool.write_canonical_evidence(evidence_path, old_evidence)
+    assert tool.validate_artifact_evidence_pair(first_path, evidence_path) == first_file_sha
+    tool.require_same_artifact_content_for_overwrite(
+        tool.artifact_content_digest(first_path), second_content_digest
+    )
+    new_evidence = copy.deepcopy(old_evidence)
+    new_evidence["embedding_output"]["artifact"] = {
+        "path": first_path.name,
+        "sha256": second_file_sha,
+        "content_digest": second_content_digest,
+        "content_digest_algorithm": tool.ARTIFACT_CONTENT_DIGEST_ALGORITHM,
+    }
+    evidence_temp = tool.prepare_canonical_evidence(evidence_path, new_evidence)
+    published_sha = tool.publish_canonical_output_pair(
+        second_path, first_path, evidence_temp, evidence_path
+    )
+    assert published_sha == second_file_sha
+    assert tool.artifact_content_digest(first_path) == first_content_digest
+    assert json.loads(evidence_path.read_text(encoding="utf-8"))["embedding_output"]["artifact"]["content_digest"] == first_content_digest
+
+
+@pytest.mark.parametrize("mutation", ["embedding", "query_order", "dtype", "shape"])
+def test_artifact_content_digest_changes_for_decoded_content_changes(tmp_path, mutation):
+    base = np.asarray([[1.0, 2.0], [3.0, 4.0]], dtype="<f4")
+    query_ids = ["event-01", "event-02"]
+    changed = base.copy()
+    changed_ids = list(query_ids)
+    if mutation == "embedding":
+        changed[0, 0] = 1.5
+    elif mutation == "query_order":
+        changed_ids.reverse()
+    elif mutation == "dtype":
+        changed = changed.astype("<f8")
+    else:
+        changed = np.asarray([[1.0, 2.0, 3.0], [4.0, 5.0, 6.0]], dtype="<f4")
+
+    base_path = tmp_path / "base.npz"
+    changed_path = tmp_path / "changed.npz"
+    tool.write_canonical_artifact(base_path, base, query_ids, {"exact_equal": True})
+    tool.write_canonical_artifact(changed_path, changed, changed_ids, {"exact_equal": True})
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="decoded artifact content differs"):
+        tool.require_same_artifact_content_for_overwrite(
+            tool.artifact_content_digest(base_path), tool.artifact_content_digest(changed_path)
+        )
+
+
 def test_canonical_evidence_is_written_atomically_and_remains_valid(tmp_path):
     path = tmp_path / "evidence.json"
     evidence = {"result_status": "PASS", "artifact": {"sha256": "a" * 64}}
@@ -424,7 +585,12 @@ def _prepare_result_pair(tmp_path, values, query_id):
         "embedding_output": {
             "shape": [1, 2],
             "dtype": "torch.float32",
-            "artifact": {"path": "vectors.npz", "sha256": artifact_sha},
+            "artifact": {
+                "path": "vectors.npz",
+                "sha256": artifact_sha,
+                "content_digest": tool.artifact_content_digest(artifact_temp),
+                "content_digest_algorithm": tool.ARTIFACT_CONTENT_DIGEST_ALGORITHM,
+            },
         },
     }
     evidence_temp = tool.prepare_canonical_evidence(evidence_path, evidence)
@@ -513,16 +679,25 @@ def test_transactional_publish_rollback_failure_is_fatal_and_preserves_backup(tm
     assert list(tmp_path.glob("*.rollback")) or list(tmp_path.glob(".*.rollback"))
 
 
-def test_transactional_pair_rejects_sha_mismatch_without_touching_old_pair(tmp_path):
+@pytest.mark.parametrize(
+    "mismatch_field, message",
+    [
+        ("sha256", "does not match stored NPZ"),
+        ("content_digest", "content digest does not match decoded NPZ"),
+    ],
+)
+def test_transactional_pair_rejects_identity_mismatch_without_touching_old_pair(
+    tmp_path, mismatch_field, message
+):
     artifact_path, evidence_path, old_sha, old_evidence_bytes = _write_old_result_pair(tmp_path)
     artifact_path, evidence_path, artifact_temp, evidence_temp, _ = _prepare_result_pair(
         tmp_path, [3.0, 4.0], "new-query"
     )
     staged = json.loads(evidence_temp.read_text(encoding="utf-8"))
-    staged["embedding_output"]["artifact"]["sha256"] = "0" * 64
+    staged["embedding_output"]["artifact"][mismatch_field] = "0" * 64
     evidence_temp.write_text(json.dumps(staged), encoding="utf-8")
 
-    with pytest.raises(tool.CalibrationTextEmbeddingError, match="does not match stored NPZ"):
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match=message):
         tool.publish_canonical_output_pair(artifact_temp, artifact_path, evidence_temp, evidence_path)
 
     assert tool.validate_artifact_evidence_pair(artifact_path, evidence_path) == old_sha
@@ -677,7 +852,7 @@ def test_resolved_experiment_paths_accept_three_distinct_paths(tmp_path, monkeyp
     "failure, message",
     [
         ("repeat_mismatch", "not bitwise identical"),
-        ("artifact_sha_mismatch", "differs from the existing canonical artifact"),
+        ("artifact_sha_mismatch", "decoded artifact content differs"),
         ("input_hash", "event-queries.json changed"),
         ("dirty_after_inference", "working tree changed during inference"),
         ("evidence_write", "evidence write failed"),
@@ -764,7 +939,6 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
     monkeypatch.setattr(tool, "CHECKPOINT_REVISION", checkpoint_revision)
     monkeypatch.setattr(tool, "CHECKPOINT_SHA256", tool.sha256_file(checkpoint))
     monkeypatch.setattr(tool, "MSCLAP_CONFIG_SHA256", tool.sha256_file(config_path))
-    monkeypatch.setattr(tool, "enable_offline_model_loading", lambda: None)
     monkeypatch.setattr(
         tool,
         "validate_prepared_hf_resources",
@@ -828,6 +1002,92 @@ def test_empty_huggingface_cache_fails_offline_with_bootstrap_instruction(tmp_pa
         tool.validate_prepared_hf_resources()
 
 
+def test_transformers_cache_tilde_resolves_identically_for_helper_and_tokenizer_identity(tmp_path):
+    result = _run_cache_resolution_probe(
+        tmp_path,
+        mode="resolve",
+        cache_environment={"TRANSFORMERS_CACHE": "~/hf-cache", "XDG_CACHE_HOME": tmp_path / "xdg"},
+    )
+    expected = tmp_path / "user-profile" / "hf-cache"
+    assert Path(result["transformers_cache"]) == expected
+    assert Path(result["library_transformers_cache"]) == expected
+    assert Path(result["transformers_env"]) == expected
+    assert result["tokenizer_identity"]["resolved_revision"] == tool.TOKENIZER_REVISION
+    assert result["snapshot_exists"] is True
+    assert not (REPOSITORY_ROOT / "~" / "hf-cache").exists()
+
+
+def test_xdg_cache_only_matches_huggingface_defaults_without_import_environment_changes(tmp_path):
+    result = _run_cache_resolution_probe(
+        tmp_path,
+        mode="import_side_effect",
+        cache_environment={"XDG_CACHE_HOME": tmp_path / "xdg-cache"},
+    )
+    expected = tmp_path / "xdg-cache" / "huggingface" / "hub"
+    assert result["env_before"] == result["env_after_import"]
+    assert result["constants_before"] == result["constants_after_import"]
+    assert Path(result["hub_cache"]) == expected
+    assert Path(result["transformers_cache"]) == expected
+    assert result["library_hub_cache"] == result["hub_cache"]
+    assert result["library_transformers_cache"] == result["transformers_cache"]
+
+
+def test_explicit_hf_home_uses_library_resolved_cache(tmp_path):
+    hf_home = tmp_path / "explicit-hf-home"
+    result = _run_cache_resolution_probe(
+        tmp_path,
+        mode="resolve",
+        cache_environment={"HF_HOME": hf_home},
+    )
+    expected = hf_home / "hub"
+    assert Path(result["hub_cache"]) == expected
+    assert Path(result["transformers_cache"]) == expected
+    assert result["library_hub_cache"] == result["hub_cache"]
+    assert result["library_transformers_cache"] == result["transformers_cache"]
+
+
+def test_explicit_hf_hub_cache_matches_hub_library_without_overriding_transformers(tmp_path):
+    hub_cache = tmp_path / "explicit-hub-cache"
+    result = _run_cache_resolution_probe(
+        tmp_path,
+        mode="resolve",
+        cache_environment={"HF_HUB_CACHE": hub_cache, "XDG_CACHE_HOME": tmp_path / "xdg"},
+    )
+    assert Path(result["hub_cache"]) == hub_cache
+    assert result["library_hub_cache"] == result["hub_cache"]
+    assert Path(result["transformers_cache"]) == tmp_path / "xdg" / "huggingface" / "hub"
+    assert result["library_transformers_cache"] == result["transformers_cache"]
+    assert Path(result["transformers_cache"]) != hub_cache
+
+
+def test_offline_flags_are_cached_at_import_and_worker_starts_offline(tmp_path):
+    env = os.environ.copy()
+    env.pop("HF_HUB_OFFLINE", None)
+    env.pop("TRANSFORMERS_OFFLINE", None)
+    env["HOME"] = str(tmp_path / "home")
+    env["USERPROFILE"] = str(tmp_path / "home")
+    probe = r'''
+import json, os
+import huggingface_hub.constants as constants
+from transformers.utils.hub import is_offline_mode
+before = [bool(constants.HF_HUB_OFFLINE), bool(is_offline_mode())]
+os.environ["HF_HUB_OFFLINE"] = "1"
+os.environ["TRANSFORMERS_OFFLINE"] = "1"
+after = [bool(constants.HF_HUB_OFFLINE), bool(is_offline_mode())]
+print(json.dumps({"before": before, "after_env_change": after}))
+'''
+    completed = subprocess.run(
+        [sys.executable, "-c", probe], cwd=REPOSITORY_ROOT, env=env,
+        check=True, capture_output=True, text=True,
+    )
+    cached_state = json.loads(completed.stdout.splitlines()[-1])
+    assert cached_state["before"] == [False, False]
+    assert cached_state["after_env_change"] == [False, False]
+
+    worker_state = tool._run_worker("offline-state-check", offline=True)
+    assert all(worker_state.values())
+
+
 def test_canonical_run_with_empty_cache_fails_before_model_load(tmp_path, monkeypatch, document):
     root = tmp_path / "repo"
     root.mkdir()
@@ -859,8 +1119,10 @@ def test_canonical_run_with_empty_cache_fails_before_model_load(tmp_path, monkey
 
 def test_bootstrap_downloads_only_pinned_identities_then_offline_preflight_passes(tmp_path, monkeypatch):
     import huggingface_hub
+    import huggingface_hub.constants as hub_constants
     from huggingface_hub.errors import LocalEntryNotFoundError
     from transformers import AutoTokenizer
+    from transformers.utils import hub as transformers_hub
 
     tokenizer_revision = "a" * 40
     checkpoint_revision = "b" * 40
@@ -874,6 +1136,8 @@ def test_bootstrap_downloads_only_pinned_identities_then_offline_preflight_passe
     transformers_cache = tmp_path / "transformers"
     monkeypatch.setenv("HF_HUB_CACHE", str(hub_cache))
     monkeypatch.setenv("TRANSFORMERS_CACHE", str(transformers_cache))
+    monkeypatch.setattr(hub_constants, "HF_HUB_CACHE", str(hub_cache))
+    monkeypatch.setattr(transformers_hub, "TRANSFORMERS_CACHE", str(transformers_cache))
     monkeypatch.setattr(tool, "TOKENIZER_REVISION", tokenizer_revision)
     monkeypatch.setattr(tool, "CHECKPOINT_REVISION", checkpoint_revision)
     monkeypatch.setattr(tool, "TOKENIZER_FILE_SHA256", tokenizer_hashes)
@@ -888,7 +1152,12 @@ def test_bootstrap_downloads_only_pinned_identities_then_offline_preflight_passe
             return 1
 
     fake_tokenizer = FakeTokenizer()
-    monkeypatch.setattr(AutoTokenizer, "from_pretrained", lambda *_args, **_kwargs: fake_tokenizer)
+
+    def fake_load_tokenizer(*_args, **kwargs):
+        assert kwargs["local_files_only"] is True
+        return fake_tokenizer
+
+    monkeypatch.setattr(AutoTokenizer, "from_pretrained", fake_load_tokenizer)
     real_snapshot_download = huggingface_hub.snapshot_download
     real_hf_hub_download = huggingface_hub.hf_hub_download
 
@@ -944,7 +1213,7 @@ def test_bootstrap_downloads_only_pinned_identities_then_offline_preflight_passe
     monkeypatch.setattr(huggingface_hub, "snapshot_download", fake_snapshot_download)
     monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_checkpoint_download)
 
-    report = tool.prepare_hf_resources()
+    report = tool._prepare_hf_resources_in_current_process()
 
     assert report["tokenizer_revision"] == tokenizer_revision
     assert report["tokenizer_files_sha256"] == tokenizer_hashes
@@ -957,8 +1226,7 @@ def test_bootstrap_downloads_only_pinned_identities_then_offline_preflight_passe
     assert tokenizer_ref.read_bytes() == tokenizer_revision.encode("utf-8")
     assert checkpoint_ref.read_bytes() == checkpoint_revision.encode("utf-8")
     assert report["offline_local_lookup"] == "passed"
-    assert os.environ["HF_HUB_OFFLINE"] == "1"
-    assert os.environ["TRANSFORMERS_OFFLINE"] == "1"
+    assert report["offline_msclap_text_encoder_initialization"] == "passed"
     assert tool.validate_prepared_hf_resources(initialize_text_encoder=True) == report
 
     checkpoint_ref.write_bytes((checkpoint_revision + "\n").encode("utf-8"))
@@ -979,6 +1247,9 @@ def test_bootstrap_downloads_only_pinned_identities_then_offline_preflight_passe
     reason="requires network access and downloads pinned GPT-2/MSCLAP resources",
 )
 def test_fresh_cache_bootstrap_and_offline_msclap_text_encoder_initialization(tmp_path, monkeypatch):
+    import huggingface_hub.constants as hub_constants
+    from transformers.utils import hub as transformers_hub
+
     cache_root = tmp_path / "fresh-hf-cache"
     hub_cache = cache_root / "hub"
     transformers_cache = cache_root / "transformers"
@@ -986,6 +1257,8 @@ def test_fresh_cache_bootstrap_and_offline_msclap_text_encoder_initialization(tm
     monkeypatch.setenv("HF_HOME", str(cache_root))
     monkeypatch.setenv("HF_HUB_CACHE", str(hub_cache))
     monkeypatch.setenv("TRANSFORMERS_CACHE", str(transformers_cache))
+    monkeypatch.setattr(hub_constants, "HF_HUB_CACHE", str(hub_cache))
+    monkeypatch.setattr(transformers_hub, "TRANSFORMERS_CACHE", str(transformers_cache))
     monkeypatch.setenv("HF_HUB_OFFLINE", "0")
     monkeypatch.setenv("TRANSFORMERS_OFFLINE", "0")
 
@@ -997,8 +1270,6 @@ def test_fresh_cache_bootstrap_and_offline_msclap_text_encoder_initialization(tm
     assert report["checkpoint_sha256"] == tool.CHECKPOINT_SHA256
     assert report["offline_local_lookup"] == "passed"
     assert report["offline_msclap_text_encoder_initialization"] == "passed"
-    assert os.environ["HF_HUB_OFFLINE"] == "1"
-    assert os.environ["TRANSFORMERS_OFFLINE"] == "1"
 
     # Exercise Transformers' consumer API directly as well as through MSCLAP's
     # TextEncoder. The explicit pinned revision prevents this check from relying
@@ -1050,13 +1321,15 @@ def test_explicit_overwrite_accepts_only_a_complete_valid_identical_pair(tmp_pat
     monkeypatch.setattr(tool, "_git_value", lambda *_args: "a" * 40)
     monkeypatch.setattr(tool, "require_execution_commit_ancestor", lambda *_args: None)
 
-    existing_sha = tool.validate_existing_output_pair(
+    existing_identity = tool.validate_existing_output_pair(
         evidence_path, artifact_path, overwrite=True, root=tmp_path
     )
-    assert existing_sha == old_sha
-    tool.require_same_artifact_for_overwrite(existing_sha, old_sha)
-    with pytest.raises(tool.CalibrationTextEmbeddingError, match="differs from the existing canonical artifact"):
-        tool.require_same_artifact_for_overwrite(existing_sha, "0" * 64)
+    assert existing_identity["file_sha256"] == old_sha
+    old_content_digest = tool.artifact_content_digest(artifact_path)
+    assert existing_identity["content_digest"] == old_content_digest
+    tool.require_same_artifact_content_for_overwrite(old_content_digest, old_content_digest)
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="decoded artifact content differs"):
+        tool.require_same_artifact_content_for_overwrite(old_content_digest, "0" * 64)
     assert tool.validate_artifact_evidence_pair(artifact_path, evidence_path) == old_sha
     assert evidence_path.read_bytes() == old_evidence_bytes
 

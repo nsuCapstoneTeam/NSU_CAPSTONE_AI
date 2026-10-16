@@ -20,13 +20,6 @@ from typing import Any
 import numpy as np
 import torch
 
-# Respect Hugging Face's normal cache locations and any explicit user overrides.
-# Bootstrap and canonical execution use these same cache paths.
-_DEFAULT_HF_HOME = Path.home() / ".cache" / "huggingface"
-os.environ.setdefault("HF_HOME", str(_DEFAULT_HF_HOME))
-os.environ.setdefault("HF_HUB_CACHE", str(Path(os.environ["HF_HOME"]) / "hub"))
-os.environ.setdefault("TRANSFORMERS_CACHE", os.environ["HF_HUB_CACHE"])
-
 ACTIVE_COUNT = 16
 APPROVED_STATUS = "approved_for_calibration_v1_experiment"
 SEMANTIC_REVIEW_STATUS = "reviewed_for_semantic_fidelity"
@@ -36,6 +29,7 @@ TOKENIZER_REPOSITORY_ID = "gpt2"
 TOKENIZER_REVISION = "607a30d783dfa663caf39e06633721c8d4cfcd7e"
 GPT2_MODEL_FILENAME = "model.safetensors"
 GPT2_MODEL_SHA256 = "248dfc3911869ec493c76e65bf2fcf7f615828b0254c12b473182f0f81d3a707"
+ARTIFACT_CONTENT_DIGEST_ALGORITHM = "sha256-framed-npz-content-v1"
 RUNTIME_TOKENIZER_SHA256 = "9660ca46237b4cfba5128e5a275c3c80f12e20ac39e6547d86ea7dfc7ba40bef"
 TOKENIZER_FILE_SHA256 = {
     "tokenizer.json": "8414cab924d8b9b33013f0d221c5862f365ee9be39c5c2bfae8a5a9e970478a6",
@@ -107,12 +101,81 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+HF_CACHE_ENV_VARS = (
+    "HF_HOME",
+    "HF_HUB_CACHE",
+    "HUGGINGFACE_HUB_CACHE",
+    "TRANSFORMERS_CACHE",
+    "PYTORCH_TRANSFORMERS_CACHE",
+    "PYTORCH_PRETRAINED_BERT_CACHE",
+    "XDG_CACHE_HOME",
+)
+
+
+def _normalize_cache_environment(environment: dict[str, str]) -> dict[str, str]:
+    """Expand user/variable references before cache libraries snapshot paths at import."""
+    normalized = environment.copy()
+    for name in HF_CACHE_ENV_VARS:
+        value = normalized.get(name)
+        if value:
+            normalized[name] = os.path.expandvars(os.path.expanduser(value))
+    return normalized
+
+
+def artifact_content_digest(path: Path) -> str:
+    """Hash decoded NPZ values with unambiguous framing, independent of ZIP metadata."""
+    digest = hashlib.sha256()
+
+    def add_field(name: str, payload: bytes) -> None:
+        name_bytes = name.encode("ascii")
+        digest.update(len(name_bytes).to_bytes(4, "big"))
+        digest.update(name_bytes)
+        digest.update(len(payload).to_bytes(8, "big"))
+        digest.update(payload)
+
+    digest.update(b"NSU-CALIBRATION-NPZ-CONTENT\x00v1\x00")
+    try:
+        with np.load(path, allow_pickle=False) as archive:
+            embeddings = np.ascontiguousarray(archive["embeddings"])
+            query_ids = archive["query_ids"].tolist()
+    except Exception as exc:
+        raise CalibrationTextEmbeddingError(f"could not decode NPZ artifact content: {exc}") from exc
+
+    require(embeddings.dtype.kind != "O", "artifact embeddings cannot use object dtype")
+    require(isinstance(query_ids, list) and all(isinstance(item, str) for item in query_ids),
+            "artifact query_ids must be an ordered string array")
+    add_field("dtype", embeddings.dtype.str.encode("ascii"))
+    add_field("shape", json.dumps(list(embeddings.shape), separators=(",", ":")).encode("ascii"))
+    add_field("embeddings_c_order", embeddings.tobytes(order="C"))
+    add_field("query_ids_json", json.dumps(query_ids, ensure_ascii=False, separators=(",", ":")).encode("utf-8"))
+    return digest.hexdigest()
+
+
 def huggingface_cache_paths() -> tuple[Path, Path]:
-    """Return the effective Hub and Transformers caches without changing user overrides."""
-    hub_cache = Path(require_non_blank_string(os.environ.get("HF_HUB_CACHE"), "HF_HUB_CACHE")).expanduser()
+    """Return the cache paths resolved by the installed Hugging Face libraries."""
+    for name in HF_CACHE_ENV_VARS:
+        value = os.environ.get(name)
+        if value:
+            os.environ[name] = os.path.expandvars(os.path.expanduser(value))
+
+    transformers_override = os.environ.get("TRANSFORMERS_CACHE")
+    if transformers_override is not None:
+        require_non_blank_string(transformers_override, "TRANSFORMERS_CACHE")
+        # Transformers 4.35.2 snapshots this value without expanding paths.
+        transformers_hub = sys.modules.get("transformers.utils.hub")
+        if transformers_hub is not None:
+            transformers_hub.TRANSFORMERS_CACHE = transformers_override
+
+    from huggingface_hub.constants import HF_HUB_CACHE
+    from transformers.utils import hub as transformers_hub
+
+    hub_cache = Path(require_non_blank_string(HF_HUB_CACHE, "resolved HF_HUB_CACHE")).expanduser()
     transformers_cache = Path(
-        require_non_blank_string(os.environ.get("TRANSFORMERS_CACHE"), "TRANSFORMERS_CACHE")
+        require_non_blank_string(transformers_hub.TRANSFORMERS_CACHE, "resolved TRANSFORMERS_CACHE")
     ).expanduser()
+    if str(transformers_cache) != transformers_hub.TRANSFORMERS_CACHE:
+        # Legacy Transformers cache variables also bypass expanduser().
+        transformers_hub.TRANSFORMERS_CACHE = str(transformers_cache)
     return hub_cache, transformers_cache
 
 
@@ -194,9 +257,33 @@ def _validate_local_hf_lookups(
     )
 
 
-def initialize_offline_msclap_text_encoder() -> None:
-    """Exercise the installed MSCLAP TextEncoder's real local-only GPT-2 load path."""
-    enable_offline_model_loading()
+def _assert_huggingface_offline_state() -> dict[str, bool]:
+    """Check the actual import-cached offline flags used by the consumers."""
+    import huggingface_hub.constants as hub_constants
+    from transformers.utils.hub import is_offline_mode
+
+    state = {
+        "hf_hub_offline_env": os.environ.get("HF_HUB_OFFLINE") == "1",
+        "hf_hub_offline_internal": bool(hub_constants.HF_HUB_OFFLINE),
+        "transformers_offline_env": os.environ.get("TRANSFORMERS_OFFLINE") == "1",
+        "transformers_offline_internal": bool(is_offline_mode()),
+    }
+    require(all(state.values()), f"Hugging Face libraries are not offline from process start: {state}")
+    return state
+
+
+def _assert_huggingface_online_state() -> None:
+    """Ensure the dedicated bootstrap process did not import clients in offline mode."""
+    import huggingface_hub.constants as hub_constants
+    from transformers.utils.hub import is_offline_mode
+
+    require(not hub_constants.HF_HUB_OFFLINE and not is_offline_mode(),
+            "resource bootstrap worker must start with Hugging Face online mode")
+
+
+def _initialize_msclap_text_encoder_in_current_process() -> None:
+    """Load the real MSCLAP TextEncoder after verifying import-time offline state."""
+    _assert_huggingface_offline_state()
     import yaml
     import msclap.models.clap as msclap_clap_module
     from msclap.models.clap import TextEncoder
@@ -215,6 +302,56 @@ def initialize_offline_msclap_text_encoder() -> None:
     require(isinstance(encoder.base, torch.nn.Module), "MSCLAP TextEncoder did not initialize GPT-2")
     encoder.eval()
     del encoder
+
+
+def _worker_environment(*, offline: bool) -> dict[str, str]:
+    environment = _normalize_cache_environment(os.environ)
+    value = "1" if offline else "0"
+    environment["HF_HUB_OFFLINE"] = value
+    environment["TRANSFORMERS_OFFLINE"] = value
+    return environment
+
+
+def _run_worker(mode: str, arguments: list[str] | None = None, *, offline: bool) -> dict[str, Any]:
+    root = Path(__file__).resolve().parents[2]
+    command = [
+        sys.executable,
+        "-m",
+        "scripts.embedding.validate_calibration_text_embeddings",
+        "--_worker",
+        mode,
+        *(arguments or []),
+    ]
+    completed = subprocess.run(
+        command,
+        cwd=root,
+        env=_worker_environment(offline=offline),
+        check=False,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+    )
+    if completed.returncode != 0:
+        detail = "\n".join(value.strip() for value in (completed.stderr, completed.stdout) if value.strip())
+        raise CalibrationTextEmbeddingError(
+            f"{mode} worker failed with exit code {completed.returncode}: {detail[-2000:]}"
+        )
+    marker = "__CALIBRATION_WORKER_RESULT__"
+    payloads = [line[len(marker):] for line in completed.stdout.splitlines() if line.startswith(marker)]
+    require(len(payloads) == 1, f"{mode} worker did not return exactly one result record")
+    try:
+        result = json.loads(payloads[0])
+    except json.JSONDecodeError as exc:
+        raise CalibrationTextEmbeddingError(f"{mode} worker returned invalid JSON") from exc
+    require(isinstance(result, dict), f"{mode} worker result must be a JSON object")
+    return result
+
+
+def initialize_offline_msclap_text_encoder() -> None:
+    """Initialize MSCLAP in a child that starts with offline flags already set."""
+    result = _run_worker("offline-resource-check", offline=True)
+    require(result.get("offline_msclap_text_encoder_initialization") == "passed",
+            "offline MSCLAP TextEncoder initialization did not pass")
 
 
 def validate_prepared_hf_resources(*, initialize_text_encoder: bool = False) -> dict[str, Any]:
@@ -274,10 +411,12 @@ def validate_prepared_hf_resources(*, initialize_text_encoder: bool = False) -> 
 
 
 def prepare_hf_resources() -> dict[str, Any]:
-    """Download only the pinned GPT-2 inference files and MSCLAP checkpoint."""
-    # Bootstrap is the only path that can use the network.
-    os.environ["HF_HUB_OFFLINE"] = "0"
-    os.environ["TRANSFORMERS_OFFLINE"] = "0"
+    """Prepare pinned resources in a fresh online worker, then verify offline loading."""
+    return _run_worker("bootstrap", offline=False)
+
+
+def _prepare_hf_resources_in_current_process() -> dict[str, Any]:
+    """Download pinned resources; the caller must start this process online."""
     from huggingface_hub import hf_hub_download, snapshot_download
 
     hub_cache, transformers_cache = huggingface_cache_paths()
@@ -305,20 +444,13 @@ def prepare_hf_resources() -> dict[str, Any]:
     )
     _write_cached_main_revision(transformers_cache, TOKENIZER_REPOSITORY_ID, TOKENIZER_REVISION)
     _write_cached_main_revision(hub_cache, CHECKPOINT_REPOSITORY_ID, CHECKPOINT_REVISION)
-    enable_offline_model_loading()
     return validate_prepared_hf_resources(initialize_text_encoder=True)
 
 
-def enable_offline_model_loading() -> None:
-    """Make the canonical process fail locally rather than resolve mutable remote refs."""
-    os.environ["HF_HUB_OFFLINE"] = "1"
-    os.environ["TRANSFORMERS_OFFLINE"] = "1"
-
-
-def require_same_artifact_for_overwrite(previous_sha: str, new_sha: str) -> None:
+def require_same_artifact_content_for_overwrite(previous_digest: str, new_digest: str) -> None:
     require(
-        previous_sha == new_sha,
-        "new artifact SHA differs from the existing canonical artifact; refusing overwrite",
+        previous_digest == new_digest,
+        "new decoded artifact content differs from the existing canonical artifact; refusing overwrite",
     )
 
 
@@ -664,6 +796,15 @@ def validate_artifact_evidence_pair(
     with np.load(artifact_path, allow_pickle=False) as archive:
         embeddings = archive["embeddings"]
         query_ids = archive["query_ids"].tolist()
+    actual_content_digest = artifact_content_digest(artifact_path)
+    recorded_content_digest = artifact_record.get("content_digest")
+    if recorded_content_digest is not None:
+        require(
+            artifact_record.get("content_digest_algorithm") == ARTIFACT_CONTENT_DIGEST_ALGORITHM,
+            "evidence artifact content digest algorithm is missing or unsupported",
+        )
+        require(recorded_content_digest == actual_content_digest,
+                "evidence artifact content digest does not match decoded NPZ")
     require(query_ids == expected_query_ids, "published NPZ query order differs from evidence")
     require(evidence["embedding_output"]["shape"] == list(embeddings.shape),
             "published NPZ shape differs from evidence")
@@ -825,7 +966,7 @@ def validate_existing_output_pair(
     *,
     overwrite: bool,
     root: Path,
-) -> str | None:
+) -> dict[str, str] | None:
     """Protect an existing canonical pair unless overwrite is explicit and pair is valid."""
     evidence_exists = evidence_path.exists()
     artifact_exists = embedding_path.exists()
@@ -834,17 +975,22 @@ def validate_existing_output_pair(
     if not overwrite:
         raise CalibrationTextEmbeddingError(
             "canonical artifact/evidence already exists; refusing to overwrite. "
-            "Pass --overwrite only to verify and republish an identical artifact."
+            "Pass --overwrite only to verify and republish identical decoded artifact content."
         )
     require(
         evidence_exists and artifact_exists,
         "canonical outputs are incomplete; refusing overwrite because no matching prior pair can be preserved",
     )
-    return validate_artifact_evidence_pair(embedding_path, evidence_path, root=root)
+    file_sha = validate_artifact_evidence_pair(embedding_path, evidence_path, root=root)
+    return {
+        "file_sha256": file_sha,
+        "content_digest": artifact_content_digest(embedding_path),
+    }
 
 
 def load_calibration_clap_model():
-    """Import the project model only after offline mode and pinned cache checks are active."""
+    """Import the project model only in a process whose libraries started offline."""
+    _assert_huggingface_offline_state()
     from app.inference.clap_model import ClapModel
 
     return ClapModel()
@@ -861,7 +1007,7 @@ def run_experiment(
     input_path, evidence_path, embedding_path = resolve_experiment_paths(
         root, evidence_path, embedding_path
     )
-    existing_artifact_sha = validate_existing_output_pair(
+    existing_artifact_identity = validate_existing_output_pair(
         evidence_path, embedding_path, overwrite=overwrite, root=root
     )
     input_bytes = input_path.read_bytes()
@@ -877,7 +1023,6 @@ def run_experiment(
     validator_output = _run_calibration_validator(root)
     validator_output = require_non_blank_string(validator_output, "calibration validator output")
 
-    enable_offline_model_loading()
     resource_identity = validate_prepared_hf_resources()
     clap_model = load_calibration_clap_model()
     wrapper = clap_model.model
@@ -891,9 +1036,7 @@ def run_experiment(
     )
     require(tokenizer_name == text_model, "loaded tokenizer name does not match the configured MSCLAP text model")
     tokenizer_vocab_size = require_positive_integer(len(tokenizer), "tokenizer vocabulary size")
-    transformers_cache = Path(require_non_blank_string(
-        os.environ.get("TRANSFORMERS_CACHE"), "TRANSFORMERS_CACHE"
-    ))
+    _, transformers_cache = huggingface_cache_paths()
     tokenizer_snapshot = tokenizer_snapshot_identity(text_model, transformers_cache)
     require(
         tokenizer_snapshot["resolved_revision"] == TOKENIZER_REVISION,
@@ -1122,6 +1265,8 @@ def run_experiment(
             "artifact": {
                 "path": artifact_display_path,
                 "sha256": artifact_hash,
+                "content_digest": "",
+                "content_digest_algorithm": ARTIFACT_CONTENT_DIGEST_ALGORITHM,
                 "format": "compressed NPZ: float32 little-endian embeddings and query_id order",
             },
         },
@@ -1135,11 +1280,18 @@ def run_experiment(
             [query["query_id"] for query in selected],
             repeated_batch,
         )
-        if existing_artifact_sha is not None:
-            require_same_artifact_for_overwrite(existing_artifact_sha, artifact_hash)
+        content_digest = artifact_content_digest(artifact_temp)
+        result["embedding_output"]["artifact"]["content_digest"] = content_digest
+        if existing_artifact_identity is not None:
+            new_content_digest = content_digest
+            require_same_artifact_content_for_overwrite(
+                existing_artifact_identity["content_digest"], new_content_digest
+            )
             result["canonical_overwrite_comparison"] = {
-                "previous_artifact_sha256": existing_artifact_sha,
-                "new_artifact_sha256": artifact_hash,
+                "existing_file_sha256": existing_artifact_identity["file_sha256"],
+                "new_file_sha256": artifact_hash,
+                "existing_content_digest": existing_artifact_identity["content_digest"],
+                "new_content_digest": new_content_digest,
                 "identical": True,
             }
         result["embedding_output"]["artifact"]["sha256"] = artifact_hash
@@ -1159,22 +1311,43 @@ def run_experiment(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate the approved calibration v1 MSCLAP Text Embeddings.")
     parser.add_argument("--prepare-resources", action="store_true", help="Download and pin the recorded tokenizer/checkpoint snapshots.")
-    parser.add_argument("--overwrite", action="store_true", help="Allow republishing only when the existing canonical NPZ is valid and has the same SHA-256.")
+    parser.add_argument("--overwrite", action="store_true", help="Allow republishing only when decoded embeddings, metadata, and query order match the canonical NPZ.")
     parser.add_argument("--evidence-output", type=Path, default=DEFAULT_EVIDENCE_PATH)
     parser.add_argument("--embedding-output", type=Path, default=DEFAULT_EMBEDDING_PATH)
+    parser.add_argument("--_worker", choices=("bootstrap", "offline-resource-check", "offline-state-check", "experiment"), help=argparse.SUPPRESS)
     args = parser.parse_args()
     try:
-        if args.prepare_resources:
+        if args._worker == "bootstrap":
+            require(not args.prepare_resources and not args.overwrite,
+                    "bootstrap worker received conflicting public options")
+            _assert_huggingface_online_state()
+            result = _prepare_hf_resources_in_current_process()
+        elif args._worker == "offline-resource-check":
+            _assert_huggingface_offline_state()
+            result = validate_prepared_hf_resources()
+            _initialize_msclap_text_encoder_in_current_process()
+            result["offline_msclap_text_encoder_initialization"] = "passed"
+        elif args._worker == "offline-state-check":
+            result = _assert_huggingface_offline_state()
+        elif args._worker == "experiment":
+            _assert_huggingface_offline_state()
+            result = run_experiment(
+                Path(__file__).resolve().parents[2],
+                args.evidence_output,
+                args.embedding_output,
+                overwrite=args.overwrite,
+            )
+        elif args.prepare_resources:
             if args.overwrite:
                 parser.error("--prepare-resources cannot be combined with --overwrite")
             result = prepare_hf_resources()
         else:
-            root = Path(__file__).resolve().parents[2]
-            result = run_experiment(
-                root, args.evidence_output, args.embedding_output, overwrite=args.overwrite
-            )
+            result = _run_worker("experiment", sys.argv[1:], offline=True)
     except Exception as exc:
         parser.exit(1, f"Calibration Text Embedding failed: {exc}\n")
+    if args._worker:
+        print("__CALIBRATION_WORKER_RESULT__" + json.dumps(result, ensure_ascii=False, separators=(",", ":")))
+        return 0
     print(json.dumps(result, ensure_ascii=False, indent=2))
     return 0
 
