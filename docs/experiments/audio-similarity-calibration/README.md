@@ -16,12 +16,12 @@ Event query는 실제 사용자 데이터가 아니라 대표적인 합성 시�
 - source SHA-256 기록: 아직 없음
 - 실제 decoder 기반 decode 검증: 아직 안 함
 - deterministic 중앙 60초 prepared Audio 생성: 아직 안 함
-- MSCLAP Embedding 생성: 아직 안 함
+- Audio MSCLAP Embedding 생성: 아직 안 함 (ACTIVE 16개 Text Embedding은 2026-10-16 생성, 아래 Event query 상태 참조)
 - raw cosine 실험: 아직 안 함
 - 청취평가: 아직 안 함
 - 사용자 표시용 0~100 transformation 선정: 아직 안 함
 
-따라서 candidate selection complete ≠ calibration experiment complete다. 후보 목록 확정과 Audio 준비·생성·평가 결과를 별도 단계로 관리한다. 실제 실험 전에는 clean worktree의 Git commit SHA와 manifest/query/schema/protocol/실행 코드의 파일 bytes SHA-256을 기록하고, source·prepared·playback Audio도 각각 SHA-256으로 연결한다. 청취평가는 공통 AudioEmbeddingGenerator가 분석하는 동일한 전처리 파형의 `[0초, 56초)`만 대상으로 하며 prepared 60초 전체를 재생하지 않는다. 세부 기록 조건은 [청취 평가 프로토콜](./listening-protocol.md)을 따른다. 이 identity와 playback evidence는 아직 생성되지 않았다.
+따라서 candidate selection complete ≠ calibration experiment complete다. 후보 목록 확정과 Audio 준비·생성·평가 결과를 별도 단계로 관리한다. Audio/cosine/listening 실행 전에는 clean worktree의 Git commit SHA와 manifest/query/schema/protocol/실행 코드의 파일 bytes SHA-256을 기록하고, source·prepared·playback Audio도 각각 SHA-256으로 연결한다. 청취평가는 공통 AudioEmbeddingGenerator가 분석하는 동일한 전처리 파형의 `[0초, 56초)`만 대상으로 하며 prepared 60초 전체를 재생하지 않는다. 세부 기록 조건은 [청취 평가 프로토콜](./listening-protocol.md)을 따른다. Audio input 및 playback identity는 아직 생성되지 않았으며, Text Embedding identity는 [별도 evidence](./text-embedding-evidence.json)에 기록했다.
 
 현재 PASS 50곡은 calibration cohort다. 이 cohort의 raw cosine 분포와 청취평가는 transformation 선정 자료이며 독립 validation 자료가 아니다. 최종 transformation 선택 후 별도로 구성한 독립 validation cohort에서 검증한다. 현재 50곡을 validation holdout으로 간주하지 않으며, 별도 validation cohort의 크기와 구성은 아직 정하지 않았다.
 
@@ -43,9 +43,44 @@ Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 
 2. `structured_interpretation`: calibration-only 의미 주석이며 production AI 결과나 Spring API 계약이 아니다. 속성은 mood, tempo, desired_genre, instrument_preference, vocal_preference, acoustic_electronic, dynamic_progression, usage_context, rhythmic_character, activity_character다. ACTIVE 16개는 Raw 근거 검수를 완료했고 RESERVE/REPLACE는 미검수 placeholder로 유지한다.
 3. `msclap_model_input`: 사람이 작성한 영어 calibration 입력이다. ACTIVE 16개는 semantic fidelity 검수를 마쳤고, `approved_for_calibration_v1_experiment`로 calibration v1 Text Embedding/cosine 실험 입력으로 승인했다. 이는 모델 성능 검증이나 production query 확정이 아니다. RESERVE/REPLACE 4개는 `draft_not_confirmed_model_input` 및 `not_reviewed`를 유지한다.
 
-현재 자료는 실제 사용자 데이터가 아닌 representative synthetic scenario benchmark다. ACTIVE 16개의 Structured Interpretation Raw 근거 검수와 영어 입력 semantic fidelity 검수 및 calibration v1 실험 입력 승인은 완료했다. MSCLAP Text Embedding, cosine 검색 성능 검증은 아직 수행하지 않았고, 입력은 production query로 확정되지 않았다.
+현재 자료는 실제 사용자 데이터가 아닌 representative synthetic scenario benchmark다. ACTIVE 16개의 Structured Interpretation Raw 근거 검수, 영어 입력 semantic fidelity 검수 및 calibration v1 실험 입력 승인은 완료했다. 2026-10-16 ACTIVE 16개를 MSCLAP 2023 Text Encoder로 batch 생성했고, 결과와 실행 identity는 [Text Embedding evidence](./text-embedding-evidence.json)에 기록했다. 출력은 `[16, 1024]`, `float32`, CPU였으며 Text Encoder 출력에 L2 normalization을 적용하지 않았다. 같은 16-query batch의 반복 출력은 정확히 같았지만, batch와 single 입력은 bitwise 동일하지 않았다(상세 차이는 evidence 참조). 임의 허용 오차는 정하지 않았으므로 이후 cosine 실행은 이 evidence의 batch artifact를 입력으로 사용해야 한다. 이 canonical Text Embedding artifact는 61,228 bytes의 작은 calibration 산출물이므로 `docs/experiments/audio-similarity-calibration/artifacts/calibration-v1-text-embeddings.npz`에 Git으로 보존한다. cosine 실행 전 evidence SHA-256, query ID 순서, `[16, 1024]` shape, `float32`, finite 여부 및 execution identity가 일치하는지 확인하고 하나라도 어긋나면 중단한다. Audio Embedding/acquisition, cosine 계산, 검색 성능 검증, 청취 평가와 transformation 선정은 미수행이며, 입력은 production query로 확정되지 않았다.
+
+같은 Text Embedding 검증 경로는 저장소 루트에서 Python 3.11 및 프로젝트의 MSCLAP CPU 의존성이 설치된 환경에서 실행한다. 기본 출력 경로는 canonical NPZ/evidence를 가리키며, 기존 canonical 결과가 이미 있으므로 보호를 위해 거부된다. 일반 검증 또는 재실행에서는 아래 예제처럼 `--embedding-output`과 `--evidence-output`에 임시/non-canonical 경로를 지정한다. `--overwrite`는 canonical 결과를 의도적으로 다시 게시할 때만 사용한다. 실행 전 통합 calibration validator를 수행하고, dirty worktree에서는 모델 추론을 시작하지 않는다. 동일한 16-query batch의 반복 출력은 bitwise identical이어야 성공하며, 불일치하면 canonical artifact/evidence를 확정하지 않고 실패한다. batch와 single 입력의 차이는 별도 진단으로만 기록하며 허용 오차는 정하지 않았다.
 
 
+Text Embedding evidence는 임시 harness가 아니라 저장소의 canonical runner에서 clean worktree로 생성했다. 실행 commit은 `61790c4821aff6a4a6e6084f7c9f3457ee2a0320`이며, GPT-2 tokenizer snapshot `607a30d783dfa663caf39e06633721c8d4cfcd7e`, 실제 snapshot 파일 SHA-256, runtime tokenizer serialization hash, MSCLAP source/config hash와 checkpoint hash를 evidence에 기록했다. Audio Embedding, cosine, ranking 및 production validation은 미수행이다. 이 SHA는 실제 runner를 실행한 execution/implementation commit이며, 최신 실행 결과를 기록한 evidence/document commit 2f46a94b137898a3b8a318234b0e5fa5d03bc58e과 구분한다.
+
+### Text Encoder 자원 준비와 결과 보호
+
+새 Python 환경에서는 저장소 루트에서 검증된 CPython 3.11 x86-64 Windows/Linux CPU 의존성을 설치한 뒤 tokenizer와 checkpoint를 먼저 준비한다.
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m scripts.embedding.validate_calibration_text_embeddings --prepare-resources
+```
+
+Bootstrap은 evidence에 고정된 GPT-2 tokenizer/config와 `model.safetensors`, `microsoft/msclap` checkpoint만 Hugging Face에서 준비하고 각 파일의 SHA-256을 확인한다. GPT-2 가중치는 MSCLAP 1.3.3의 TextEncoder.__init__()이 checkpoint 적용 전에 AutoModel.from_pretrained("gpt2")를 호출하므로 필요하다. 별도 cache 환경변수(`HF_HOME`, `HF_HUB_CACHE`, `TRANSFORMERS_CACHE`)가 설정되지 않으면 Hugging Face 기본 cache 위치를 사용한다. MSCLAP/Transformers 호출이 revision을 생략하므로 bootstrap은 두 모델 cache의 `refs/main` 포인터를 승인된 immutable revision으로 원자 갱신한다. 기존 snapshot 파일을 삭제하지 않는다. Bootstrap은 tokenizer/model/checkpoint를 `local_files_only` lookup으로 확인하고, 실제 MSCLAP TextEncoder 초기화는 offline 환경변수를 프로세스 시작 전에 설정한 별도 worker에서 검증한다. 일반 canonical 실행도 offline 환경에서 새 worker로 시작하므로 이미 import된 library의 online 상태를 뒤늦게 바꾸지 않는다. Worker는 Hugging Face와 Transformers의 내부 offline flag를 확인하고, 해당 cache의 `refs/main`, snapshot 파일 hash 및 local lookup을 검증한 뒤 모델을 읽는다. 비어 있거나 잘못된 cache에서는 추론 전에 실패하며 위 bootstrap 명령을 안내한다. 모든 실행은 저장소 루트에서 한다.
+
+**일반 검증 또는 재실행**에서는 canonical 결과를 건드리지 않도록 두 출력에 별도의 임시 경로를 지정한다. 다음 예제는 Windows PowerShell용이며, 고유한 임시 파일명을 사용한다. pinned 자원이 준비되어 있고 runner의 clean-checkout 조건을 만족하는 상태에서 실행한다.
+
+```powershell
+$runId = [guid]::NewGuid().ToString("N")
+$embeddingOutput = Join-Path $env:TEMP "calibration-v1-check-$runId.npz"
+$evidenceOutput = Join-Path $env:TEMP "calibration-v1-check-$runId.json"
+.\.venv\Scripts\python.exe -m scripts.embedding.validate_calibration_text_embeddings `
+  --embedding-output $embeddingOutput `
+  --evidence-output $evidenceOutput
+```
+
+
+canonical NPZ 또는 evidence JSON 중 하나라도 있으면 기본 출력 경로를 사용하는 실행은 거부된다. **의도적으로 canonical 결과를 다시 게시할 때만** 다음처럼 `--overwrite`를 지정한다.
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.embedding.validate_calibration_text_embeddings --overwrite
+```
+
+`--overwrite`는 일반 확인용 옵션이 아니다. validation을 모두 통과한 뒤에도 기존 pair가 서로 일치하고 새 NPZ의 decoded content digest가 기존 artifact와 같을 때만 transactional 교체를 허용한다. ZIP timestamp 등 container metadata 차이로 file SHA-256이 달라도 decoded embeddings, dtype, shape, query ID와 순서가 같으면 동일 결과로 볼 수 있다. file SHA-256은 게시된 NPZ bytes의 무결성을 확인하고, content digest는 decode된 embedding 결과의 동일성을 확인한다. content digest가 다르거나 validation/write/replace에 실패하면 기존 pair를 유지하고 실패한다. 결과 한 쪽만 남은 불완전 pair도 자동 덮어쓰지 않는다.
 ## Dataset 구성
 
 1차 목표는 50곡이다. 같은 아티스트는 가급적 1곡, 최대 2곡으로 제한한다. Complete 상태의 통합 validator는 manifest `artist` 표기를 공백 정리 및 대소문자 무시 후 세어 최대 2곡을 강제한다. artist alias와 여러 기여자 표기의 실체 식별은 자동 판정하지 않으므로 후보 선정 기록에서 사람이 검토한다. 장르·분위기, 보컬/인스트루멘탈, electronic/acoustic, 느림/중간/빠름 인상의 편중은 수치화된 완료 조건이 아니라 후보 구성 시 사람이 검토하는 다양성 기준이다. 제공자 metadata와 사람이 붙인 label을 별도로 보존하고 출처가 불분명한 label은 unknown으로 둔다. Source metadata의 tempo는 표본 구성 설명으로만 쓸 수 있으며, BPM/Rhythm ranking 구현을 뜻하지 않는다.

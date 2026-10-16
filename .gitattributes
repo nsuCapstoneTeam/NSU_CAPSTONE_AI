@@ -15,3 +15,4 @@
 *.png binary
 *.jpg binary
 *.pdf binary
+docs/experiments/audio-similarity-calibration/artifacts/*.npz binary

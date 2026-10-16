@@ -1,0 +1,620 @@
+{
+  "schema_version": 1,
+  "experiment": "NSUAI-36 calibration v1 Text Embedding",
+  "result_status": "PASS_WITH_BATCH_SINGLE_DIFFERENCE_RECORDED",
+  "generated_at_utc": "2026-10-16T05:30:25.927493+00:00",
+  "scope_limitations": [
+    "Text Embeddings only; Audio Embeddings were not generated",
+    "No cosine calculation or ranking was performed",
+    "No MSCLAP search-performance validation was performed",
+    "Calibration input approval is not production query confirmation"
+  ],
+  "input_identity": {
+    "git_commit_sha": "61790c4821aff6a4a6e6084f7c9f3457ee2a0320",
+    "working_tree_clean_before_and_after_inference": true,
+    "query_set_version": "event-queries-draft-v1",
+    "active_set_version": "engineering-calibration-v1",
+    "event_queries_path": "docs/experiments/audio-similarity-calibration/event-queries.json",
+    "event_queries_bytes_sha256": "de66cbdd381e117ff1a7dc39ff6076e362cc49267559f2b9d41b2fd0b0bba3b6",
+    "active_query_count": 16,
+    "queries": [
+      {
+        "query_id": "event-01",
+        "draft_version": "draft-v1",
+        "text": "Rock or pop music for an outdoor university festival that the audience can enjoy together."
+      },
+      {
+        "query_id": "event-02",
+        "draft_version": "draft-v1",
+        "text": "Calm acoustic music for the pre-wedding period at an outdoor wedding."
+      },
+      {
+        "query_id": "event-03",
+        "draft_version": "draft-v1",
+        "text": "Grand soundtrack music for an award recipient's entrance at a corporate ceremony."
+      },
+      {
+        "query_id": "event-04",
+        "draft_version": "draft-v1",
+        "text": "Jazz or lounge background music for an art exhibition opening, to play while people converse."
+      },
+      {
+        "query_id": "event-05",
+        "draft_version": "draft-v1",
+        "text": "Slightly tense electronic music for a nighttime gaming event."
+      },
+      {
+        "query_id": "event-06",
+        "draft_version": "draft-v1",
+        "text": "Folk or world music for a daytime local cultural festival."
+      },
+      {
+        "query_id": "event-07",
+        "draft_version": "draft-v1",
+        "text": "Gentle, hopeful instrumental music for a graduation dinner, suitable for dining and conversation."
+      },
+      {
+        "query_id": "event-08",
+        "draft_version": "draft-v1",
+        "text": "Rhythmic pop or electronic music for a fashion runway."
+      },
+      {
+        "query_id": "event-09",
+        "draft_version": "draft-v1",
+        "text": "Piano-centered music for quiet remembrance at a memorial service."
+      },
+      {
+        "query_id": "event-12",
+        "draft_version": "draft-v1",
+        "text": "Reggae or Latin music for a beach summer party, with a light, danceable feel."
+      },
+      {
+        "query_id": "event-13",
+        "draft_version": "draft-v1",
+        "text": "Electronic background music for a product presentation, with a feel that is not too cold."
+      },
+      {
+        "query_id": "event-14",
+        "draft_version": "draft-v1",
+        "text": "Grand music for the opening of a traditional performance."
+      },
+      {
+        "query_id": "event-15",
+        "draft_version": "draft-v1",
+        "text": "Groovy funk or disco for an evening party with friends."
+      },
+      {
+        "query_id": "event-16",
+        "draft_version": "draft-v1",
+        "text": "Ambient music for a meditation workshop that should not interfere with concentration."
+      },
+      {
+        "query_id": "event-17",
+        "draft_version": "draft-v1",
+        "text": "Pop or soul music for a reception after an awards ceremony; vocals are acceptable."
+      },
+      {
+        "query_id": "event-20",
+        "draft_version": "draft-v1",
+        "text": "Electronic music for a contemporary dance scene, with tension that gradually builds."
+      }
+    ]
+  },
+  "preflight_validation": {
+    "command": "python -m scripts.matching.validate_calibration",
+    "status": "PASS",
+    "output": "Calibration validation passed: schemas, unique sample/query/track identities, credited-artist cap, unique Raw scenarios, and ACTIVE Event interpretation Raw references."
+  },
+  "review_notes": [
+    "The repeated fixed-size batch must be bitwise identical or the run fails before canonical artifact/evidence finalization.",
+    "Batch-versus-single differences are diagnostic only; no project tolerance is established.",
+    "If batch and single outputs differ, downstream cosine work must use the recorded fixed-batch artifact consistently."
+  ],
+  "model_runtime": {
+    "model": "MSCLAP",
+    "model_version": "2023",
+    "embedding_generation_profile": "ClapModel.encode_text/msclap-default-v1",
+    "runner_path": "scripts/embedding/validate_calibration_text_embeddings.py",
+    "runner_sha256": "68365c2364334dd4add3d2a0e7a14b69c9633bc7d2d020a6f94e4fc2d6a82cb9",
+    "package_version": "1.3.3",
+    "checkpoint_file": "CLAP_weights_2023.pth",
+    "checkpoint_sha256": "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6",
+    "checkpoint_snapshot_revision": "c47d441165daa21986ead0850660917636a81775",
+    "msclap_package_source": {
+      "file_count": 13,
+      "sha256": "e867cdbb71f7bcee529afb92a096578faab46c69feb35d8192d4f220de56c181"
+    },
+    "msclap_config_sha256": "41fbc893997f75fe144d93bf2ec44d5ca27fe61beb8870dd815a53c064cb030f",
+    "text_model": "gpt2",
+    "model_config_sha256": "0daed7749b4f02b8f76240d5444551d7b08712dab4d0adb8239c56ba823bb7b4",
+    "gpt2_pretrained_model": {
+      "repository_id": "gpt2",
+      "resolved_revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+      "filename": "model.safetensors",
+      "sha256": "248dfc3911869ec493c76e65bf2fcf7f615828b0254c12b473182f0f81d3a707"
+    },
+    "token_limit": 77,
+    "projection_dimension_config": 1024,
+    "tokenizer_name_or_path": "gpt2",
+    "tokenizer_snapshot": {
+      "repository_id": "gpt2",
+      "resolved_revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+      "snapshot_files_sha256": {
+        "tokenizer.json": "8414cab924d8b9b33013f0d221c5862f365ee9be39c5c2bfae8a5a9e970478a6",
+        "vocab.json": "196139668be63f3b5d6574427317ae82f612a97c5d1cdaf36ed2256dbf636783",
+        "merges.txt": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5",
+        "tokenizer_config.json": "5e04eb606e3a1583530a42e36c2a6b6615c86f34fe77e44d9ddeb43ff940931f",
+        "config.json": "0daed7749b4f02b8f76240d5444551d7b08712dab4d0adb8239c56ba823bb7b4"
+      }
+    },
+    "runtime_tokenizer_backend_sha256": "9660ca46237b4cfba5128e5a275c3c80f12e20ac39e6547d86ea7dfc7ba40bef",
+    "tokenizer_vocab_size": 50257,
+    "eos_token_id": 50256,
+    "padding_token": "!",
+    "padding_token_id": 0,
+    "text_preprocessing": {
+      "text_len": 77,
+      "eos_marker_appended_by_msclap": " <|endoftext|>",
+      "add_special_tokens": true,
+      "padding": "max_length",
+      "truncation": "not enabled; over-limit inputs fail preflight"
+    },
+    "python_version": "3.11.16",
+    "torch_version": "2.1.2+cpu",
+    "transformers_version": "4.35.2",
+    "numpy_version": "1.26.4",
+    "device": "cpu",
+    "dtype": "torch.float32",
+    "model_eval_mode": true,
+    "torch_num_threads": 6
+  },
+  "tokenizer_preflight": [
+    {
+      "query_id": "event-01",
+      "text": "Rock or pop music for an outdoor university festival that the audience can enjoy together.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 18,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-02",
+      "text": "Calm acoustic music for the pre-wedding period at an outdoor wedding.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 19,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-03",
+      "text": "Grand soundtrack music for an award recipient's entrance at a corporate ceremony.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 16,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-04",
+      "text": "Jazz or lounge background music for an art exhibition opening, to play while people converse.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 21,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-05",
+      "text": "Slightly tense electronic music for a nighttime gaming event.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 13,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-06",
+      "text": "Folk or world music for a daytime local cultural festival.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 14,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-07",
+      "text": "Gentle, hopeful instrumental music for a graduation dinner, suitable for dining and conversation.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 19,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-08",
+      "text": "Rhythmic pop or electronic music for a fashion runway.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 14,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-09",
+      "text": "Piano-centered music for quiet remembrance at a memorial service.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 15,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-12",
+      "text": "Reggae or Latin music for a beach summer party, with a light, danceable feel.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 22,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-13",
+      "text": "Electronic background music for a product presentation, with a feel that is not too cold.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 20,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-14",
+      "text": "Grand music for the opening of a traditional performance.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 12,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-15",
+      "text": "Groovy funk or disco for an evening party with friends.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 14,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-16",
+      "text": "Ambient music for a meditation workshop that should not interfere with concentration.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 16,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-17",
+      "text": "Pop or soul music for a reception after an awards ceremony; vocals are acceptable.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 18,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    },
+    {
+      "query_id": "event-20",
+      "text": "Electronic music for a contemporary dance scene, with tension that gradually builds.",
+      "token_count_including_model_end_marker_and_tokenizer_specials": 17,
+      "text_len_limit": 77,
+      "effective_sequence_length_after_wrapper_padding": 77,
+      "gpt_end_marker_appended_by_msclap": "<|endoftext|>",
+      "end_token_id": 50256,
+      "tokenizer_special_tokens_added_count": 0
+    }
+  ],
+  "embedding_output": {
+    "shape": [
+      16,
+      1024
+    ],
+    "dimension": 1024,
+    "dtype": "torch.float32",
+    "device": "cpu",
+    "all_finite": true,
+    "zero_vector_count": 0,
+    "l2_norms": [
+      {
+        "query_id": "event-01",
+        "l2_norm": 32.34938887136619,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-02",
+        "l2_norm": 32.34863414574578,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-03",
+        "l2_norm": 32.47909039856433,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-04",
+        "l2_norm": 32.31916957884162,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-05",
+        "l2_norm": 32.504844565450426,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-06",
+        "l2_norm": 32.34381534763261,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-07",
+        "l2_norm": 32.38045219174456,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-08",
+        "l2_norm": 32.44448183630891,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-09",
+        "l2_norm": 32.4617013332416,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-12",
+        "l2_norm": 32.38927498018367,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-13",
+        "l2_norm": 32.56661250212102,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-14",
+        "l2_norm": 32.75902517594348,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-15",
+        "l2_norm": 32.51560296520545,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-16",
+        "l2_norm": 32.488888718788104,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-17",
+        "l2_norm": 32.41765994436838,
+        "finite": true,
+        "zero_vector": false
+      },
+      {
+        "query_id": "event-20",
+        "l2_norm": 32.40164628138249,
+        "finite": true,
+        "zero_vector": false
+      }
+    ],
+    "normalization_observation": "The raw get_text_embeddings output is unnormalized; no normalization was applied in this run.",
+    "repeat_batch": {
+      "exact_equal": true,
+      "max_absolute_difference": 0.0,
+      "rms_difference": 0.0,
+      "allclose_default": true,
+      "allclose_default_rtol": 1e-05,
+      "allclose_default_atol": 1e-08,
+      "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+    },
+    "batch_vs_single": [
+      {
+        "query_id": "event-01",
+        "exact_equal": false,
+        "max_absolute_difference": 2.86102294921875e-06,
+        "rms_difference": 7.055163087810158e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-02",
+        "exact_equal": false,
+        "max_absolute_difference": 2.9206275939941406e-06,
+        "rms_difference": 7.549674886051462e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-03",
+        "exact_equal": false,
+        "max_absolute_difference": 2.86102294921875e-06,
+        "rms_difference": 5.632445361745884e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-04",
+        "exact_equal": false,
+        "max_absolute_difference": 2.9802322387695312e-06,
+        "rms_difference": 6.402348665397005e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-05",
+        "exact_equal": false,
+        "max_absolute_difference": 2.1457672119140625e-06,
+        "rms_difference": 5.868115257201234e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-06",
+        "exact_equal": false,
+        "max_absolute_difference": 3.337860107421875e-06,
+        "rms_difference": 9.04295408623669e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-07",
+        "exact_equal": false,
+        "max_absolute_difference": 2.6226043701171875e-06,
+        "rms_difference": 6.781282683733966e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-08",
+        "exact_equal": false,
+        "max_absolute_difference": 3.337860107421875e-06,
+        "rms_difference": 6.878182693730386e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-09",
+        "exact_equal": false,
+        "max_absolute_difference": 3.0994415283203125e-06,
+        "rms_difference": 6.286943191728999e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-12",
+        "exact_equal": false,
+        "max_absolute_difference": 2.86102294921875e-06,
+        "rms_difference": 7.277548513198866e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-13",
+        "exact_equal": false,
+        "max_absolute_difference": 2.384185791015625e-06,
+        "rms_difference": 6.920971847819089e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-14",
+        "exact_equal": false,
+        "max_absolute_difference": 7.152557373046875e-06,
+        "rms_difference": 9.996715362552216e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-15",
+        "exact_equal": false,
+        "max_absolute_difference": 2.6226043701171875e-06,
+        "rms_difference": 6.421061864823781e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-16",
+        "exact_equal": false,
+        "max_absolute_difference": 2.384185791015625e-06,
+        "rms_difference": 6.570861029337596e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-17",
+        "exact_equal": false,
+        "max_absolute_difference": 3.0994415283203125e-06,
+        "rms_difference": 8.304416835050732e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      },
+      {
+        "query_id": "event-20",
+        "exact_equal": false,
+        "max_absolute_difference": 2.86102294921875e-06,
+        "rms_difference": 6.852840784628652e-07,
+        "allclose_default": false,
+        "allclose_default_rtol": 1e-05,
+        "allclose_default_atol": 1e-08,
+        "allclose_note": "diagnostic only; PyTorch defaults, not a project acceptance threshold"
+      }
+    ],
+    "reproducibility_status": "repeated_batch_exact; batch_vs_single_difference_observed_no_acceptance_tolerance",
+    "artifact": {
+      "path": "docs/experiments/audio-similarity-calibration/artifacts/calibration-v1-text-embeddings.npz",
+      "sha256": "eb370847471982448e0532665729ecd834a0fabd61fc4541ab15c710db497a1f",
+      "format": "compressed NPZ: float32 little-endian embeddings and query_id order"
+    }
+  }
+}
