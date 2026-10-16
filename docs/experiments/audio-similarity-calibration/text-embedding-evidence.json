@@ -127,6 +127,12 @@
     "msclap_config_sha256": "41fbc893997f75fe144d93bf2ec44d5ca27fe61beb8870dd815a53c064cb030f",
     "text_model": "gpt2",
     "model_config_sha256": "0daed7749b4f02b8f76240d5444551d7b08712dab4d0adb8239c56ba823bb7b4",
+    "gpt2_pretrained_model": {
+      "repository_id": "gpt2",
+      "resolved_revision": "607a30d783dfa663caf39e06633721c8d4cfcd7e",
+      "filename": "model.safetensors",
+      "sha256": "248dfc3911869ec493c76e65bf2fcf7f615828b0254c12b473182f0f81d3a707"
+    },
     "token_limit": 77,
     "projection_dimension_config": 1024,
     "tokenizer_name_or_path": "gpt2",

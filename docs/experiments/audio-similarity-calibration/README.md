@@ -43,12 +43,30 @@ Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 
 2. `structured_interpretation`: calibration-only 의미 주석이며 production AI 결과나 Spring API 계약이 아니다. 속성은 mood, tempo, desired_genre, instrument_preference, vocal_preference, acoustic_electronic, dynamic_progression, usage_context, rhythmic_character, activity_character다. ACTIVE 16개는 Raw 근거 검수를 완료했고 RESERVE/REPLACE는 미검수 placeholder로 유지한다.
 3. `msclap_model_input`: 사람이 작성한 영어 calibration 입력이다. ACTIVE 16개는 semantic fidelity 검수를 마쳤고, `approved_for_calibration_v1_experiment`로 calibration v1 Text Embedding/cosine 실험 입력으로 승인했다. 이는 모델 성능 검증이나 production query 확정이 아니다. RESERVE/REPLACE 4개는 `draft_not_confirmed_model_input` 및 `not_reviewed`를 유지한다.
 
-현재 자료는 실제 사용자 데이터가 아닌 representative synthetic scenario benchmark다. ACTIVE 16개의 Structured Interpretation Raw 근거 검수, 영어 입력 semantic fidelity 검수 및 calibration v1 실험 입력 승인은 완료했다. 2026-10-15 ACTIVE 16개를 MSCLAP 2023 Text Encoder로 batch 생성했고, 결과와 실행 identity는 [Text Embedding evidence](./text-embedding-evidence.json)에 기록했다. 출력은 `[16, 1024]`, `float32`, CPU였으며 Text Encoder 출력에 L2 normalization을 적용하지 않았다. 같은 16-query batch의 반복 출력은 정확히 같았지만, batch와 single 입력은 bitwise 동일하지 않았다(상세 차이는 evidence 참조). 임의 허용 오차는 정하지 않았으므로 이후 cosine 실행은 이 evidence의 batch artifact를 입력으로 사용해야 한다. 이 canonical Text Embedding artifact는 61,228 bytes의 작은 calibration 산출물이므로 `docs/experiments/audio-similarity-calibration/artifacts/calibration-v1-text-embeddings.npz`에 Git으로 보존한다. cosine 실행 전 evidence SHA-256, query ID 순서, `[16, 1024]` shape, `float32`, finite 여부 및 execution identity가 일치하는지 확인하고 하나라도 어긋나면 중단한다. Audio Embedding/acquisition, cosine 계산, 검색 성능 검증, 청취 평가와 transformation 선정은 미수행이며, 입력은 production query로 확정되지 않았다.
+현재 자료는 실제 사용자 데이터가 아닌 representative synthetic scenario benchmark다. ACTIVE 16개의 Structured Interpretation Raw 근거 검수, 영어 입력 semantic fidelity 검수 및 calibration v1 실험 입력 승인은 완료했다. 2026-10-16 ACTIVE 16개를 MSCLAP 2023 Text Encoder로 batch 생성했고, 결과와 실행 identity는 [Text Embedding evidence](./text-embedding-evidence.json)에 기록했다. 출력은 `[16, 1024]`, `float32`, CPU였으며 Text Encoder 출력에 L2 normalization을 적용하지 않았다. 같은 16-query batch의 반복 출력은 정확히 같았지만, batch와 single 입력은 bitwise 동일하지 않았다(상세 차이는 evidence 참조). 임의 허용 오차는 정하지 않았으므로 이후 cosine 실행은 이 evidence의 batch artifact를 입력으로 사용해야 한다. 이 canonical Text Embedding artifact는 61,228 bytes의 작은 calibration 산출물이므로 `docs/experiments/audio-similarity-calibration/artifacts/calibration-v1-text-embeddings.npz`에 Git으로 보존한다. cosine 실행 전 evidence SHA-256, query ID 순서, `[16, 1024]` shape, `float32`, finite 여부 및 execution identity가 일치하는지 확인하고 하나라도 어긋나면 중단한다. Audio Embedding/acquisition, cosine 계산, 검색 성능 검증, 청취 평가와 transformation 선정은 미수행이며, 입력은 production query로 확정되지 않았다.
 
 같은 Text Embedding 검증 경로는 저장소 루트에서 Python 3.11 및 프로젝트의 MSCLAP CPU 의존성이 설치된 환경에서 `python -m scripts.embedding.validate_calibration_text_embeddings`로 실행한다. 실행 전 통합 calibration validator를 수행하고, dirty worktree에서는 모델 추론을 시작하지 않는다. 동일한 16-query batch의 반복 출력은 bitwise identical이어야 성공하며, 불일치하면 canonical artifact/evidence를 확정하지 않고 실패한다. batch와 single 입력의 차이는 별도 진단으로만 기록하며 허용 오차는 정하지 않았다.
 
 
-Text Embedding evidence는 임시 harness가 아니라 저장소의 canonical runner에서 clean worktree로 생성했다. 실행 commit은 `1a25873e4c3f484546484b3214cd2c4766e42c64`이며, GPT-2 tokenizer snapshot `607a30d783dfa663caf39e06633721c8d4cfcd7e`, 실제 snapshot 파일 SHA-256, runtime tokenizer serialization hash, MSCLAP source/config hash와 checkpoint hash를 evidence에 기록했다. Audio Embedding, cosine, ranking 및 production validation은 미수행이다.
+Text Embedding evidence는 임시 harness가 아니라 저장소의 canonical runner에서 clean worktree로 생성했다. 실행 commit은 `61790c4821aff6a4a6e6084f7c9f3457ee2a0320`이며, GPT-2 tokenizer snapshot `607a30d783dfa663caf39e06633721c8d4cfcd7e`, 실제 snapshot 파일 SHA-256, runtime tokenizer serialization hash, MSCLAP source/config hash와 checkpoint hash를 evidence에 기록했다. Audio Embedding, cosine, ranking 및 production validation은 미수행이다. 이 SHA는 실제 runner를 실행한 execution/implementation commit이며, 최신 실행 결과를 기록한 evidence/document commit 2f46a94b137898a3b8a318234b0e5fa5d03bc58e과 구분한다.
+
+### Text Encoder 자원 준비와 결과 보호
+
+새 Python 환경에서는 저장소 루트에서 검증된 CPython 3.11 x86-64 Windows/Linux CPU 의존성을 설치한 뒤 tokenizer와 checkpoint를 먼저 준비한다.
+
+```powershell
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
+.\.venv\Scripts\python.exe -m scripts.embedding.validate_calibration_text_embeddings --prepare-resources
+```
+
+Bootstrap은 evidence에 고정된 GPT-2 tokenizer/config와 `model.safetensors`, `microsoft/msclap` checkpoint만 Hugging Face에서 준비하고 각 파일의 SHA-256을 확인한다. GPT-2 가중치는 MSCLAP 1.3.3의 TextEncoder.__init__()이 checkpoint 적용 전에 AutoModel.from_pretrained("gpt2")를 호출하므로 필요하다. 별도 cache 환경변수(`HF_HOME`, `HF_HUB_CACHE`, `TRANSFORMERS_CACHE`)가 설정되지 않으면 Hugging Face 기본 cache 위치를 사용한다. MSCLAP/Transformers 호출이 revision을 생략하므로 bootstrap은 두 모델 cache의 `refs/main` 포인터를 승인된 immutable revision으로 원자 갱신한다. 기존 snapshot 파일을 삭제하지 않는다. Bootstrap 성공 전 Transformers tokenizer의 offline 초기화와 실제 MSCLAP TextEncoder의 offline GPT-2 초기화를 수행한다. 이후 canonical 실행은 해당 cache의 `refs/main`, snapshot 파일 hash와 Hugging Face local lookup을 확인한 다음 offline으로 모델을 읽는다. 비어 있거나 잘못된 cache에서는 추론 전에 실패하며 위 bootstrap 명령을 안내한다. canonical 실행은 저장소 루트에서 다음과 같이 한다.
+
+```powershell
+.\.venv\Scripts\python.exe -m scripts.embedding.validate_calibration_text_embeddings
+```
+
+기본 실행은 canonical NPZ 또는 evidence JSON 중 하나라도 이미 있으면 추론 전에 실패하고 파일을 보존한다. 재실행하려면 `--overwrite`를 명시해야 하며, 기존 pair가 서로 일치하고 새 NPZ SHA-256이 기존 artifact와 같을 때만 transactional 교체를 허용한다. 새 SHA가 다르거나 validation/write/replace에 실패하면 기존 pair를 유지하고 실패한다. 결과 한 쪽만 남은 불완전 pair도 자동 덮어쓰지 않는다.
 
 ## Dataset 구성
 

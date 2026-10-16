@@ -10,13 +10,6 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt requirements-dev.txt ./
-# MSCLAP 의존성 해결 전에 호환되는 CPU 휠을 고정해 CUDA 패키지·바이너리 불일치를 피한다.
-RUN pip install --no-cache-dir \
-    torch==2.1.2+cpu \
-    torchaudio==2.1.2+cpu \
-    torchvision==0.16.2+cpu \
-    --index-url https://download.pytorch.org/whl/cpu
-
 RUN pip install --no-cache-dir -r requirements-dev.txt \
     && pip check
 

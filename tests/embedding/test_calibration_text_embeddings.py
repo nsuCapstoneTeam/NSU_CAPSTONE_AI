@@ -1,5 +1,7 @@
 import copy
+import gc
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -119,6 +121,9 @@ def test_current_canonical_evidence_has_nonblank_required_identities(tmp_path, m
     tool.require_sha256(input_identity["event_queries_bytes_sha256"], "event-queries.json SHA-256")
     tool.require_sha256(runtime["runner_sha256"], "runner SHA-256")
     tool.require_sha256(runtime["checkpoint_sha256"], "checkpoint SHA-256")
+    tool.require_sha256(runtime["gpt2_pretrained_model"]["sha256"], "GPT-2 model weight SHA-256")
+    assert runtime["gpt2_pretrained_model"]["resolved_revision"] == tool.TOKENIZER_REVISION
+    assert runtime["gpt2_pretrained_model"]["filename"] == tool.GPT2_MODEL_FILENAME
     tool.require_sha256(artifact["sha256"], "artifact SHA-256")
     artifact_relative_path = Path(artifact["path"])
     assert artifact_relative_path == tool.DEFAULT_EMBEDDING_PATH
@@ -211,6 +216,35 @@ def test_tokenizer_snapshot_identity_records_resolved_commit_and_present_file_ha
     }
 
 
+def test_gpt2_model_weight_identity_requires_exact_pinned_weight(tmp_path, monkeypatch):
+    revision = "a" * 40
+    repo_cache = tool._cache_repo_dir(tmp_path, tool.TOKENIZER_REPOSITORY_ID)
+    snapshot = repo_cache / "snapshots" / revision
+    snapshot.mkdir(parents=True)
+    (repo_cache / "refs").mkdir()
+    (repo_cache / "refs" / "main").write_text(revision, encoding="utf-8")
+    model_bytes = b"pinned GPT-2 model weights"
+    (snapshot / tool.GPT2_MODEL_FILENAME).write_bytes(model_bytes)
+    monkeypatch.setattr(tool, "TOKENIZER_REVISION", revision)
+    monkeypatch.setattr(tool, "GPT2_MODEL_SHA256", tool.sha256_bytes(model_bytes))
+
+    identity = tool.gpt2_model_weight_identity(tmp_path)
+
+    assert identity == {
+        "repository_id": "gpt2",
+        "resolved_revision": revision,
+        "filename": tool.GPT2_MODEL_FILENAME,
+        "sha256": tool.sha256_bytes(model_bytes),
+    }
+    (snapshot / tool.GPT2_MODEL_FILENAME).unlink()
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="pretrained model weights are missing"):
+        tool.gpt2_model_weight_identity(tmp_path)
+    (snapshot / tool.GPT2_MODEL_FILENAME).write_bytes(model_bytes)
+    (snapshot / tool.GPT2_MODEL_FILENAME).write_bytes(b"changed weights")
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="SHA differs"):
+        tool.gpt2_model_weight_identity(tmp_path)
+
+
 def test_tokenizer_snapshot_identity_rejects_mutable_or_missing_revision(tmp_path):
     repo_cache = tmp_path / "models--gpt2"
     (repo_cache / "refs").mkdir(parents=True)
@@ -218,6 +252,28 @@ def test_tokenizer_snapshot_identity_rejects_mutable_or_missing_revision(tmp_pat
 
     with pytest.raises(tool.CalibrationTextEmbeddingError, match="immutable commit SHA"):
         tool.tokenizer_snapshot_identity("gpt2", tmp_path)
+
+
+@pytest.mark.parametrize("suffix", ["\n", "\r\n", " "])
+@pytest.mark.parametrize("prefix", ["", " "])
+def test_tokenizer_snapshot_identity_rejects_revision_whitespace(tmp_path, prefix, suffix):
+    revision = "a" * 40
+    repo_cache = tmp_path / "models--gpt2"
+    (repo_cache / "refs").mkdir(parents=True)
+    (repo_cache / "snapshots" / revision).mkdir(parents=True)
+    (repo_cache / "refs" / "main").write_text(prefix + revision + suffix, encoding="utf-8")
+    (repo_cache / "snapshots" / revision / "tokenizer.json").write_bytes(b"tokenizer bytes")
+
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="immutable commit SHA"):
+        tool.tokenizer_snapshot_identity("gpt2", tmp_path)
+
+
+def test_cached_main_revision_is_written_without_trailing_whitespace(tmp_path):
+    revision = "a" * 40
+    tool._write_cached_main_revision(tmp_path, "gpt2", revision)
+
+    ref = tool._cache_repo_dir(tmp_path, "gpt2") / "refs" / "main"
+    assert ref.read_bytes() == revision.encode("utf-8")
 
 
 class FakeTokenizer:
@@ -594,7 +650,7 @@ def test_run_rejects_path_collisions_before_read_or_write(tmp_path, monkeypatch,
         embedding_path = output_dir / "same.out"
 
     monkeypatch.setattr(tool, "INPUT_PATH", Path("event-queries.json"))
-    monkeypatch.setattr(tool, "ClapModel", lambda: pytest.fail("model must not load on path collision"))
+    monkeypatch.setattr(tool, "load_calibration_clap_model", lambda: pytest.fail("model must not load on path collision"))
 
     with pytest.raises(tool.CalibrationTextEmbeddingError, match="path collision"):
         tool.run_experiment(root, evidence_path=evidence_path, embedding_path=embedding_path)
@@ -621,6 +677,7 @@ def test_resolved_experiment_paths_accept_three_distinct_paths(tmp_path, monkeyp
     "failure, message",
     [
         ("repeat_mismatch", "not bitwise identical"),
+        ("artifact_sha_mismatch", "differs from the existing canonical artifact"),
         ("input_hash", "event-queries.json changed"),
         ("dirty_after_inference", "working tree changed during inference"),
         ("evidence_write", "evidence write failed"),
@@ -633,19 +690,42 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
     query_path = root / "event-queries.json"
     query_path.parent.mkdir(parents=True)
     query_path.write_text(json.dumps(document), encoding="utf-8")
-    checkpoint = root / "checkpoint.pth"
+    checkpoint_revision = "e" * 40
+    checkpoint = (
+        root / "cache" / "models--microsoft--msclap" / "snapshots"
+        / checkpoint_revision / "CLAP_weights_2023.pth"
+    )
+    checkpoint.parent.mkdir(parents=True)
     checkpoint.write_bytes(b"test checkpoint")
     runner_path = root / "scripts" / "embedding" / "runner.py"
     runner_path.parent.mkdir(parents=True)
     runner_path.write_bytes(b"test runner")
     package_root = root / "site-packages" / "msclap"
     (package_root / "configs").mkdir(parents=True)
-    (package_root / "configs" / "config_2023.yml").write_text("text_len: 77\n", encoding="utf-8")
+    config_path = package_root / "configs" / "config_2023.yml"
+    config_path.write_text("text_len: 77\n", encoding="utf-8")
     wrapper_path = package_root / "CLAPWrapper.py"
     wrapper_path.write_text("# fake wrapper\n", encoding="utf-8")
     dirty_marker = root / "during-inference-change.txt"
     artifact_path = root / "tmp" / "canonical.npz"
     evidence_path = root / "evidence.json"
+    old_artifact_sha = None
+    old_evidence_bytes = None
+    if failure in {"repeat_mismatch", "artifact_sha_mismatch"}:
+        artifact_path.parent.mkdir(parents=True)
+        old_artifact_sha = tool.write_canonical_artifact(
+            artifact_path, np.asarray([[1.0, 2.0]], dtype="<f4"), ["old-query"], {"exact_equal": True}
+        )
+        old_evidence = {
+            "input_identity": {"git_commit_sha": "a" * 40, "queries": [{"query_id": "old-query"}]},
+            "embedding_output": {
+                "shape": [1, 2],
+                "dtype": "torch.float32",
+                "artifact": {"path": "tmp/canonical.npz", "sha256": old_artifact_sha},
+            },
+        }
+        tool.write_canonical_evidence(evidence_path, old_evidence)
+        old_evidence_bytes = evidence_path.read_bytes()
 
     class FakeWrapper:
         tokenizer = FakeTokenizer()
@@ -665,14 +745,31 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
                 query_path.write_bytes(b"{}")
             if self.calls == 1 and failure == "dirty_after_inference":
                 dirty_marker.write_text("modified", encoding="utf-8")
-            value = float(self.calls) if failure == "repeat_mismatch" else 1.0
+            value = (
+                float(self.calls)
+                if failure == "repeat_mismatch"
+                else 3.0
+                if failure == "artifact_sha_mismatch"
+                else 1.0
+            )
             return torch.full((len(texts), 2), value)
 
     fake_model = FakeClapModel()
     monkeypatch.setattr(tool, "INPUT_PATH", Path("event-queries.json"))
     monkeypatch.setattr(tool, "__file__", str(runner_path))
-    monkeypatch.setattr(tool, "ClapModel", lambda: fake_model)
+    monkeypatch.setattr(tool, "load_calibration_clap_model", lambda: fake_model)
     monkeypatch.setenv("TRANSFORMERS_CACHE", str(root / "cache"))
+    monkeypatch.setattr(tool, "TOKENIZER_REVISION", "a" * 40)
+    monkeypatch.setattr(tool, "RUNTIME_TOKENIZER_SHA256", tool.sha256_bytes(b'{"fake":"tokenizer"}'))
+    monkeypatch.setattr(tool, "CHECKPOINT_REVISION", checkpoint_revision)
+    monkeypatch.setattr(tool, "CHECKPOINT_SHA256", tool.sha256_file(checkpoint))
+    monkeypatch.setattr(tool, "MSCLAP_CONFIG_SHA256", tool.sha256_file(config_path))
+    monkeypatch.setattr(tool, "enable_offline_model_loading", lambda: None)
+    monkeypatch.setattr(
+        tool,
+        "validate_prepared_hf_resources",
+        lambda: {"pinned": True, "gpt2_model_sha256": tool.GPT2_MODEL_SHA256},
+    )
     monkeypatch.setattr(
         tool,
         "tokenizer_snapshot_identity",
@@ -705,8 +802,277 @@ def test_run_hard_gate_failure_prevents_canonical_artifact_and_success_evidence(
 
     expected_error = OSError if failure == "evidence_write" else tool.CalibrationTextEmbeddingError
     with pytest.raises(expected_error, match=message):
-        tool.run_experiment(root, evidence_path=evidence_path, embedding_path=artifact_path)
+        tool.run_experiment(
+            root,
+            evidence_path=evidence_path,
+            embedding_path=artifact_path,
+            overwrite=(failure in {"repeat_mismatch", "artifact_sha_mismatch"}),
+        )
 
     assert fake_model.calls == (2 if failure == "repeat_mismatch" else 18)
-    assert not artifact_path.exists()
-    assert not evidence_path.exists()
+    if failure in {"repeat_mismatch", "artifact_sha_mismatch"}:
+        assert tool.validate_artifact_evidence_pair(artifact_path, evidence_path) == old_artifact_sha
+        assert evidence_path.read_bytes() == old_evidence_bytes
+    else:
+        assert not artifact_path.exists()
+        assert not evidence_path.exists()
+
+
+def test_empty_huggingface_cache_fails_offline_with_bootstrap_instruction(tmp_path, monkeypatch):
+    hub_cache = tmp_path / "hub"
+    transformers_cache = tmp_path / "transformers"
+    monkeypatch.setenv("HF_HUB_CACHE", str(hub_cache))
+    monkeypatch.setenv("TRANSFORMERS_CACHE", str(transformers_cache))
+
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="--prepare-resources"):
+        tool.validate_prepared_hf_resources()
+
+
+def test_canonical_run_with_empty_cache_fails_before_model_load(tmp_path, monkeypatch, document):
+    root = tmp_path / "repo"
+    root.mkdir()
+    (root / "event-queries.json").write_text(json.dumps(document), encoding="utf-8")
+    monkeypatch.setattr(tool, "INPUT_PATH", Path("event-queries.json"))
+    monkeypatch.setenv("HF_HUB_CACHE", str(root / "empty-hub-cache"))
+    monkeypatch.setenv("TRANSFORMERS_CACHE", str(root / "empty-transformers-cache"))
+    monkeypatch.setenv("HF_HUB_OFFLINE", "0")
+    monkeypatch.setenv("TRANSFORMERS_OFFLINE", "0")
+    monkeypatch.setattr(
+        tool,
+        "_git_value",
+        lambda _root, *args: "" if args[0] == "status" else "a" * 40,
+    )
+    monkeypatch.setattr(tool, "require_execution_commit_ancestor", lambda *_args: None)
+    monkeypatch.setattr(tool, "_run_calibration_validator", lambda _root: "PASS")
+    monkeypatch.setattr(tool, "load_calibration_clap_model", lambda: pytest.fail("model must not load"))
+
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="--prepare-resources"):
+        tool.run_experiment(
+            root,
+            evidence_path=root / "evidence.json",
+            embedding_path=root / "vectors.npz",
+        )
+
+    assert not (root / "evidence.json").exists()
+    assert not (root / "vectors.npz").exists()
+
+
+def test_bootstrap_downloads_only_pinned_identities_then_offline_preflight_passes(tmp_path, monkeypatch):
+    import huggingface_hub
+    from huggingface_hub.errors import LocalEntryNotFoundError
+    from transformers import AutoTokenizer
+
+    tokenizer_revision = "a" * 40
+    checkpoint_revision = "b" * 40
+    tokenizer_bytes = {"tokenizer.json": b"pinned tokenizer", "config.json": b"pinned config"}
+    model_bytes = b"pinned GPT-2 model weights"
+    checkpoint_bytes = b"pinned checkpoint"
+    tokenizer_hashes = {name: tool.sha256_bytes(content) for name, content in tokenizer_bytes.items()}
+    checkpoint_hash = tool.sha256_bytes(checkpoint_bytes)
+    model_hash = tool.sha256_bytes(model_bytes)
+    hub_cache = tmp_path / "hub"
+    transformers_cache = tmp_path / "transformers"
+    monkeypatch.setenv("HF_HUB_CACHE", str(hub_cache))
+    monkeypatch.setenv("TRANSFORMERS_CACHE", str(transformers_cache))
+    monkeypatch.setattr(tool, "TOKENIZER_REVISION", tokenizer_revision)
+    monkeypatch.setattr(tool, "CHECKPOINT_REVISION", checkpoint_revision)
+    monkeypatch.setattr(tool, "TOKENIZER_FILE_SHA256", tokenizer_hashes)
+    monkeypatch.setattr(tool, "CHECKPOINT_SHA256", checkpoint_hash)
+    monkeypatch.setattr(tool, "GPT2_MODEL_SHA256", model_hash)
+    monkeypatch.setattr(tool, "initialize_offline_msclap_text_encoder", lambda: None)
+    class FakeTokenizer:
+        def __len__(self):
+            return 3
+
+        def add_special_tokens(self, _special_tokens):
+            return 1
+
+    fake_tokenizer = FakeTokenizer()
+    monkeypatch.setattr(AutoTokenizer, "from_pretrained", lambda *_args, **_kwargs: fake_tokenizer)
+    real_snapshot_download = huggingface_hub.snapshot_download
+    real_hf_hub_download = huggingface_hub.hf_hub_download
+
+    def fake_snapshot_download(*, repo_id, revision, cache_dir, allow_patterns, local_files_only=False):
+        assert repo_id == tool.TOKENIZER_REPOSITORY_ID
+        if local_files_only:
+            assert set(allow_patterns) == set(tokenizer_bytes)
+            assert revision == "main"
+            return real_snapshot_download(
+                repo_id=repo_id,
+                revision=revision,
+                cache_dir=cache_dir,
+                allow_patterns=allow_patterns,
+                local_files_only=True,
+            )
+        assert set(allow_patterns) == {*tokenizer_bytes, tool.GPT2_MODEL_FILENAME}
+        assert revision == tokenizer_revision
+        snapshot = tool._cache_repo_dir(Path(cache_dir), repo_id) / "snapshots" / revision
+        snapshot.mkdir(parents=True)
+        for name, content in tokenizer_bytes.items():
+            (snapshot / name).write_bytes(content)
+        (snapshot / tool.GPT2_MODEL_FILENAME).write_bytes(model_bytes)
+        return str(snapshot)
+
+    def fake_checkpoint_download(*, repo_id, filename, revision, cache_dir, local_files_only=False):
+        if repo_id == tool.TOKENIZER_REPOSITORY_ID:
+            assert filename == tool.GPT2_MODEL_FILENAME
+            assert local_files_only is True
+            return real_hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                revision=revision,
+                cache_dir=cache_dir,
+                local_files_only=True,
+            )
+        assert repo_id == tool.CHECKPOINT_REPOSITORY_ID
+        assert filename == tool.CHECKPOINT_FILENAME
+        if local_files_only:
+            assert revision == "main"
+            return real_hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                revision=revision,
+                cache_dir=cache_dir,
+                local_files_only=True,
+            )
+        assert revision == checkpoint_revision
+        path = tool._cache_repo_dir(Path(cache_dir), repo_id) / "snapshots" / revision / filename
+        path.parent.mkdir(parents=True)
+        path.write_bytes(checkpoint_bytes)
+        return str(path)
+
+    monkeypatch.setattr(huggingface_hub, "snapshot_download", fake_snapshot_download)
+    monkeypatch.setattr(huggingface_hub, "hf_hub_download", fake_checkpoint_download)
+
+    report = tool.prepare_hf_resources()
+
+    assert report["tokenizer_revision"] == tokenizer_revision
+    assert report["tokenizer_files_sha256"] == tokenizer_hashes
+    assert report["gpt2_model_sha256"] == model_hash
+    assert report["gpt2_model_revision"] == tokenizer_revision
+    assert report["checkpoint_revision"] == checkpoint_revision
+    assert report["checkpoint_sha256"] == checkpoint_hash
+    tokenizer_ref = tool._cache_repo_dir(transformers_cache, tool.TOKENIZER_REPOSITORY_ID) / "refs" / "main"
+    checkpoint_ref = tool._cache_repo_dir(hub_cache, tool.CHECKPOINT_REPOSITORY_ID) / "refs" / "main"
+    assert tokenizer_ref.read_bytes() == tokenizer_revision.encode("utf-8")
+    assert checkpoint_ref.read_bytes() == checkpoint_revision.encode("utf-8")
+    assert report["offline_local_lookup"] == "passed"
+    assert os.environ["HF_HUB_OFFLINE"] == "1"
+    assert os.environ["TRANSFORMERS_OFFLINE"] == "1"
+    assert tool.validate_prepared_hf_resources(initialize_text_encoder=True) == report
+
+    checkpoint_ref.write_bytes((checkpoint_revision + "\n").encode("utf-8"))
+    with pytest.raises(LocalEntryNotFoundError):
+        real_hf_hub_download(
+            repo_id=tool.CHECKPOINT_REPOSITORY_ID,
+            filename=tool.CHECKPOINT_FILENAME,
+            revision="main",
+            cache_dir=str(hub_cache),
+            local_files_only=True,
+        )
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="not pinned"):
+        tool.validate_prepared_hf_resources()
+
+
+@pytest.mark.skipif(
+    os.environ.get("RUN_CALIBRATION_HF_INTEGRATION") != "1",
+    reason="requires network access and downloads pinned GPT-2/MSCLAP resources",
+)
+def test_fresh_cache_bootstrap_and_offline_msclap_text_encoder_initialization(tmp_path, monkeypatch):
+    cache_root = tmp_path / "fresh-hf-cache"
+    hub_cache = cache_root / "hub"
+    transformers_cache = cache_root / "transformers"
+    assert not cache_root.exists()
+    monkeypatch.setenv("HF_HOME", str(cache_root))
+    monkeypatch.setenv("HF_HUB_CACHE", str(hub_cache))
+    monkeypatch.setenv("TRANSFORMERS_CACHE", str(transformers_cache))
+    monkeypatch.setenv("HF_HUB_OFFLINE", "0")
+    monkeypatch.setenv("TRANSFORMERS_OFFLINE", "0")
+
+    report = tool.prepare_hf_resources()
+
+    assert report["tokenizer_revision"] == tool.TOKENIZER_REVISION
+    assert report["gpt2_model_filename"] == "model.safetensors"
+    assert report["gpt2_model_sha256"] == tool.GPT2_MODEL_SHA256
+    assert report["checkpoint_sha256"] == tool.CHECKPOINT_SHA256
+    assert report["offline_local_lookup"] == "passed"
+    assert report["offline_msclap_text_encoder_initialization"] == "passed"
+    assert os.environ["HF_HUB_OFFLINE"] == "1"
+    assert os.environ["TRANSFORMERS_OFFLINE"] == "1"
+
+    # Exercise Transformers' consumer API directly as well as through MSCLAP's
+    # TextEncoder. The explicit pinned revision prevents this check from relying
+    # on a mutable Hub ref; both lookups are local-only after bootstrap.
+    from transformers import AutoModel, AutoTokenizer
+
+    model = AutoModel.from_pretrained(
+        tool.TOKENIZER_REPOSITORY_ID,
+        revision=tool.TOKENIZER_REVISION,
+        cache_dir=str(transformers_cache),
+        local_files_only=True,
+    )
+    assert model.config.model_type == "gpt2"
+    del model
+    gc.collect()
+
+    tokenizer = AutoTokenizer.from_pretrained(
+        tool.TOKENIZER_REPOSITORY_ID,
+        revision=tool.TOKENIZER_REVISION,
+        cache_dir=str(transformers_cache),
+        local_files_only=True,
+    )
+    assert len(tokenizer) > 0
+    del tokenizer
+
+    assert tool.validate_prepared_hf_resources()["gpt2_model_sha256"] == tool.GPT2_MODEL_SHA256
+
+
+def test_default_run_refuses_existing_outputs_without_loading_model(tmp_path, monkeypatch):
+    root = tmp_path / "repo"
+    artifact_path = root / "canonical.npz"
+    evidence_path = root / "evidence.json"
+    artifact_path.parent.mkdir(parents=True)
+    artifact_path.write_bytes(b"original artifact")
+    evidence_path.write_bytes(b"original evidence")
+    original_artifact = artifact_path.read_bytes()
+    original_evidence = evidence_path.read_bytes()
+    monkeypatch.setattr(tool, "load_calibration_clap_model", lambda: pytest.fail("model must not load"))
+
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="refusing to overwrite"):
+        tool.run_experiment(root, evidence_path=evidence_path, embedding_path=artifact_path)
+
+    assert artifact_path.read_bytes() == original_artifact
+    assert evidence_path.read_bytes() == original_evidence
+
+
+def test_explicit_overwrite_accepts_only_a_complete_valid_identical_pair(tmp_path, monkeypatch):
+    artifact_path, evidence_path, old_sha, old_evidence_bytes = _write_old_result_pair(tmp_path)
+    monkeypatch.setattr(tool, "_git_value", lambda *_args: "a" * 40)
+    monkeypatch.setattr(tool, "require_execution_commit_ancestor", lambda *_args: None)
+
+    existing_sha = tool.validate_existing_output_pair(
+        evidence_path, artifact_path, overwrite=True, root=tmp_path
+    )
+    assert existing_sha == old_sha
+    tool.require_same_artifact_for_overwrite(existing_sha, old_sha)
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="differs from the existing canonical artifact"):
+        tool.require_same_artifact_for_overwrite(existing_sha, "0" * 64)
+    assert tool.validate_artifact_evidence_pair(artifact_path, evidence_path) == old_sha
+    assert evidence_path.read_bytes() == old_evidence_bytes
+
+
+def test_overwrite_refuses_incomplete_pair_even_with_explicit_flag(tmp_path):
+    artifact_path = tmp_path / "vectors.npz"
+    evidence_path = tmp_path / "evidence.json"
+    artifact_path.write_bytes(b"artifact without matching evidence")
+
+    with pytest.raises(tool.CalibrationTextEmbeddingError, match="outputs are incomplete"):
+        tool.validate_existing_output_pair(
+            evidence_path, artifact_path, overwrite=True, root=tmp_path
+        )
+
+
+def test_output_pair_overwrite_flag_defaults_to_false():
+    import inspect
+
+    assert inspect.signature(tool.run_experiment).parameters["overwrite"].default is False

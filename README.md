@@ -197,11 +197,11 @@ docker compose run --rm --no-deps ai python -m pytest tests -q
 `RUN_EMBEDDING_DB_TESTS=1`로 **98개 통과**, Starlette TestClient deprecation 경고 1개를 확인했습니다.
 기본 실행에서는 실제 DB 테스트 16개를 건너뜁니다.
 
-로컬 Python 3.11을 쓰려면 CPU 패키지를 먼저 설치합니다.
+검증된 로컬 설치 환경은 CPython 3.11 x86-64 Windows/Linux입니다.
+requirements.txt가 PyTorch CPU wheel index를 포함하므로 개발 의존성을 한 번에 설치할 수 있습니다.
 
 ```powershell
 py -3.11 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install torch==2.1.2+cpu torchaudio==2.1.2+cpu torchvision==0.16.2+cpu --index-url https://download.pytorch.org/whl/cpu
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
 .\.venv\Scripts\python.exe -m pip check
 .\.venv\Scripts\python.exe -m pytest tests -q

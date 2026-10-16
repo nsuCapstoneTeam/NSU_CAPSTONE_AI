@@ -20,21 +20,36 @@ from typing import Any
 import numpy as np
 import torch
 
-# Keep model/tokenizer downloads outside the repository and make their location explicit.
-_MODEL_CACHE_ROOT = Path(tempfile.gettempdir()) / "nsuai-calibration-text-model-cache"
-_MODEL_CACHE_ROOT.mkdir(parents=True, exist_ok=True)
-os.environ.setdefault("HF_HOME", str(_MODEL_CACHE_ROOT))
-os.environ.setdefault("HF_HUB_CACHE", str(_MODEL_CACHE_ROOT / "hub"))
-os.environ.setdefault("TRANSFORMERS_CACHE", str(_MODEL_CACHE_ROOT / "transformers"))
-os.environ["HF_HUB_OFFLINE"] = "1"
-
-from app.inference.clap_model import ClapModel
+# Respect Hugging Face's normal cache locations and any explicit user overrides.
+# Bootstrap and canonical execution use these same cache paths.
+_DEFAULT_HF_HOME = Path.home() / ".cache" / "huggingface"
+os.environ.setdefault("HF_HOME", str(_DEFAULT_HF_HOME))
+os.environ.setdefault("HF_HUB_CACHE", str(Path(os.environ["HF_HOME"]) / "hub"))
+os.environ.setdefault("TRANSFORMERS_CACHE", os.environ["HF_HUB_CACHE"])
 
 ACTIVE_COUNT = 16
 APPROVED_STATUS = "approved_for_calibration_v1_experiment"
 SEMANTIC_REVIEW_STATUS = "reviewed_for_semantic_fidelity"
 MODEL_VERSION = "2023"
 TOOL_PROFILE = "ClapModel.encode_text/msclap-default-v1"
+TOKENIZER_REPOSITORY_ID = "gpt2"
+TOKENIZER_REVISION = "607a30d783dfa663caf39e06633721c8d4cfcd7e"
+GPT2_MODEL_FILENAME = "model.safetensors"
+GPT2_MODEL_SHA256 = "248dfc3911869ec493c76e65bf2fcf7f615828b0254c12b473182f0f81d3a707"
+RUNTIME_TOKENIZER_SHA256 = "9660ca46237b4cfba5128e5a275c3c80f12e20ac39e6547d86ea7dfc7ba40bef"
+TOKENIZER_FILE_SHA256 = {
+    "tokenizer.json": "8414cab924d8b9b33013f0d221c5862f365ee9be39c5c2bfae8a5a9e970478a6",
+    "vocab.json": "196139668be63f3b5d6574427317ae82f612a97c5d1cdaf36ed2256dbf636783",
+    "merges.txt": "1ce1664773c50f3e0cc8842619a93edc4624525b728b188a9e0be33b7726adc5",
+    "tokenizer_config.json": "5e04eb606e3a1583530a42e36c2a6b6615c86f34fe77e44d9ddeb43ff940931f",
+    "config.json": "0daed7749b4f02b8f76240d5444551d7b08712dab4d0adb8239c56ba823bb7b4",
+}
+CHECKPOINT_REPOSITORY_ID = "microsoft/msclap"
+CHECKPOINT_REVISION = "c47d441165daa21986ead0850660917636a81775"
+CHECKPOINT_FILENAME = "CLAP_weights_2023.pth"
+CHECKPOINT_SHA256 = "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6"
+MSCLAP_CONFIG_SHA256 = "41fbc893997f75fe144d93bf2ec44d5ca27fe61beb8870dd815a53c064cb030f"
+RESOURCE_BOOTSTRAP_HINT = "Run `python -m scripts.embedding.validate_calibration_text_embeddings --prepare-resources` first."
 CALIBRATION_ROOT = Path("docs/experiments/audio-similarity-calibration")
 INPUT_PATH = CALIBRATION_ROOT / "event-queries.json"
 DEFAULT_EVIDENCE_PATH = CALIBRATION_ROOT / "text-embedding-evidence.json"
@@ -92,12 +107,227 @@ def sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def huggingface_cache_paths() -> tuple[Path, Path]:
+    """Return the effective Hub and Transformers caches without changing user overrides."""
+    hub_cache = Path(require_non_blank_string(os.environ.get("HF_HUB_CACHE"), "HF_HUB_CACHE")).expanduser()
+    transformers_cache = Path(
+        require_non_blank_string(os.environ.get("TRANSFORMERS_CACHE"), "TRANSFORMERS_CACHE")
+    ).expanduser()
+    return hub_cache, transformers_cache
+
+
+def _cache_repo_dir(cache_root: Path, repository_id: str) -> Path:
+    return cache_root / f"models--{repository_id.replace('/', '--')}"
+
+
+def _write_cached_main_revision(cache_root: Path, repository_id: str, revision: str) -> None:
+    """Point the library's default `main` lookup at the explicitly pinned snapshot."""
+    ref_path = _cache_repo_dir(cache_root, repository_id) / "refs" / "main"
+    ref_path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        mode="w", encoding="utf-8", newline="\n", prefix=".main.", suffix=".tmp",
+        dir=ref_path.parent, delete=False,
+    ) as stream:
+        temporary_path = Path(stream.name)
+        stream.write(revision)
+    try:
+        os.replace(temporary_path, ref_path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+    require(
+        ref_path.read_text(encoding="utf-8") == revision,
+        f"Hugging Face cache reference was not stored exactly: {repository_id}",
+    )
+
+
+def _validate_local_hf_lookups(
+    hub_cache: Path,
+    transformers_cache: Path,
+    tokenizer_snapshot_path: Path,
+    gpt2_model_path: Path,
+    checkpoint_path: Path,
+) -> None:
+    """Resolve all pinned resources through Hugging Face and Transformers offline APIs."""
+    from huggingface_hub import hf_hub_download, snapshot_download
+
+    resolved_tokenizer = Path(snapshot_download(
+        repo_id=TOKENIZER_REPOSITORY_ID,
+        revision="main",
+        cache_dir=str(transformers_cache),
+        allow_patterns=list(TOKENIZER_FILE_SHA256),
+        local_files_only=True,
+    ))
+    require(
+        resolved_tokenizer.resolve() == tokenizer_snapshot_path.resolve(),
+        "offline Hugging Face lookup resolved an unexpected tokenizer snapshot",
+    )
+    from transformers import AutoTokenizer
+
+    loaded_tokenizer = AutoTokenizer.from_pretrained(
+        TOKENIZER_REPOSITORY_ID,
+        cache_dir=str(transformers_cache),
+        local_files_only=True,
+    )
+    require(len(loaded_tokenizer) > 0, "offline Transformers tokenizer initialization returned no vocabulary")
+    resolved_gpt2_model = Path(hf_hub_download(
+        repo_id=TOKENIZER_REPOSITORY_ID,
+        filename=GPT2_MODEL_FILENAME,
+        revision="main",
+        cache_dir=str(transformers_cache),
+        local_files_only=True,
+    ))
+    require(
+        resolved_gpt2_model.resolve() == gpt2_model_path.resolve(),
+        "offline Hugging Face lookup resolved an unexpected GPT-2 model weight",
+    )
+    loaded_tokenizer.add_special_tokens({"pad_token": "!"})
+    resolved_checkpoint = Path(hf_hub_download(
+        repo_id=CHECKPOINT_REPOSITORY_ID,
+        filename=CHECKPOINT_FILENAME,
+        revision="main",
+        cache_dir=str(hub_cache),
+        local_files_only=True,
+    ))
+    require(
+        resolved_checkpoint.resolve() == checkpoint_path.resolve(),
+        "offline Hugging Face lookup resolved an unexpected MSCLAP checkpoint",
+    )
+
+
+def initialize_offline_msclap_text_encoder() -> None:
+    """Exercise the installed MSCLAP TextEncoder's real local-only GPT-2 load path."""
+    enable_offline_model_loading()
+    import yaml
+    import msclap.models.clap as msclap_clap_module
+    from msclap.models.clap import TextEncoder
+
+    package_root = Path(msclap_clap_module.__file__).parents[1]
+    config_path = package_root / "configs" / f"config_{MODEL_VERSION}.yml"
+    require(config_path.is_file(), "installed MSCLAP model configuration is missing")
+    config = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    require(config.get("text_model") == TOKENIZER_REPOSITORY_ID,
+            "MSCLAP configuration does not select the pinned GPT-2 model")
+    encoder = TextEncoder(
+        d_out=int(config["d_proj"]),
+        text_model=config["text_model"],
+        transformer_embed_dim=int(config["transformer_embed_dim"]),
+    )
+    require(isinstance(encoder.base, torch.nn.Module), "MSCLAP TextEncoder did not initialize GPT-2")
+    encoder.eval()
+    del encoder
+
+
+def validate_prepared_hf_resources(*, initialize_text_encoder: bool = False) -> dict[str, Any]:
+    """Reject an empty, stale, or unpinned cache before loading MSCLAP."""
+    hub_cache, transformers_cache = huggingface_cache_paths()
+    tokenizer_repo = _cache_repo_dir(transformers_cache, TOKENIZER_REPOSITORY_ID)
+    checkpoint_repo = _cache_repo_dir(hub_cache, CHECKPOINT_REPOSITORY_ID)
+    tokenizer_ref = tokenizer_repo / "refs" / "main"
+    checkpoint_ref = checkpoint_repo / "refs" / "main"
+    require(tokenizer_ref.is_file(), f"Pinned GPT-2 tokenizer cache is missing. {RESOURCE_BOOTSTRAP_HINT}")
+    require(checkpoint_ref.is_file(), f"Pinned MSCLAP checkpoint cache is missing. {RESOURCE_BOOTSTRAP_HINT}")
+    require(
+        tokenizer_ref.read_text(encoding="utf-8") == TOKENIZER_REVISION,
+        f"GPT-2 cache is not pinned to revision {TOKENIZER_REVISION}. {RESOURCE_BOOTSTRAP_HINT}",
+    )
+    require(
+        checkpoint_ref.read_text(encoding="utf-8") == CHECKPOINT_REVISION,
+        f"MSCLAP cache is not pinned to revision {CHECKPOINT_REVISION}. {RESOURCE_BOOTSTRAP_HINT}",
+    )
+    tokenizer_identity = tokenizer_snapshot_identity(TOKENIZER_REPOSITORY_ID, transformers_cache)
+    require(
+        tokenizer_identity["resolved_revision"] == TOKENIZER_REVISION,
+        "prepared GPT-2 tokenizer snapshot revision differs from the approved calibration identity",
+    )
+    for filename, expected_sha in TOKENIZER_FILE_SHA256.items():
+        actual_sha = tokenizer_identity["snapshot_files_sha256"].get(filename)
+        require(actual_sha == expected_sha, f"prepared tokenizer file SHA mismatch: {filename}")
+    tokenizer_snapshot_path = tokenizer_repo / "snapshots" / TOKENIZER_REVISION
+    gpt2_model_identity = gpt2_model_weight_identity(transformers_cache)
+    gpt2_model_path = tokenizer_snapshot_path / GPT2_MODEL_FILENAME
+    checkpoint_path = checkpoint_repo / "snapshots" / CHECKPOINT_REVISION / CHECKPOINT_FILENAME
+    require(checkpoint_path.is_file(), f"Pinned MSCLAP checkpoint is missing. {RESOURCE_BOOTSTRAP_HINT}")
+    require(
+        sha256_file(checkpoint_path) == CHECKPOINT_SHA256,
+        "prepared MSCLAP checkpoint SHA differs from the approved calibration identity",
+    )
+    _validate_local_hf_lookups(
+        hub_cache, transformers_cache, tokenizer_snapshot_path, gpt2_model_path, checkpoint_path
+    )
+    result = {
+        "tokenizer_repository_id": TOKENIZER_REPOSITORY_ID,
+        "tokenizer_revision": TOKENIZER_REVISION,
+        "tokenizer_files_sha256": tokenizer_identity["snapshot_files_sha256"],
+        "gpt2_model_filename": gpt2_model_identity["filename"],
+        "gpt2_model_sha256": gpt2_model_identity["sha256"],
+        "gpt2_model_revision": gpt2_model_identity["resolved_revision"],
+        "checkpoint_repository_id": CHECKPOINT_REPOSITORY_ID,
+        "checkpoint_revision": CHECKPOINT_REVISION,
+        "checkpoint_filename": CHECKPOINT_FILENAME,
+        "checkpoint_sha256": CHECKPOINT_SHA256,
+        "offline_local_lookup": "passed",
+    }
+    if initialize_text_encoder:
+        initialize_offline_msclap_text_encoder()
+        result["offline_msclap_text_encoder_initialization"] = "passed"
+    return result
+
+
+def prepare_hf_resources() -> dict[str, Any]:
+    """Download only the pinned GPT-2 inference files and MSCLAP checkpoint."""
+    # Bootstrap is the only path that can use the network.
+    os.environ["HF_HUB_OFFLINE"] = "0"
+    os.environ["TRANSFORMERS_OFFLINE"] = "0"
+    from huggingface_hub import hf_hub_download, snapshot_download
+
+    hub_cache, transformers_cache = huggingface_cache_paths()
+    transformers_cache.mkdir(parents=True, exist_ok=True)
+    hub_cache.mkdir(parents=True, exist_ok=True)
+    snapshot_download(
+        repo_id=TOKENIZER_REPOSITORY_ID,
+        revision=TOKENIZER_REVISION,
+        cache_dir=str(transformers_cache),
+        allow_patterns=[*TOKENIZER_FILE_SHA256, GPT2_MODEL_FILENAME],
+    )
+    checkpoint_path = Path(hf_hub_download(
+        repo_id=CHECKPOINT_REPOSITORY_ID,
+        filename=CHECKPOINT_FILENAME,
+        revision=CHECKPOINT_REVISION,
+        cache_dir=str(hub_cache),
+    ))
+    expected_checkpoint_path = (
+        _cache_repo_dir(hub_cache, CHECKPOINT_REPOSITORY_ID)
+        / "snapshots" / CHECKPOINT_REVISION / CHECKPOINT_FILENAME
+    )
+    require(
+        checkpoint_path.resolve() == expected_checkpoint_path.resolve(),
+        "Hugging Face returned an unexpected checkpoint snapshot path",
+    )
+    _write_cached_main_revision(transformers_cache, TOKENIZER_REPOSITORY_ID, TOKENIZER_REVISION)
+    _write_cached_main_revision(hub_cache, CHECKPOINT_REPOSITORY_ID, CHECKPOINT_REVISION)
+    enable_offline_model_loading()
+    return validate_prepared_hf_resources(initialize_text_encoder=True)
+
+
+def enable_offline_model_loading() -> None:
+    """Make the canonical process fail locally rather than resolve mutable remote refs."""
+    os.environ["HF_HUB_OFFLINE"] = "1"
+    os.environ["TRANSFORMERS_OFFLINE"] = "1"
+
+
+def require_same_artifact_for_overwrite(previous_sha: str, new_sha: str) -> None:
+    require(
+        previous_sha == new_sha,
+        "new artifact SHA differs from the existing canonical artifact; refusing overwrite",
+    )
+
+
 def tokenizer_snapshot_identity(text_model: str, cache_root: Path) -> dict[str, Any]:
     """Identify the exact cached Hugging Face snapshot and tokenizer bytes."""
     repo_cache = cache_root / f"models--{text_model.replace('/', '--')}"
     ref_path = repo_cache / "refs" / "main"
     require(ref_path.is_file(), f"Hugging Face tokenizer main revision is missing: {text_model}")
-    revision = require_non_blank_string(ref_path.read_text(encoding="utf-8").strip(), "tokenizer snapshot revision")
+    revision = require_non_blank_string(ref_path.read_text(encoding="utf-8"), "tokenizer snapshot revision")
     require(re.fullmatch(r"[0-9a-fA-F]{40,64}", revision) is not None,
             "tokenizer snapshot revision is not an immutable commit SHA")
     snapshot_path = repo_cache / "snapshots" / revision
@@ -122,6 +352,28 @@ def tokenizer_snapshot_identity(text_model: str, cache_root: Path) -> dict[str, 
         "repository_id": text_model,
         "resolved_revision": revision.lower(),
         "snapshot_files_sha256": files,
+    }
+
+
+def gpt2_model_weight_identity(cache_root: Path) -> dict[str, str]:
+    """Validate and identify the exact safetensors file used by Transformers 4.35.2."""
+    repo_cache = _cache_repo_dir(cache_root, TOKENIZER_REPOSITORY_ID)
+    ref_path = repo_cache / "refs" / "main"
+    require(ref_path.is_file(), "Hugging Face GPT-2 model revision reference is missing")
+    revision = ref_path.read_text(encoding="utf-8")
+    require(revision == TOKENIZER_REVISION,
+            f"GPT-2 model cache is not pinned to revision {TOKENIZER_REVISION}")
+    model_path = repo_cache / "snapshots" / revision / GPT2_MODEL_FILENAME
+    require(model_path.is_file(),
+            f"Pinned GPT-2 pretrained model weights are missing. {RESOURCE_BOOTSTRAP_HINT}")
+    actual_sha = require_sha256(sha256_file(model_path), "GPT-2 model weight SHA-256")
+    require(actual_sha == GPT2_MODEL_SHA256,
+            "prepared GPT-2 model weight SHA differs from the approved calibration identity")
+    return {
+        "repository_id": TOKENIZER_REPOSITORY_ID,
+        "resolved_revision": revision,
+        "filename": GPT2_MODEL_FILENAME,
+        "sha256": actual_sha,
     }
 
 
@@ -567,14 +819,50 @@ def resolve_experiment_paths(
     return input_path, evidence_path, embedding_path
 
 
+def validate_existing_output_pair(
+    evidence_path: Path,
+    embedding_path: Path,
+    *,
+    overwrite: bool,
+    root: Path,
+) -> str | None:
+    """Protect an existing canonical pair unless overwrite is explicit and pair is valid."""
+    evidence_exists = evidence_path.exists()
+    artifact_exists = embedding_path.exists()
+    if not evidence_exists and not artifact_exists:
+        return None
+    if not overwrite:
+        raise CalibrationTextEmbeddingError(
+            "canonical artifact/evidence already exists; refusing to overwrite. "
+            "Pass --overwrite only to verify and republish an identical artifact."
+        )
+    require(
+        evidence_exists and artifact_exists,
+        "canonical outputs are incomplete; refusing overwrite because no matching prior pair can be preserved",
+    )
+    return validate_artifact_evidence_pair(embedding_path, evidence_path, root=root)
+
+
+def load_calibration_clap_model():
+    """Import the project model only after offline mode and pinned cache checks are active."""
+    from app.inference.clap_model import ClapModel
+
+    return ClapModel()
+
+
 def run_experiment(
     root: Path,
     evidence_path: Path = DEFAULT_EVIDENCE_PATH,
     embedding_path: Path = DEFAULT_EMBEDDING_PATH,
+    *,
+    overwrite: bool = False,
 ) -> dict[str, Any]:
     root = root.resolve()
     input_path, evidence_path, embedding_path = resolve_experiment_paths(
         root, evidence_path, embedding_path
+    )
+    existing_artifact_sha = validate_existing_output_pair(
+        evidence_path, embedding_path, overwrite=overwrite, root=root
     )
     input_bytes = input_path.read_bytes()
     input_hash = sha256_bytes(input_bytes)
@@ -589,10 +877,13 @@ def run_experiment(
     validator_output = _run_calibration_validator(root)
     validator_output = require_non_blank_string(validator_output, "calibration validator output")
 
-    clap_model = ClapModel()
+    enable_offline_model_loading()
+    resource_identity = validate_prepared_hf_resources()
+    clap_model = load_calibration_clap_model()
     wrapper = clap_model.model
     tokenizer = wrapper.tokenizer
     text_model = require_non_blank_string(getattr(wrapper.args, "text_model", None), "MSCLAP text model identity")
+    require(text_model == TOKENIZER_REPOSITORY_ID, "MSCLAP text model differs from the pinned tokenizer repository")
     token_limit = require_positive_integer(getattr(wrapper.args, "text_len", None), "MSCLAP token limit")
     token_rows = tokenizer_preflight(tokenizer, selected, text_model, token_limit)
     tokenizer_name = require_non_blank_string(
@@ -604,6 +895,10 @@ def run_experiment(
         os.environ.get("TRANSFORMERS_CACHE"), "TRANSFORMERS_CACHE"
     ))
     tokenizer_snapshot = tokenizer_snapshot_identity(text_model, transformers_cache)
+    require(
+        tokenizer_snapshot["resolved_revision"] == TOKENIZER_REVISION,
+        "loaded tokenizer snapshot revision differs from the pinned identity",
+    )
     model_config_hash = require_sha256(
         tokenizer_snapshot["snapshot_files_sha256"].get("config.json"),
         "Hugging Face model config SHA-256",
@@ -612,6 +907,10 @@ def run_experiment(
     backend_serializer = getattr(backend_tokenizer, "to_str", None)
     require(callable(backend_serializer), "runtime tokenizer backend serialization is unavailable")
     runtime_tokenizer_sha256 = sha256_bytes(backend_serializer().encode("utf-8"))
+    require(
+        runtime_tokenizer_sha256 == RUNTIME_TOKENIZER_SHA256,
+        "runtime tokenizer serialization differs from the approved calibration identity",
+    )
     pad_token = require_non_blank_string(getattr(tokenizer, "pad_token", None), "tokenizer padding token")
     pad_token_id = getattr(tokenizer, "pad_token_id", None)
     require(isinstance(pad_token_id, int) and pad_token_id >= 0, "tokenizer padding token ID is missing or invalid")
@@ -628,7 +927,9 @@ def run_experiment(
     checkpoint = Path(checkpoint_value)
     require(checkpoint.is_file(), f"MSCLAP checkpoint not found: {checkpoint.name}")
     checkpoint_file = require_non_blank_string(checkpoint.name, "checkpoint filename")
+    require(checkpoint_file == CHECKPOINT_FILENAME, "loaded MSCLAP checkpoint filename is not the pinned file")
     checkpoint_hash_before = require_sha256(sha256_file(checkpoint), "checkpoint SHA-256")
+    require(checkpoint_hash_before == CHECKPOINT_SHA256, "loaded MSCLAP checkpoint SHA differs from the pinned identity")
     checkpoint_snapshot_revision = None
     checkpoint_parts = checkpoint.parts
     if "snapshots" in checkpoint_parts:
@@ -638,6 +939,10 @@ def run_experiment(
             require(re.fullmatch(r"[0-9a-fA-F]{40,64}", candidate_revision) is not None,
                     "checkpoint snapshot revision is malformed")
             checkpoint_snapshot_revision = candidate_revision.lower()
+    require(
+        checkpoint_snapshot_revision == CHECKPOINT_REVISION,
+        "loaded MSCLAP checkpoint snapshot revision differs from the pinned identity",
+    )
     package_versions = {
         package: require_non_blank_string(importlib.metadata.version(package), f"{package} package version")
         for package in ("msclap", "torch", "transformers", "numpy")
@@ -655,6 +960,10 @@ def run_experiment(
     config_path = package_root / "configs" / f"config_{MODEL_VERSION}.yml"
     require(config_path.is_file(), "installed MSCLAP model configuration is missing")
     msclap_config_hash_before = require_sha256(sha256_file(config_path), "MSCLAP configuration SHA-256")
+    require(
+        msclap_config_hash_before == MSCLAP_CONFIG_SHA256,
+        "installed MSCLAP model configuration differs from the approved calibration identity",
+    )
     eos_token_id = getattr(tokenizer, "eos_token_id", None)
     require(isinstance(eos_token_id, int) and eos_token_id >= 0, "tokenizer end-token identity is missing or invalid")
 
@@ -762,6 +1071,12 @@ def run_experiment(
             "msclap_config_sha256": msclap_config_hash_before,
             "text_model": text_model,
             "model_config_sha256": model_config_hash,
+            "gpt2_pretrained_model": {
+                "repository_id": TOKENIZER_REPOSITORY_ID,
+                "resolved_revision": TOKENIZER_REVISION,
+                "filename": GPT2_MODEL_FILENAME,
+                "sha256": resource_identity["gpt2_model_sha256"],
+            },
             "token_limit": token_limit,
             "projection_dimension_config": configured_dimension,
             "tokenizer_name_or_path": tokenizer_name,
@@ -820,6 +1135,13 @@ def run_experiment(
             [query["query_id"] for query in selected],
             repeated_batch,
         )
+        if existing_artifact_sha is not None:
+            require_same_artifact_for_overwrite(existing_artifact_sha, artifact_hash)
+            result["canonical_overwrite_comparison"] = {
+                "previous_artifact_sha256": existing_artifact_sha,
+                "new_artifact_sha256": artifact_hash,
+                "identical": True,
+            }
         result["embedding_output"]["artifact"]["sha256"] = artifact_hash
         evidence_temp = prepare_canonical_evidence(evidence_path, result)
         published_hash = publish_canonical_output_pair(
@@ -836,12 +1158,21 @@ def run_experiment(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate the approved calibration v1 MSCLAP Text Embeddings.")
+    parser.add_argument("--prepare-resources", action="store_true", help="Download and pin the recorded tokenizer/checkpoint snapshots.")
+    parser.add_argument("--overwrite", action="store_true", help="Allow republishing only when the existing canonical NPZ is valid and has the same SHA-256.")
     parser.add_argument("--evidence-output", type=Path, default=DEFAULT_EVIDENCE_PATH)
     parser.add_argument("--embedding-output", type=Path, default=DEFAULT_EMBEDDING_PATH)
     args = parser.parse_args()
-    root = Path(__file__).resolve().parents[2]
     try:
-        result = run_experiment(root, args.evidence_output, args.embedding_output)
+        if args.prepare_resources:
+            if args.overwrite:
+                parser.error("--prepare-resources cannot be combined with --overwrite")
+            result = prepare_hf_resources()
+        else:
+            root = Path(__file__).resolve().parents[2]
+            result = run_experiment(
+                root, args.evidence_output, args.embedding_output, overwrite=args.overwrite
+            )
     except Exception as exc:
         parser.exit(1, f"Calibration Text Embedding failed: {exc}\n")
     print(json.dumps(result, ensure_ascii=False, indent=2))
