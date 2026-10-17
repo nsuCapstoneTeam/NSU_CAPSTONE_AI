@@ -305,6 +305,9 @@ def test_output_collision_and_existing_output_are_rejected(tmp_path):
 
 
 def test_canonical_output_pair_mode_accepts_canonical_and_custom_pairs(tmp_path):
+    canonical_manifest = tmp_path / audio_runner.DEFAULT_MANIFEST.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )
     canonical_artifact = tmp_path / audio_runner.DEFAULT_ARTIFACT.relative_to(
         audio_runner.REPOSITORY_ROOT
     )
@@ -315,11 +318,15 @@ def test_canonical_output_pair_mode_accepts_canonical_and_custom_pairs(tmp_path)
     custom_evidence = tmp_path / 'temporary' / 'evidence.json'
 
     assert audio_runner.canonical_output_pair_mode(
-        tmp_path, canonical_artifact, canonical_evidence
+        tmp_path, canonical_manifest, canonical_artifact, canonical_evidence
     ) is True
     assert audio_runner.canonical_output_pair_mode(
-        tmp_path, custom_artifact, custom_evidence
+        tmp_path, tmp_path / 'custom-manifest.json', custom_artifact, custom_evidence
     ) is False
+    with pytest.raises(ValueError, match='require the canonical calibration manifest'):
+        audio_runner.canonical_output_pair_mode(
+            tmp_path, tmp_path / 'custom-manifest.json', canonical_artifact, canonical_evidence
+        )
 
 
 @pytest.mark.parametrize('canonical_side', ['artifact', 'evidence'])
@@ -354,6 +361,9 @@ def test_partial_canonical_output_pair_is_rejected_before_clean_tree_check(
 
 
 def test_resolved_canonical_path_aliases_are_canonical(tmp_path):
+    canonical_manifest = tmp_path / audio_runner.DEFAULT_MANIFEST.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )
     canonical_artifact = tmp_path / audio_runner.DEFAULT_ARTIFACT.relative_to(
         audio_runner.REPOSITORY_ROOT
     )
@@ -361,13 +371,14 @@ def test_resolved_canonical_path_aliases_are_canonical(tmp_path):
         audio_runner.REPOSITORY_ROOT
     )
     artifact_alias = tmp_path / 'alias' / '..' / canonical_artifact.relative_to(tmp_path)
+    manifest_alias = tmp_path / 'alias' / '..' / canonical_manifest.relative_to(tmp_path)
     if os.name == 'nt':
         evidence_alias = Path(str(canonical_evidence).replace('/', '\\'))
     else:
         evidence_alias = canonical_evidence.parent / '.' / canonical_evidence.name
 
     assert audio_runner.canonical_output_pair_mode(
-        tmp_path, artifact_alias, evidence_alias
+        tmp_path, manifest_alias, artifact_alias, evidence_alias
     ) is True
 
 

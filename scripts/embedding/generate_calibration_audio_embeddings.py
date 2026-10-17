@@ -578,7 +578,9 @@ def run(
     artifact_path, evidence_path = _resolve_outputs(
         root, manifest_path, artifact_output, evidence_output, prepared_samples
     )
-    canonical_outputs = canonical_output_pair_mode(root, artifact_path, evidence_path)
+    canonical_outputs = canonical_output_pair_mode(
+        root, manifest_path, artifact_path, evidence_path
+    )
     commit_sha, clean_before = _git_identity(root)
     _require(not canonical_outputs or clean_before,
              'canonical Audio Embedding requires a clean Git working tree')
@@ -613,20 +615,33 @@ def run(
     return parse_json_bytes(evidence_path.read_bytes(), 'Audio embedding evidence', evidence_path)
 
 
-def canonical_output_pair_mode(root, artifact_path, evidence_path):
-    """Require artifact/evidence paths to be both canonical or both custom."""
+def canonical_output_pair_mode(root, manifest_path, artifact_path, evidence_path):
+    """Require canonical outputs to use the official canonical manifest."""
     root = Path(root).resolve()
+
+    def resolve(path):
+        candidate = Path(path)
+        return (candidate if candidate.is_absolute() else root / candidate).resolve()
+
     canonical_artifact = (root / DEFAULT_ARTIFACT.relative_to(REPOSITORY_ROOT)).resolve()
     canonical_evidence = (root / DEFAULT_EVIDENCE.relative_to(REPOSITORY_ROOT)).resolve()
-    artifact_is_canonical = os.path.normcase(str(Path(artifact_path).resolve())) == os.path.normcase(
+    canonical_manifest = (root / DEFAULT_MANIFEST.relative_to(REPOSITORY_ROOT)).resolve()
+    artifact_is_canonical = os.path.normcase(str(resolve(artifact_path))) == os.path.normcase(
         str(canonical_artifact)
     )
-    evidence_is_canonical = os.path.normcase(str(Path(evidence_path).resolve())) == os.path.normcase(
+    evidence_is_canonical = os.path.normcase(str(resolve(evidence_path))) == os.path.normcase(
         str(canonical_evidence)
     )
     _require(
         artifact_is_canonical == evidence_is_canonical,
         'canonical Audio Embedding artifact and evidence outputs must be selected as a pair',
+    )
+    manifest_is_canonical = os.path.normcase(str(resolve(manifest_path))) == os.path.normcase(
+        str(canonical_manifest)
+    )
+    _require(
+        not artifact_is_canonical or manifest_is_canonical,
+        'canonical Audio Embedding outputs require the canonical calibration manifest',
     )
     return artifact_is_canonical
 
