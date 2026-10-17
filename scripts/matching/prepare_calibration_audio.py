@@ -12,7 +12,9 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-from scripts.datasets.highlight_dataset import DatasetError, decode, relative_path, sha256, wav_bytes
+from scripts.datasets.highlight_dataset import (
+    DatasetError, audio_info, decode, relative_path, sha256, wav_bytes,
+)
 from scripts.matching import register_calibration_audio as registration
 from scripts.matching.calibration_manifest_io import (
     bytes_sha256,
@@ -132,7 +134,7 @@ def _inspect_registered_source(sample, sample_id, repository_root):
         raise ValueError(f'{sample_id} source file size differs from registered source_file_size')
     try:
         pcm, sample_rate = decode(source_path)
-        info = sf.info(str(source_path))
+        info = audio_info(source_path)
     except (DatasetError, OSError, RuntimeError, sf.LibsndfileError) as exc:
         raise ValueError(f'{sample_id} source decode failed: {exc}') from exc
 
@@ -141,11 +143,12 @@ def _inspect_registered_source(sample, sample_id, repository_root):
     expected = (
         sample['decoded_frame_count'], sample['source_sample_rate'], sample['source_channels']
     )
-    container = (info.frames, info.samplerate, info.channels)
     if actual != expected:
         raise ValueError(f'{sample_id} decoded source metadata changed: {actual}, expected {expected}')
-    if actual != container:
-        raise ValueError(f'{sample_id} decoder/container metadata disagree: {actual} != {container}')
+    registration.validate_decoded_container_metadata(
+        frame_count, sample_rate, channels, info, f'{sample_id} source audio',
+        sample.get('source_catalog_duration'),
+    )
     if frame_count < 60 * sample_rate:
         raise ValueError(f'{sample_id} decoded source is shorter than 60 seconds')
     if sample.get('source_codec') is not None and sample['source_codec'] != f'{info.format}/{info.subtype}':

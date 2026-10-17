@@ -6,7 +6,9 @@ import io
 import json
 import platform
 import re
+import subprocess
 import struct
+from types import SimpleNamespace
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -123,11 +125,56 @@ def decode(path):
     try:
         wave, rate = torchaudio.load(str(path), backend='soundfile')
     except (OSError, RuntimeError, sf.LibsndfileError) as error:
-        raise DatasetError('decode_failed', path, str(error)) from error
-    pcm = wave.numpy().T.copy()
+        if not _is_ogg_flac(path):
+            raise DatasetError('decode_failed', path, str(error)) from error
+        try:
+            pcm, rate = _decode_ogg_flac(path)
+        except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as fallback_error:
+            raise DatasetError(
+                'decode_failed', path,
+                f'{error}; Ogg FLAC fallback failed: {fallback_error}',
+            ) from fallback_error
+    else:
+        pcm = wave.numpy().T.copy()
     if pcm.ndim != 2 or not pcm.size or rate <= 0 or not np.isfinite(pcm).all():
         raise DatasetError('invalid_pcm', path, 'expected nonempty finite audio')
     return pcm, rate
+
+
+def _is_ogg_flac(path):
+    with Path(path).open('rb') as stream:
+        header = stream.read(64 * 1024)
+    return header.startswith(b'OggS') and b'fLaC' in header
+
+
+def _decode_ogg_flac(path):
+    """Decode an Ogg FLAC original through FFmpeg when libsndfile lacks support."""
+    import imageio_ffmpeg
+
+    result = subprocess.run(
+        [
+            imageio_ffmpeg.get_ffmpeg_exe(), '-nostdin', '-hide_banner',
+            '-loglevel', 'error', '-i', str(path), '-map', '0:a:0',
+            '-c:a', 'pcm_f32le', '-f', 'wav', 'pipe:1',
+        ],
+        check=True, capture_output=True,
+    )
+    pcm, rate = sf.read(io.BytesIO(result.stdout), dtype='float32', always_2d=True)
+    return pcm, rate
+
+
+def audio_info(path):
+    """Return source container metadata, with decoded values for Ogg FLAC."""
+    try:
+        return sf.info(str(path))
+    except (OSError, RuntimeError, sf.LibsndfileError):
+        if not _is_ogg_flac(path):
+            raise
+        pcm, rate = _decode_ogg_flac(path)
+        return SimpleNamespace(
+            frames=len(pcm), samplerate=rate, channels=pcm.shape[1],
+            format='OGG', subtype='FLAC',
+        )
 
 
 def inspect_source(track, root):
@@ -147,7 +194,7 @@ def inspect_source(track, root):
         raise DatasetError('insufficient_duration', path, 'selected interval exceeds decoded audio')
     if sha256(path) != digest:
         raise DatasetError('source_changed', path, 'source changed during decode')
-    info = sf.info(str(path))
+    info = audio_info(path)
     result = {'source_sha256': digest, 'source_file_size_bytes': path.stat().st_size,
               'source_decoded_frames': len(pcm), 'source_duration_seconds': len(pcm) / rate,
               'source_sample_rate': rate, 'source_channels': pcm.shape[1],
