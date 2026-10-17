@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -301,6 +302,97 @@ def test_output_collision_and_existing_output_are_rejected(tmp_path):
     with pytest.raises(ValueError, match='already exists'):
         audio_runner._resolve_outputs(tmp_path, manifest_path, existing, 'different.out', rows)
     assert existing.read_bytes() == b'preserve'
+
+
+def test_canonical_output_pair_mode_accepts_canonical_and_custom_pairs(tmp_path):
+    canonical_artifact = tmp_path / audio_runner.DEFAULT_ARTIFACT.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )
+    canonical_evidence = tmp_path / audio_runner.DEFAULT_EVIDENCE.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )
+    custom_artifact = tmp_path / 'temporary' / 'vectors.npz'
+    custom_evidence = tmp_path / 'temporary' / 'evidence.json'
+
+    assert audio_runner.canonical_output_pair_mode(
+        tmp_path, canonical_artifact, canonical_evidence
+    ) is True
+    assert audio_runner.canonical_output_pair_mode(
+        tmp_path, custom_artifact, custom_evidence
+    ) is False
+
+
+@pytest.mark.parametrize('canonical_side', ['artifact', 'evidence'])
+def test_partial_canonical_output_pair_is_rejected_before_clean_tree_check(
+    tmp_path, monkeypatch, canonical_side,
+):
+    _, manifest_path, _ = _prepared_fixture(tmp_path)
+    canonical_artifact = audio_runner.DEFAULT_ARTIFACT.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )
+    canonical_evidence = audio_runner.DEFAULT_EVIDENCE.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )
+    custom_artifact = tmp_path / 'temporary' / 'vectors.npz'
+    custom_evidence = tmp_path / 'temporary' / 'evidence.json'
+    artifact_path = canonical_artifact if canonical_side == 'artifact' else custom_artifact
+    evidence_path = custom_evidence if canonical_side == 'artifact' else canonical_evidence
+    monkeypatch.setattr(
+        audio_runner, '_git_identity',
+        lambda root: pytest.fail('partial canonical pair reached clean-tree gate'),
+    )
+
+    with pytest.raises(ValueError, match='must be selected as a pair'):
+        audio_runner.run(
+            manifest_path=manifest_path,
+            artifact_output=artifact_path,
+            evidence_output=evidence_path,
+            root=tmp_path,
+            generator=object(),
+            require_complete_cohort=False,
+        )
+
+
+def test_resolved_canonical_path_aliases_are_canonical(tmp_path):
+    canonical_artifact = tmp_path / audio_runner.DEFAULT_ARTIFACT.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )
+    canonical_evidence = tmp_path / audio_runner.DEFAULT_EVIDENCE.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )
+    artifact_alias = tmp_path / 'alias' / '..' / canonical_artifact.relative_to(tmp_path)
+    if os.name == 'nt':
+        evidence_alias = Path(str(canonical_evidence).replace('/', '\\'))
+    else:
+        evidence_alias = canonical_evidence.parent / '.' / canonical_evidence.name
+
+    assert audio_runner.canonical_output_pair_mode(
+        tmp_path, artifact_alias, evidence_alias
+    ) is True
+
+
+@pytest.mark.parametrize('field', [
+    'source_catalog_duration', 'decoded_duration', 'prepared_duration',
+])
+@pytest.mark.parametrize('token', ['NaN', 'Infinity', '-Infinity'])
+def test_run_rejects_nonstandard_numeric_manifest_json(tmp_path, field, token):
+    manifest = _base_manifest()
+    serialized = json.dumps(manifest, ensure_ascii=False)
+    marker = f'"{field}": '
+    start = serialized.index(marker) + len(marker)
+    end = start
+    while end < len(serialized) and serialized[end] not in ',}':
+        end += 1
+    path = tmp_path / 'manifest.json'
+    path.write_text(serialized[:start] + token + serialized[end:], encoding='utf-8')
+
+    with pytest.raises(ValueError, match='Non-finite JSON'):
+        audio_runner.run(
+            manifest_path=path,
+            artifact_output=tmp_path / 'vectors.npz',
+            evidence_output=tmp_path / 'evidence.json',
+            root=tmp_path,
+        )
 
 
 def test_artifact_evidence_publish_failure_rolls_back_first_file(tmp_path, monkeypatch):

@@ -167,7 +167,9 @@ def _atomic_write_manifest(manifest_path, manifest, expected_manifest_sha256):
             stream.write('\n')
             stream.flush()
             os.fsync(stream.fileno())
-        reloaded = json.loads(temporary_path.read_text(encoding='utf-8'))
+        reloaded = _parse_json_bytes(
+            temporary_path.read_bytes(), 'temporary manifest', temporary_path
+        )
         _validate_payload(reloaded, manifest_path)
         with exclusive_manifest_update(manifest_path, expected_manifest_sha256):
             os.replace(temporary_path, manifest_path)

@@ -1,10 +1,12 @@
 """Calibration manifest의 sample_id 고유성을 검사하는 CLI."""
 
 import argparse
-import json
+import math
 import re
 import sys
 from pathlib import Path
+
+from scripts.matching.strict_json import parse_json_bytes
 
 
 DEFAULT_MANIFEST = (
@@ -81,6 +83,11 @@ def acquisition_preparation_errors(manifest, repository_root=_REPOSITORY_ROOT):
         verified = sample.get('full_track_verified')
         evidence = sample.get('full_track_evidence')
         source_hash = sample.get('source_sha256')
+        catalog_duration = sample.get('source_catalog_duration')
+        if (catalog_duration is not None
+                and (type(catalog_duration) not in (int, float)
+                     or not math.isfinite(catalog_duration))):
+            errors.append(f'{sample_id}.source_catalog_duration must be finite')
         prepared_fields = (
             'prepared_local_path', 'prepared_sha256', 'prepared_duration',
             'segment_start_frame', 'segment_end_frame_exclusive',
@@ -309,6 +316,12 @@ def decoded_audio_consistency_errors(manifest):
         decoded_frames = sample.get('decoded_frame_count')
         sample_rate = sample.get('source_sample_rate')
 
+        for field in ('decoded_duration', 'prepared_duration'):
+            value = sample.get(field)
+            if (value is not None
+                    and (type(value) not in (int, float) or not math.isfinite(value))):
+                errors.append(f'{sample_id}.{field} must be finite')
+
         if decoded_duration is not None:
             if (type(decoded_frames) is not int or decoded_frames <= 0
                     or type(sample_rate) is not int or sample_rate <= 0):
@@ -373,9 +386,9 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     try:
-        payload = json.loads(args.manifest.read_text(encoding='utf-8-sig'))
+        payload = parse_json_bytes(args.manifest.read_bytes(), 'manifest', args.manifest)
         duplicates = duplicate_sample_ids(payload)
-    except (OSError, json.JSONDecodeError, ValueError) as exc:
+    except (OSError, ValueError) as exc:
         print(f'Invalid calibration manifest: {exc}', file=sys.stderr)
         return 1
 

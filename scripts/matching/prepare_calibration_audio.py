@@ -193,7 +193,7 @@ def _write_temp_manifest(manifest_path, manifest):
             stream.write('\n')
             stream.flush()
             os.fsync(stream.fileno())
-        loaded = json.loads(temporary_path.read_text(encoding='utf-8'))
+        loaded = _parse_json_bytes(temporary_path.read_bytes(), 'temporary manifest', temporary_path)
         _validate_manifest(loaded, manifest_path)
         return temporary_path
     except BaseException:
@@ -232,7 +232,9 @@ def _publish_pair(
             os.replace(temp_manifest, manifest_path)
             if sha256(output_path) != expected_sha256:
                 raise ValueError(f'{sample_id} published prepared SHA-256 mismatch')
-            published_manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+            published_manifest = _parse_json_bytes(
+                manifest_path.read_bytes(), 'published manifest', manifest_path
+            )
             published_sample = _sample_for_id(published_manifest, sample_id)
             if (published_sample.get('prepared_local_path') != prepared_relative
                     or published_sample.get('prepared_sha256') != expected_sha256):
@@ -260,7 +262,9 @@ def _publish_pair(
                         if 'rollback_manifest' in locals():
                             rollback_manifest.unlink(missing_ok=True)
                 else:
-                    current_manifest = json.loads(current_bytes.decode('utf-8-sig'))
+                    current_manifest = _parse_json_bytes(
+                        current_bytes, 'current manifest during rollback', manifest_path
+                    )
                     current_sample = _sample_for_id(current_manifest, sample_id)
                     references_published_audio = (
                         current_sample.get('prepared_local_path') == prepared_relative
@@ -271,7 +275,9 @@ def _publish_pair(
             except OSError as rollback_error:
                 rollback_errors.append(f'manifest rollback failed: {rollback_error}')
                 try:
-                    latest = json.loads(manifest_path.read_text(encoding='utf-8-sig'))
+                    latest = _parse_json_bytes(
+                        manifest_path.read_bytes(), 'latest manifest during rollback', manifest_path
+                    )
                     latest_sample = _sample_for_id(latest, sample_id)
                     safe_to_remove_audio = not (
                         latest_sample.get('prepared_local_path') == prepared_relative

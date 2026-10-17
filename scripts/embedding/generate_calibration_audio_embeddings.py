@@ -22,6 +22,7 @@ from app.embedding.audio_embedding import (
 )
 from scripts.datasets.highlight_dataset import relative_path, sha256
 from scripts.matching import prepare_calibration_audio as preparation
+from scripts.matching.strict_json import parse_json_bytes
 from scripts.matching.validate_calibration import CALIBRATION_DIR, _read_json, validate_calibration
 
 
@@ -264,7 +265,7 @@ def validate_artifact_evidence_pair(artifact_path, evidence_path, expected_artif
     with np.load(artifact_path, allow_pickle=False) as archive:
         embeddings = np.ascontiguousarray(archive['embeddings'])
         sample_ids = archive['sample_ids'].tolist()
-    evidence = json.loads(Path(evidence_path).read_text(encoding='utf-8'))
+    evidence = parse_json_bytes(Path(evidence_path).read_bytes(), 'Audio embedding evidence', evidence_path)
     artifact = evidence['artifact']
     _require(sample_ids == evidence['input_identity']['sample_ids'],
              'artifact sample_id order differs from evidence')
@@ -570,17 +571,14 @@ def run(
     manifest_path = manifest_path.resolve()
     manifest_bytes = manifest_path.read_bytes()
     manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
-    manifest = json.loads(manifest_bytes.decode('utf-8-sig'))
+    manifest = parse_json_bytes(manifest_bytes, 'calibration manifest', manifest_path)
     prepared_samples = load_prepared_samples(
         manifest, root, require_complete_cohort=require_complete_cohort
     )
     artifact_path, evidence_path = _resolve_outputs(
         root, manifest_path, artifact_output, evidence_output, prepared_samples
     )
-    canonical_outputs = (
-        artifact_path == (root / DEFAULT_ARTIFACT.relative_to(REPOSITORY_ROOT)).resolve()
-        and evidence_path == (root / DEFAULT_EVIDENCE.relative_to(REPOSITORY_ROOT)).resolve()
-    )
+    canonical_outputs = canonical_output_pair_mode(root, artifact_path, evidence_path)
     commit_sha, clean_before = _git_identity(root)
     _require(not canonical_outputs or clean_before,
              'canonical Audio Embedding requires a clean Git working tree')
@@ -612,7 +610,25 @@ def run(
         artifact_path, evidence_path, vectors, sample_ids, evidence
     )
     publish_output_pair(artifact_temp, artifact_path, evidence_temp, evidence_path)
-    return json.loads(evidence_path.read_text(encoding='utf-8'))
+    return parse_json_bytes(evidence_path.read_bytes(), 'Audio embedding evidence', evidence_path)
+
+
+def canonical_output_pair_mode(root, artifact_path, evidence_path):
+    """Require artifact/evidence paths to be both canonical or both custom."""
+    root = Path(root).resolve()
+    canonical_artifact = (root / DEFAULT_ARTIFACT.relative_to(REPOSITORY_ROOT)).resolve()
+    canonical_evidence = (root / DEFAULT_EVIDENCE.relative_to(REPOSITORY_ROOT)).resolve()
+    artifact_is_canonical = os.path.normcase(str(Path(artifact_path).resolve())) == os.path.normcase(
+        str(canonical_artifact)
+    )
+    evidence_is_canonical = os.path.normcase(str(Path(evidence_path).resolve())) == os.path.normcase(
+        str(canonical_evidence)
+    )
+    _require(
+        artifact_is_canonical == evidence_is_canonical,
+        'canonical Audio Embedding artifact and evidence outputs must be selected as a pair',
+    )
+    return artifact_is_canonical
 
 
 def build_parser():

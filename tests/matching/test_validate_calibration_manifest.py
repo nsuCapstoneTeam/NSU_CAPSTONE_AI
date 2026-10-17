@@ -7,8 +7,10 @@ import pytest
 
 from scripts.matching.validate_calibration_manifest import (
     acquisition_preparation_errors,
+    decoded_audio_consistency_errors,
     duplicate_sample_ids,
     duplicate_source_content_hashes,
+    main as validate_manifest_main,
 )
 
 
@@ -87,6 +89,39 @@ def test_current_not_acquired_manifest_has_no_duplicate_source_hashes():
     assert len(manifest['samples']) == 50
     assert all(sample['acquisition_method'] == 'not_acquired' for sample in manifest['samples'])
     assert duplicate_source_content_hashes(manifest) == []
+
+
+@pytest.mark.parametrize('field', [
+    'source_catalog_duration', 'decoded_duration', 'prepared_duration',
+])
+@pytest.mark.parametrize('value', [float('nan'), float('inf'), float('-inf')])
+def test_semantic_validation_rejects_non_finite_duration_values(field, value):
+    manifest = {'samples': [{'sample_id': 'cal-a', field: value}]}
+    errors = (acquisition_preparation_errors(manifest)
+              if field == 'source_catalog_duration'
+              else decoded_audio_consistency_errors(manifest))
+
+    assert any(f'{field} must be finite' in error for error in errors)
+
+
+def test_manifest_validator_cli_rejects_nonstandard_json_number(tmp_path, capsys):
+    manifest_path = (
+        Path(__file__).resolve().parents[2]
+        / 'docs' / 'experiments' / 'audio-similarity-calibration' / 'manifest.json'
+    )
+    text = manifest_path.read_text(encoding='utf-8')
+    marker = '"source_catalog_duration": '
+    start = text.index(marker) + len(marker)
+    end = start
+    while end < len(text) and text[end] not in ',}':
+        end += 1
+    fixture = tmp_path / 'manifest.json'
+    fixture.write_text(text[:start] + 'NaN' + text[end:], encoding='utf-8')
+
+    result = validate_manifest_main([str(fixture)])
+
+    assert result == 1
+    assert 'Non-finite JSON' in capsys.readouterr().err
 
 
 def test_semantic_validator_rejects_symlink_escape(tmp_path):
