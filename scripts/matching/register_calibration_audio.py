@@ -1,6 +1,7 @@
 """Validate and optionally register one local calibration cohort source audio file."""
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -14,8 +15,10 @@ from scripts.datasets.highlight_dataset import DatasetError, decode, relative_pa
 from scripts.matching.validate_calibration import (
     CALIBRATION_DIR,
     _read_json,
+    _parse_json_bytes,
     validate_calibration,
 )
+from scripts.matching.calibration_manifest_io import exclusive_manifest_update
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -150,7 +153,7 @@ def register_source_audio(
     return candidate, metadata
 
 
-def _atomic_write_manifest(manifest_path, manifest):
+def _atomic_write_manifest(manifest_path, manifest, expected_manifest_sha256):
     manifest_path = Path(manifest_path)
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path = None
@@ -166,7 +169,8 @@ def _atomic_write_manifest(manifest_path, manifest):
             os.fsync(stream.fileno())
         reloaded = json.loads(temporary_path.read_text(encoding='utf-8'))
         _validate_payload(reloaded, manifest_path)
-        os.replace(temporary_path, manifest_path)
+        with exclusive_manifest_update(manifest_path, expected_manifest_sha256):
+            os.replace(temporary_path, manifest_path)
     finally:
         if temporary_path is not None:
             temporary_path.unlink(missing_ok=True)
@@ -193,7 +197,9 @@ def build_parser():
 def main(argv=None):
     args = build_parser().parse_args(argv)
     try:
-        manifest = _read_json(args.manifest, 'manifest')
+        manifest_bytes = args.manifest.read_bytes()
+        manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+        manifest = _parse_json_bytes(manifest_bytes, 'manifest', args.manifest)
         candidate, metadata = register_source_audio(
             manifest=manifest,
             sample_id=args.sample_id,
@@ -210,7 +216,7 @@ def main(argv=None):
             'metadata': metadata,
         }
         if args.write:
-            _atomic_write_manifest(args.manifest, candidate)
+            _atomic_write_manifest(args.manifest, candidate, manifest_sha256)
             result['manifest_updated'] = True
         else:
             result['manifest_updated'] = False

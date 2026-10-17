@@ -110,13 +110,20 @@ def _parse_finite_float(token):
 
 def _read_json(path, label):
     try:
+        return _parse_json_bytes(path.read_bytes(), label, path)
+    except (OSError, ValueError) as exc:
+        raise ValueError(f'Cannot read {label} from {path}: {exc}') from exc
+
+
+def _parse_json_bytes(data, label, source='<bytes>'):
+    try:
         return json.loads(
-            path.read_text(encoding='utf-8-sig'),
+            data.decode('utf-8-sig'),
             parse_constant=_reject_non_finite_constant,
             parse_float=_parse_finite_float,
         )
     except (OSError, ValueError) as exc:
-        raise ValueError(f'Cannot read {label} from {path}: {exc}') from exc
+        raise ValueError(f'Cannot parse {label} from {source}: {exc}') from exc
 
 
 def main(argv=None):

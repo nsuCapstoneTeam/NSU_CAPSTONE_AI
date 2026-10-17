@@ -104,6 +104,7 @@ def _result(root, manifest, manifest_path, rows, tmp_path):
         manifest_sha256=hashlib.sha256(manifest_path.read_bytes()).hexdigest(),
         git_commit_sha='a' * 40, working_tree_clean=False,
         expected_checkpoint_sha256=sha256(checkpoint),
+        cohort_status=manifest.get('cohort_status'),
     )
     return vectors, ids, evidence, generator
 
@@ -121,6 +122,7 @@ def test_valid_prepared_files_generate_ordered_finite_float32_vectors(tmp_path):
     assert np.isfinite(vectors).all()
     assert np.all(np.linalg.norm(vectors.astype(np.float64), axis=1) > 0)
     assert evidence['embedding_output']['finite'] is True
+    assert evidence['input_identity']['cohort_status'] == manifest['cohort_status']
     assert evidence['embedding_output']['zero_vector_count'] == 0
     assert len(evidence['embedding_output']['l2_norms']) == 2
     assert generator.calls == 4
@@ -228,6 +230,63 @@ def test_duplicate_sample_id_and_incomplete_canonical_cohort_fail(tmp_path):
     manifest, _, _ = _prepared_fixture(tmp_path / 'incomplete')
     with pytest.raises(ValueError, match='has no prepared audio'):
         audio_runner.load_prepared_samples(manifest, tmp_path / 'incomplete', require_complete_cohort=True)
+
+
+def _canonical_ready_manifest():
+    return {
+        'cohort_status': 'candidate_selection_complete',
+        'cohort_target': 50,
+        'samples': [{
+            'sample_id': f'cal-{index:02d}',
+            'source_local_path': f'data/calibration/audio/source/cal-{index:02d}/source.wav',
+            'source_sha256': 'a' * 64,
+            'source_file_size': 100,
+            'decoded_duration': 61,
+            'decoded_frame_count': 61000,
+            'source_sample_rate': 1000,
+            'source_channels': 1,
+            'source_file_kind': 'full_track',
+            'full_track_verified': True,
+            'full_track_evidence': 'verified full source',
+            'prepared_local_path': f'data/calibration/audio/prepared/cal-{index:02d}.wav',
+            'prepared_sha256': 'b' * 64,
+            'prepared_duration': 60,
+            'segment_start_frame': 500,
+            'segment_end_frame_exclusive': 60500,
+        } for index in range(50)],
+    }
+
+
+def test_canonical_gate_accepts_complete_ready_50_song_cohort():
+    audio_runner.validate_canonical_cohort_gate(_canonical_ready_manifest())
+
+
+def test_canonical_gate_rejects_incomplete_status_even_with_50_rows():
+    manifest = _canonical_ready_manifest()
+    manifest['cohort_status'] = 'candidate_selection_incomplete'
+    with pytest.raises(ValueError, match='candidate_selection_complete'):
+        audio_runner.validate_canonical_cohort_gate(manifest)
+
+
+def test_canonical_gate_requires_exactly_50_rows():
+    manifest = _canonical_ready_manifest()
+    manifest['samples'].pop()
+    with pytest.raises(ValueError, match='exactly 50'):
+        audio_runner.validate_canonical_cohort_gate(manifest)
+
+
+def test_canonical_gate_requires_target_50():
+    manifest = _canonical_ready_manifest()
+    manifest['cohort_target'] = 49
+    with pytest.raises(ValueError, match='cohort_target=50'):
+        audio_runner.validate_canonical_cohort_gate(manifest)
+
+
+def test_canonical_gate_requires_every_sample_embedding_ready():
+    manifest = _canonical_ready_manifest()
+    manifest['samples'][17]['prepared_sha256'] = None
+    with pytest.raises(ValueError, match='not embedding-ready'):
+        audio_runner.validate_canonical_cohort_gate(manifest)
 
 
 def test_output_collision_and_existing_output_are_rejected(tmp_path):

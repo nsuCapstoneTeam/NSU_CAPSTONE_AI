@@ -1,6 +1,7 @@
 """Create and validate one centered, exact 60-second calibration WAV."""
 
 import argparse
+import hashlib
 import json
 import os
 import sys
@@ -13,7 +14,16 @@ import soundfile as sf
 
 from scripts.datasets.highlight_dataset import DatasetError, decode, relative_path, sha256, wav_bytes
 from scripts.matching import register_calibration_audio as registration
-from scripts.matching.validate_calibration import CALIBRATION_DIR, _read_json, validate_calibration
+from scripts.matching.calibration_manifest_io import (
+    bytes_sha256,
+    exclusive_manifest_update,
+)
+from scripts.matching.validate_calibration import (
+    CALIBRATION_DIR,
+    _parse_json_bytes,
+    _read_json,
+    validate_calibration,
+)
 
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -70,6 +80,18 @@ def _resolve_source(sample, sample_id, repository_root):
 
 
 def _require_source_gate(sample, sample_id):
+    if sample.get('commercial_use_status') != 'allowed':
+        raise ValueError(f'{sample_id} preparation requires commercial_use_status=allowed')
+    if sample.get('rights_status') != 'confirmed_from_official_metadata':
+        raise ValueError(
+            f'{sample_id} preparation requires '
+            'rights_status=confirmed_from_official_metadata'
+        )
+    for field in ('license_name', 'license_url'):
+        value = sample.get(field)
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f'{sample_id} preparation requires non-blank {field}')
+
     required = (
         'source_sha256', 'source_file_size', 'decoded_duration', 'decoded_frame_count',
         'source_sample_rate', 'source_channels',
@@ -195,46 +217,72 @@ def _write_temp_audio(payload, directory):
 
 def _publish_pair(
     temp_audio, output_path, temp_manifest, manifest_path, expected_sha256,
-    prepared_relative, sample_id,
+    prepared_relative, sample_id, expected_manifest_sha256,
 ):
     audio_published = False
-    manifest_published = False
-    original_manifest = manifest_path.read_bytes()
+    original_manifest = None
+    staged_manifest = temp_manifest.read_bytes()
     try:
-        # Hard-link publication is atomic and fails rather than replacing an existing prepared file.
-        os.link(temp_audio, output_path)
-        audio_published = True
-        temp_audio.unlink()
-        os.replace(temp_manifest, manifest_path)
-        manifest_published = True
-        if sha256(output_path) != expected_sha256:
-            raise ValueError(f'{sample_id} published prepared SHA-256 mismatch')
-        published_manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-        published_sample = _sample_for_id(published_manifest, sample_id)
-        if (published_sample.get('prepared_local_path') != prepared_relative
-                or published_sample.get('prepared_sha256') != expected_sha256):
-            raise ValueError(f'{sample_id} published manifest does not identify the prepared WAV')
+        with exclusive_manifest_update(manifest_path, expected_manifest_sha256) as current_bytes:
+            original_manifest = current_bytes
+            # Hard-link publication is atomic and fails rather than replacing an existing prepared file.
+            os.link(temp_audio, output_path)
+            audio_published = True
+            temp_audio.unlink()
+            os.replace(temp_manifest, manifest_path)
+            if sha256(output_path) != expected_sha256:
+                raise ValueError(f'{sample_id} published prepared SHA-256 mismatch')
+            published_manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+            published_sample = _sample_for_id(published_manifest, sample_id)
+            if (published_sample.get('prepared_local_path') != prepared_relative
+                    or published_sample.get('prepared_sha256') != expected_sha256):
+                raise ValueError(f'{sample_id} published manifest does not identify the prepared WAV')
     except BaseException as exc:
         rollback_errors = []
-        manifest_rollback_succeeded = not manifest_published
-        if manifest_published:
+        safe_to_remove_audio = not audio_published
+        if audio_published:
             try:
-                descriptor, name = tempfile.mkstemp(
-                    prefix=f'.{manifest_path.name}.rollback-', suffix='.tmp', dir=manifest_path.parent
-                )
-                rollback_manifest = Path(name)
-                with os.fdopen(descriptor, 'wb') as stream:
-                    stream.write(original_manifest)
-                    stream.flush()
-                    os.fsync(stream.fileno())
-                os.replace(rollback_manifest, manifest_path)
-                manifest_rollback_succeeded = True
+                current_bytes = manifest_path.read_bytes()
+                if current_bytes == staged_manifest:
+                    try:
+                        with exclusive_manifest_update(manifest_path, bytes_sha256(staged_manifest)):
+                            descriptor, name = tempfile.mkstemp(
+                                prefix=f'.{manifest_path.name}.rollback-', suffix='.tmp', dir=manifest_path.parent
+                            )
+                            rollback_manifest = Path(name)
+                            with os.fdopen(descriptor, 'wb') as stream:
+                                stream.write(original_manifest)
+                                stream.flush()
+                                os.fsync(stream.fileno())
+                            os.replace(rollback_manifest, manifest_path)
+                        safe_to_remove_audio = True
+                    finally:
+                        if 'rollback_manifest' in locals():
+                            rollback_manifest.unlink(missing_ok=True)
+                else:
+                    current_manifest = json.loads(current_bytes.decode('utf-8-sig'))
+                    current_sample = _sample_for_id(current_manifest, sample_id)
+                    references_published_audio = (
+                        current_sample.get('prepared_local_path') == prepared_relative
+                        and current_sample.get('prepared_sha256') == expected_sha256
+                    )
+                    # Keep an output if a concurrent writer already incorporated it.
+                    safe_to_remove_audio = not references_published_audio
             except OSError as rollback_error:
                 rollback_errors.append(f'manifest rollback failed: {rollback_error}')
-            finally:
-                if 'rollback_manifest' in locals():
-                    rollback_manifest.unlink(missing_ok=True)
-        if audio_published and manifest_rollback_succeeded:
+                try:
+                    latest = json.loads(manifest_path.read_text(encoding='utf-8-sig'))
+                    latest_sample = _sample_for_id(latest, sample_id)
+                    safe_to_remove_audio = not (
+                        latest_sample.get('prepared_local_path') == prepared_relative
+                        and latest_sample.get('prepared_sha256') == expected_sha256
+                    )
+                except (OSError, UnicodeDecodeError, json.JSONDecodeError, ValueError, KeyError):
+                    safe_to_remove_audio = False
+            except (UnicodeDecodeError, json.JSONDecodeError, ValueError, KeyError) as rollback_error:
+                rollback_errors.append(f'manifest rollback state could not be verified: {rollback_error}')
+                safe_to_remove_audio = False
+        if audio_published and safe_to_remove_audio:
             try:
                 output_path.unlink()
             except OSError as rollback_error:
@@ -314,7 +362,10 @@ def prepare_sample(manifest, sample_id, repository_root=REPOSITORY_ROOT):
     }, payload, prepared_pcm
 
 
-def _write_prepared_pair(manifest_path, candidate, result, payload, expected_pcm, repository_root):
+def _write_prepared_pair(
+    manifest_path, candidate, result, payload, expected_pcm, repository_root,
+    expected_manifest_sha256,
+):
     root = Path(repository_root).resolve()
     output_path = relative_path(root, result['prepared_local_path'])
     if output_path.exists():
@@ -340,6 +391,7 @@ def _write_prepared_pair(manifest_path, candidate, result, payload, expected_pcm
             result['prepared_sha256'],
             result['prepared_local_path'],
             result['sample_id'],
+            expected_manifest_sha256,
         )
     finally:
         temp_audio.unlink(missing_ok=True)
@@ -359,14 +411,17 @@ def build_parser():
 def main(argv=None):
     args = build_parser().parse_args(argv)
     try:
-        manifest = _read_json(args.manifest, 'manifest')
+        manifest_bytes = args.manifest.read_bytes()
+        manifest_sha256 = hashlib.sha256(manifest_bytes).hexdigest()
+        manifest = _parse_json_bytes(manifest_bytes, 'manifest', args.manifest)
         candidate, result, payload, expected_pcm = prepare_sample(
             manifest, args.sample_id, repository_root=REPOSITORY_ROOT
         )
         result['mode'] = 'write' if args.write else 'dry_run'
         if args.write:
             _write_prepared_pair(
-                args.manifest, candidate, result, payload, expected_pcm, REPOSITORY_ROOT
+                args.manifest, candidate, result, payload, expected_pcm, REPOSITORY_ROOT,
+                manifest_sha256,
             )
             result['manifest_updated'] = True
             result['prepared_file_published'] = True

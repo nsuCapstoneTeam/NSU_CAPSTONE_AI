@@ -273,3 +273,29 @@ def test_failed_write_validation_preserves_original_manifest_bytes(tmp_path, mon
 
     assert result == 1
     assert manifest_path.read_bytes() == original_bytes
+
+
+def test_stale_registration_write_preserves_concurrent_manifest_change(tmp_path, monkeypatch, capsys):
+    source_relative, _ = _write_audio(tmp_path)
+    manifest_path = tmp_path / 'manifest.json'
+    original = json.dumps(_manifest()).encode('utf-8')
+    manifest_path.write_bytes(original)
+    external = json.dumps({**_manifest(), 'external_writer_marker': 'preserve'}).encode('utf-8')
+    monkeypatch.setattr(registration, 'REPOSITORY_ROOT', tmp_path)
+    real_write = registration._atomic_write_manifest
+
+    def concurrent_change_then_write(path, candidate, expected_digest):
+        Path(path).write_bytes(external)
+        return real_write(path, candidate, expected_digest)
+
+    monkeypatch.setattr(registration, '_atomic_write_manifest', concurrent_change_then_write)
+    result = registration.main([
+        '--manifest', str(manifest_path), '--sample-id', 'cal-incompetech-mandeville',
+        '--source-file', source_relative, '--acquisition-method', 'official_direct_download',
+        '--source-file-kind', 'full_track', '--full-track-verified',
+        '--full-track-evidence', 'verified from full source file', '--write',
+    ])
+
+    assert result == 1
+    assert 'manifest changed since this operation started' in capsys.readouterr().err
+    assert manifest_path.read_bytes() == external

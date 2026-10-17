@@ -97,8 +97,7 @@ def load_prepared_samples(manifest, root=REPOSITORY_ROOT, *, require_complete_co
     samples = manifest.get('samples')
     _require(isinstance(samples, list), 'manifest.samples must be a list')
     if require_complete_cohort:
-        _require(manifest.get('cohort_target') == 50 and len(samples) == 50,
-                 'canonical Audio embedding requires exactly the 50-song cohort')
+        validate_canonical_cohort_gate(manifest)
 
     prepared_samples = []
     sample_ids = set()
@@ -167,6 +166,54 @@ def load_prepared_samples(manifest, root=REPOSITORY_ROOT, *, require_complete_co
         _require(len(prepared_samples) == 50,
                  f'expected 50 prepared samples, found {len(prepared_samples)}')
     return prepared_samples
+
+
+def validate_canonical_cohort_gate(manifest):
+    """Require a finalized 50-song cohort with all rows structurally embedding-ready."""
+    samples = manifest.get('samples') if isinstance(manifest, dict) else None
+    _require(isinstance(manifest, dict)
+             and manifest.get('cohort_status') == 'candidate_selection_complete',
+             'canonical Audio embedding requires cohort_status=candidate_selection_complete')
+    _require(manifest.get('cohort_target') == 50,
+             'canonical Audio embedding requires cohort_target=50')
+    _require(isinstance(samples, list) and len(samples) == 50,
+             'canonical Audio embedding requires exactly 50 sample rows')
+    required = (
+        'source_local_path', 'source_sha256', 'source_file_size', 'decoded_duration',
+        'decoded_frame_count', 'source_sample_rate', 'source_channels', 'full_track_evidence',
+        'prepared_local_path', 'prepared_sha256', 'prepared_duration',
+        'segment_start_frame', 'segment_end_frame_exclusive',
+    )
+    for index, sample in enumerate(samples):
+        sample_id = sample.get('sample_id', f'samples[{index}]') if isinstance(sample, dict) else f'samples[{index}]'
+        _require(isinstance(sample, dict), f'{sample_id} must be an object')
+        _require(sample.get('prepared_local_path') is not None,
+                 f'{sample_id} has no prepared audio')
+        _require(sample.get('source_file_kind') == 'full_track'
+                 and sample.get('full_track_verified') is True,
+                 f'{sample_id} is not a verified full-track source')
+        missing = [field for field in required if sample.get(field) is None]
+        _require(not missing,
+                 f'{sample_id} is not embedding-ready; missing: {", ".join(missing)}')
+        for field in ('source_local_path', 'source_sha256', 'full_track_evidence',
+                      'prepared_local_path', 'prepared_sha256'):
+            _require(isinstance(sample.get(field), str) and bool(sample[field].strip()),
+                     f'{sample_id}.{field} is blank')
+        for field in ('source_file_size', 'decoded_frame_count', 'source_sample_rate',
+                      'source_channels', 'segment_start_frame', 'segment_end_frame_exclusive'):
+            _require(type(sample.get(field)) is int and sample[field] >= 0,
+                     f'{sample_id}.{field} must be a non-negative integer')
+        _require(sample['source_file_size'] > 0 and sample['decoded_frame_count'] > 0
+                 and sample['source_sample_rate'] > 0 and sample['source_channels'] > 0,
+                 f'{sample_id} has invalid source/decode dimensions')
+        _require(sample.get('decoded_duration', 0) >= 60,
+                 f'{sample_id} decoded audio is shorter than 60 seconds')
+        _require(sample.get('prepared_duration') == 60,
+                 f'{sample_id}.prepared_duration must equal 60')
+        frame_span = sample['segment_end_frame_exclusive'] - sample['segment_start_frame']
+        _require(frame_span == 60 * sample['source_sample_rate']
+                 and sample['segment_end_frame_exclusive'] <= sample['decoded_frame_count'],
+                 f'{sample_id} prepared frame provenance is invalid')
 
 
 def artifact_content_digest(embeddings, sample_ids):
@@ -319,6 +366,7 @@ def generate_embedding_result(
     working_tree_clean,
     expected_checkpoint_sha256,
     expected_checkpoint_revision=None,
+    cohort_status=None,
 ):
     """Run two fixed-order passes and return arrays plus auditable evidence."""
     sample_ids = [item['sample_id'] for item in prepared_samples]
@@ -363,6 +411,7 @@ def generate_embedding_result(
             'manifest_path': _display_path(root, manifest_path),
             'manifest_bytes_sha256': manifest_sha256,
             'cohort_target': 50,
+            'cohort_status': cohort_status,
             'sample_count': len(sample_ids),
             'sample_ids': sample_ids,
             'samples': [{
@@ -545,6 +594,7 @@ def run(
         working_tree_clean=clean_before,
         expected_checkpoint_sha256=expected_checkpoint_sha256,
         expected_checkpoint_revision=expected_checkpoint_revision,
+        cohort_status=manifest.get('cohort_status'),
     )
     _require(hashlib.sha256(manifest_path.read_bytes()).hexdigest() == manifest_sha256,
              'manifest bytes changed during Audio Embedding execution')

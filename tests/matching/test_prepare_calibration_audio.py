@@ -16,11 +16,13 @@ def _manifest():
     return json.loads(registration.DEFAULT_MANIFEST.read_text(encoding='utf-8'))
 
 
-def _write_source(root, *, frames=61 * 8000, sample_rate=8000, channels=2):
-    relative = f'data/calibration/audio/source/{SAMPLE_ID}/fixture.wav'
+def _write_source(
+    root, *, sample_id=SAMPLE_ID, frames=61 * 8000, sample_rate=8000, channels=2, seed=0,
+):
+    relative = f'data/calibration/audio/source/{sample_id}/fixture.wav'
     path = root / Path(relative)
     path.parent.mkdir(parents=True, exist_ok=True)
-    values = np.arange(frames * channels, dtype=np.float32).reshape(frames, channels)
+    values = (np.arange(frames * channels, dtype=np.float32) + seed).reshape(frames, channels)
     values = (values % 1000) / 1000.0
     sf.write(path, values, sample_rate, subtype='FLOAT')
     return relative, path, values
@@ -233,7 +235,7 @@ def test_short_preview_sample_or_unknown_register_but_cannot_be_prepared(
         _prepare(manifest, tmp_path)
 
 
-def test_missing_full_track_evidence_and_rights_gate_fail(tmp_path):
+def test_missing_full_track_evidence_fails(tmp_path):
     manifest, _, _, _ = _registered(tmp_path)
     manifest['samples'][0]['full_track_evidence'] = None
     try:
@@ -243,14 +245,33 @@ def test_missing_full_track_evidence_and_rights_gate_fail(tmp_path):
     else:
         raise AssertionError('missing full-track evidence must fail')
 
-    manifest, _, _, _ = _registered(tmp_path / 'rights-case')
-    manifest['samples'][0]['license_name'] = ''
-    try:
-        _prepare(manifest, tmp_path / 'rights-case')
-    except ValueError as error:
-        assert 'validation failed' in str(error)
-    else:
-        raise AssertionError('rights validation failure must block preparation')
+
+@pytest.mark.parametrize(('cohort_status', 'field', 'value', 'error_text'), [
+    ('candidate_selection_incomplete', 'commercial_use_status', 'restricted', 'commercial_use_status'),
+    ('candidate_selection_incomplete', 'rights_status', 'excluded', 'rights_status'),
+    ('candidate_selection_incomplete', 'license_name', '   ', 'license_name'),
+    ('candidate_selection_incomplete', 'license_url', '', 'license_url'),
+    ('candidate_selection_complete', 'commercial_use_status', 'restricted', 'commercial_use_status'),
+])
+def test_preparation_rights_gate_applies_regardless_of_cohort_status(
+    tmp_path, cohort_status, field, value, error_text,
+):
+    manifest, _, _, _ = _registered(tmp_path)
+    manifest['cohort_status'] = cohort_status
+    manifest['samples'][0][field] = value
+
+    with pytest.raises(ValueError, match=error_text):
+        _prepare(manifest, tmp_path)
+
+
+def test_valid_sample_rights_remain_preparable_in_incomplete_cohort(tmp_path):
+    manifest, _, _, _ = _registered(tmp_path)
+    manifest['cohort_status'] = 'candidate_selection_incomplete'
+
+    candidate, result, _, _ = _prepare(manifest, tmp_path)
+
+    assert candidate['cohort_status'] == 'candidate_selection_incomplete'
+    assert result['sample_id'] == SAMPLE_ID
 
 
 def test_existing_prepared_output_is_never_overwritten(tmp_path):
@@ -313,6 +334,7 @@ def test_manifest_replace_failure_rolls_back_prepared_audio(tmp_path, monkeypatc
 
     def fail_manifest_replace(source, destination):
         if Path(destination) == manifest_path:
+            original_replace(source, destination)
             raise OSError('injected manifest replace failure')
         return original_replace(source, destination)
 
@@ -324,5 +346,111 @@ def test_manifest_replace_failure_rolls_back_prepared_audio(tmp_path, monkeypatc
     assert exit_code == 1
     assert 'injected manifest replace failure' in capsys.readouterr().err
     assert manifest_path.read_bytes() == original
+    assert not (tmp_path / f'data/calibration/audio/prepared/{SAMPLE_ID}.wav').exists()
+
+
+def test_external_manifest_change_before_publish_is_preserved_without_orphan(
+    tmp_path, monkeypatch, capsys,
+):
+    manifest, _, _, _ = _registered(tmp_path)
+    manifest_path = tmp_path / 'manifest.json'
+    original = json.dumps(manifest).encode()
+    manifest_path.write_bytes(original)
+    external = json.dumps({**manifest, 'external_writer_marker': 'kept'}).encode()
+    monkeypatch.setattr(preparation, 'REPOSITORY_ROOT', tmp_path)
+    real_write_temp_manifest = preparation._write_temp_manifest
+
+    def mutate_before_publish(path, candidate):
+        temporary = real_write_temp_manifest(path, candidate)
+        manifest_path.write_bytes(external)
+        return temporary
+
+    monkeypatch.setattr(preparation, '_write_temp_manifest', mutate_before_publish)
+    code = preparation.main(['--manifest', str(manifest_path), '--sample-id', SAMPLE_ID, '--write'])
+
+    assert code == 1
+    assert 'manifest changed since this operation started' in capsys.readouterr().err
+    assert manifest_path.read_bytes() == external
+    assert not (tmp_path / f'data/calibration/audio/prepared/{SAMPLE_ID}.wav').exists()
+
+
+def test_two_different_sample_writers_from_same_snapshot_prevent_lost_update(tmp_path):
+    manifest = _manifest()
+    second_id = 'cal-incompetech-lasting-hope'
+    for seed, sample_id in enumerate((SAMPLE_ID, second_id), start=1):
+        relative, _, _ = _write_source(tmp_path, sample_id=sample_id, seed=seed)
+        manifest, _ = registration.register_source_audio(
+            manifest, sample_id, relative, 'official_direct_download', 'full_track', True,
+            'verified from full source file', repository_root=tmp_path,
+        )
+    manifest_path = tmp_path / 'manifest.json'
+    initial = json.dumps(manifest).encode()
+    manifest_path.write_bytes(initial)
+    expected_digest = __import__('hashlib').sha256(initial).hexdigest()
+    first_candidate, first_result, first_payload, first_pcm = preparation.prepare_sample(
+        manifest, SAMPLE_ID, repository_root=tmp_path
+    )
+    second_candidate, second_result, second_payload, second_pcm = preparation.prepare_sample(
+        manifest, second_id, repository_root=tmp_path
+    )
+
+    preparation._write_prepared_pair(
+        manifest_path, first_candidate, first_result, first_payload, first_pcm, tmp_path,
+        expected_digest,
+    )
+    with pytest.raises(ValueError, match='manifest changed since this operation started'):
+        preparation._write_prepared_pair(
+            manifest_path, second_candidate, second_result, second_payload, second_pcm, tmp_path,
+            expected_digest,
+        )
+
+    current = json.loads(manifest_path.read_text(encoding='utf-8'))
+    current_by_id = {item['sample_id']: item for item in current['samples']}
+    assert current_by_id[SAMPLE_ID]['prepared_sha256'] == first_result['prepared_sha256']
+    assert current_by_id[second_id]['prepared_local_path'] is None
+    assert (tmp_path / first_result['prepared_local_path']).is_file()
+    assert not (tmp_path / second_result['prepared_local_path']).exists()
+
+
+def test_same_sample_second_writer_cannot_publish_from_stale_snapshot(tmp_path):
+    manifest, _, _, _ = _registered(tmp_path)
+    manifest_path = tmp_path / 'manifest.json'
+    initial = json.dumps(manifest).encode()
+    manifest_path.write_bytes(initial)
+    expected_digest = __import__('hashlib').sha256(initial).hexdigest()
+    candidate, result, payload, pcm = preparation.prepare_sample(
+        manifest, SAMPLE_ID, repository_root=tmp_path
+    )
+
+    preparation._write_prepared_pair(
+        manifest_path, candidate, result, payload, pcm, tmp_path, expected_digest,
+    )
+    with pytest.raises(FileExistsError):
+        preparation._write_prepared_pair(
+            manifest_path, candidate, result, payload, pcm, tmp_path, expected_digest,
+        )
+    assert json.loads(manifest_path.read_text(encoding='utf-8'))['samples'][0]['prepared_sha256'] == result['prepared_sha256']
+
+
+def test_rollback_does_not_overwrite_external_manifest_change(tmp_path, monkeypatch, capsys):
+    manifest, _, _, _ = _registered(tmp_path)
+    manifest_path = tmp_path / 'manifest.json'
+    original = json.dumps(manifest).encode()
+    manifest_path.write_bytes(original)
+    external = json.dumps({**manifest, 'external_writer_marker': 'preserve'}).encode()
+    monkeypatch.setattr(preparation, 'REPOSITORY_ROOT', tmp_path)
+    real_sha256 = preparation.sha256
+
+    def mutate_then_fail_hash(path):
+        if Path(path) == tmp_path / f'data/calibration/audio/prepared/{SAMPLE_ID}.wav':
+            manifest_path.write_bytes(external)
+            return '0' * 64
+        return real_sha256(path)
+
+    monkeypatch.setattr(preparation, 'sha256', mutate_then_fail_hash)
+    code = preparation.main(['--manifest', str(manifest_path), '--sample-id', SAMPLE_ID, '--write'])
+
+    assert code == 1
+    assert manifest_path.read_bytes() == external
     assert not (tmp_path / f'data/calibration/audio/prepared/{SAMPLE_ID}.wav').exists()
 
