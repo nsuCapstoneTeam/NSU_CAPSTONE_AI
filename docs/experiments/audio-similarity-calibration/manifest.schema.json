@@ -152,17 +152,13 @@
                   },
                   "then": {
                     "properties": {
-                      "decoded_duration": {
-                        "type": "number",
-                        "minimum": 60
-                      },
-                      "decoded_frame_count": {
-                        "type": "integer",
-                        "minimum": 1
+                      "source_local_path": {
+                        "$ref": "#/$defs/sourceAudioPath"
                       }
                     },
                     "required": [
-                      "decoded_frame_count"
+                      "source_local_path",
+                      "source_sha256"
                     ]
                   }
                 },
@@ -227,6 +223,30 @@
         {
           "type": "null"
         }
+      ]
+    },
+    "sourceAudioPath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Repository-relative POSIX path with at least a sample directory and file below data/calibration/audio/source/. JSON Schema enforces path shape and traversal safety; the semantic validator binds the first directory to the record sample_id and checks resolved containment.",
+      "pattern": "^data/calibration/audio/source/(?!\\.{1,2}(?:/|$))(?!.*\\/\\.{1,2}(?:\\/|$))[^/\\\\]+/[^/\\\\]+(?:/[^/\\\\]+)*$"
+    },
+    "nullableSourceAudioPath": {
+      "oneOf": [
+        {"$ref": "#/$defs/sourceAudioPath"},
+        {"type": "null"}
+      ]
+    },
+    "preparedAudioPath": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Repository-relative POSIX WAV path below data/calibration/audio/prepared/. JSON Schema enforces path shape and traversal safety; the semantic validator binds the filename stem to the record sample_id and checks resolved containment.",
+      "pattern": "^data/calibration/audio/prepared/(?!\\.{1,2}$)[^/\\\\]+\\.wav$"
+    },
+    "nullablePreparedAudioPath": {
+      "oneOf": [
+        {"$ref": "#/$defs/preparedAudioPath"},
+        {"type": "null"}
       ]
     },
     "nullableNumber": {
@@ -320,6 +340,7 @@
         "provider",
         "provider_track_id",
         "source_url",
+        "source_local_path",
         "source_sha256",
         "source_catalog_duration",
         "decoded_duration",
@@ -333,9 +354,13 @@
         "attribution_required",
         "rights_status",
         "acquisition_method",
+        "source_file_kind",
+        "full_track_verified",
+        "full_track_evidence",
         "segment_rule",
         "segment_start_frame",
         "segment_end_frame_exclusive",
+        "prepared_local_path",
         "prepared_sha256",
         "prepared_duration",
         "genre_value",
@@ -375,6 +400,9 @@
           "pattern": "^https?://[^\\s/]+(?:/[^\\s]*)?$",
           "format": "uri"
         },
+        "source_local_path": {
+          "$ref": "#/$defs/nullableSourceAudioPath"
+        },
         "source_sha256": {
           "oneOf": [
             {
@@ -407,8 +435,8 @@
           "$ref": "#/$defs/nullablePositiveInteger"
         },
         "source_file_size": {
-          "$ref": "#/$defs/nullableNonNegativeInteger",
-          "description": "Optional source-file byte count recorded during acquisition; absent or null before acquisition, and never negative."
+          "$ref": "#/$defs/nullablePositiveInteger",
+          "description": "Null before acquisition; a positive byte count is required from acquired state onward."
         },
         "source_codec": {
           "$ref": "#/$defs/nullableString"
@@ -463,6 +491,16 @@
             "pending"
           ]
         },
+        "source_file_kind": {
+          "type": "string",
+          "enum": ["full_track", "preview", "sample", "unknown"]
+        },
+        "full_track_verified": {
+          "type": ["boolean", "null"]
+        },
+        "full_track_evidence": {
+          "$ref": "#/$defs/nullableString"
+        },
         "segment_rule": {
           "type": "string",
           "const": "offline_calibration_decoded_audio_center_exact_60_seconds"
@@ -472,6 +510,9 @@
         },
         "segment_end_frame_exclusive": {
           "$ref": "#/$defs/nullableNonNegativeInteger"
+        },
+        "prepared_local_path": {
+          "$ref": "#/$defs/nullablePreparedAudioPath"
         },
         "prepared_sha256": {
           "oneOf": [
@@ -548,12 +589,21 @@
           },
           "then": {
             "required": [
-              "source_sha256"
+              "source_local_path",
+              "source_sha256",
+              "source_file_size"
             ],
             "properties": {
+              "source_local_path": {
+                "$ref": "#/$defs/sourceAudioPath"
+              },
               "source_sha256": {
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
+              },
+              "source_file_size": {
+                "type": "integer",
+                "minimum": 1
               }
             }
           }
@@ -562,7 +612,7 @@
           "if": {
             "properties": {
               "acquisition_method": {
-                "const": "not_acquired"
+                "enum": ["not_acquired", "pending"]
               }
             },
             "required": [
@@ -572,6 +622,9 @@
           "then": {
             "properties": {
               "source_sha256": {
+                "type": "null"
+              },
+              "source_local_path": {
                 "type": "null"
               },
               "source_file_size": {
@@ -592,6 +645,15 @@
               "source_codec": {
                 "type": "null"
               },
+              "source_file_kind": {
+                "const": "unknown"
+              },
+              "full_track_verified": {
+                "type": "null"
+              },
+              "full_track_evidence": {
+                "type": "null"
+              },
               "segment_start_frame": {
                 "type": "null"
               },
@@ -599,6 +661,9 @@
                 "type": "null"
               },
               "prepared_sha256": {
+                "type": "null"
+              },
+              "prepared_local_path": {
                 "type": "null"
               },
               "prepared_duration": {
@@ -678,6 +743,13 @@
             "anyOf": [
               {
                 "properties": {
+                  "prepared_local_path": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "properties": {
                   "prepared_sha256": {
                     "type": "string"
                   }
@@ -709,15 +781,21 @@
           "then": {
             "required": [
               "acquisition_method",
+              "source_local_path",
               "source_sha256",
+              "source_file_size",
               "decoded_duration",
               "decoded_frame_count",
               "source_sample_rate",
               "source_channels",
               "segment_start_frame",
               "segment_end_frame_exclusive",
+              "prepared_local_path",
               "prepared_sha256",
-              "prepared_duration"
+              "prepared_duration",
+              "source_file_kind",
+              "full_track_verified",
+              "full_track_evidence"
             ],
             "properties": {
               "acquisition_method": {
@@ -729,6 +807,24 @@
               "source_sha256": {
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
+              },
+              "source_local_path": {
+                "$ref": "#/$defs/sourceAudioPath"
+              },
+              "source_file_size": {
+                "type": "integer",
+                "minimum": 1
+              },
+              "source_file_kind": {
+                "const": "full_track"
+              },
+              "full_track_verified": {
+                "const": true
+              },
+              "full_track_evidence": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
               },
               "decoded_duration": {
                 "type": "number",
@@ -758,8 +854,67 @@
                 "type": "string",
                 "pattern": "^[a-f0-9]{64}$"
               },
+              "prepared_local_path": {
+                "$ref": "#/$defs/preparedAudioPath"
+              },
               "prepared_duration": {
                 "const": 60
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "source_file_kind": {"enum": ["preview", "sample", "unknown"]}
+            },
+            "required": ["source_file_kind"]
+          },
+          "then": {
+            "properties": {
+              "full_track_verified": {"not": {"const": true}},
+              "prepared_local_path": {"type": "null"},
+              "prepared_sha256": {"type": "null"},
+              "prepared_duration": {"type": "null"},
+              "segment_start_frame": {"type": "null"},
+              "segment_end_frame_exclusive": {"type": "null"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {"full_track_verified": {"const": true}},
+            "required": ["full_track_verified"]
+          },
+          "then": {
+            "required": [
+              "acquisition_method",
+              "source_local_path",
+              "source_sha256",
+              "source_file_size",
+              "decoded_duration",
+              "decoded_frame_count",
+              "source_sample_rate",
+              "source_channels",
+              "source_file_kind",
+              "full_track_evidence"
+            ],
+            "properties": {
+              "acquisition_method": {
+                "enum": ["official_direct_download", "other_confirmed_method"]
+              },
+              "source_local_path": {"$ref": "#/$defs/sourceAudioPath"},
+              "source_sha256": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+              "source_file_size": {"type": "integer", "minimum": 1},
+              "decoded_duration": {"type": "number", "minimum": 60},
+              "decoded_frame_count": {"type": "integer", "minimum": 1},
+              "source_sample_rate": {"type": "integer", "minimum": 1},
+              "source_channels": {"type": "integer", "minimum": 1},
+              "source_file_kind": {"const": "full_track"},
+              "full_track_evidence": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "\\S"
               }
             }
           }

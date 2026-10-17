@@ -1,8 +1,6 @@
 """Run all JSON Schema and cross-record checks for the calibration dataset."""
 
 import argparse
-import json
-import math
 import sys
 from pathlib import Path
 
@@ -17,10 +15,13 @@ from scripts.matching.validate_calibration_manifest import (
     artist_count_errors,
     complete_cohort_license_evidence_errors,
     decoded_audio_consistency_errors,
+    acquisition_preparation_errors,
+    duplicate_source_content_hashes,
     duplicate_provider_track_identities,
     duplicate_sample_ids,
     duplicate_source_urls,
 )
+from scripts.matching.strict_json import parse_json_bytes as _parse_json_bytes
 
 
 CALIBRATION_DIR = (
@@ -55,6 +56,7 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
         errors.extend(complete_cohort_license_evidence_errors(manifest))
         errors.extend(artist_count_errors(manifest))
         errors.extend(decoded_audio_consistency_errors(manifest))
+        errors.extend(acquisition_preparation_errors(manifest))
     except ValueError as exc:
         errors.append(str(exc))
 
@@ -69,6 +71,9 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
         if duplicates:
             formatted = ', '.join(f'({provider}, {track_id})' for provider, track_id in duplicates)
             errors.append('Duplicate (provider, provider_track_id) identities: ' + formatted)
+        duplicates = duplicate_source_content_hashes(manifest)
+        if duplicates:
+            errors.append('Duplicate source content SHA-256 values: ' + ', '.join(duplicates))
     except ValueError as exc:
         errors.append(str(exc))
 
@@ -91,24 +96,9 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
     return errors
 
 
-def _reject_non_finite_constant(token):
-    raise ValueError(f'Non-finite JSON numeric constant {token!r} is not allowed')
-
-
-def _parse_finite_float(token):
-    value = float(token)
-    if not math.isfinite(value):
-        raise ValueError(f'Non-finite JSON number {token!r} is not allowed')
-    return value
-
-
 def _read_json(path, label):
     try:
-        return json.loads(
-            path.read_text(encoding='utf-8-sig'),
-            parse_constant=_reject_non_finite_constant,
-            parse_float=_parse_finite_float,
-        )
+        return _parse_json_bytes(path.read_bytes(), label, path)
     except (OSError, ValueError) as exc:
         raise ValueError(f'Cannot read {label} from {path}: {exc}') from exc
 

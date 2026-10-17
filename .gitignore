@@ -31,6 +31,7 @@ env/
 # Python tools
 # =========================
 .pytest_cache/
+.codex-runtime/
 .mypy_cache/
 .ruff_cache/
 
@@ -53,6 +54,7 @@ Thumbs.db
 *.log
 tmp/
 temp/
+.review-tests-*/
 
 # =========================
 # Audio / Dataset

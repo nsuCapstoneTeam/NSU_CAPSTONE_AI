@@ -1,8 +1,12 @@
 import json
 import subprocess
 import sys
+from pathlib import Path
 
-from scripts.matching.validate_calibration_event_queries import duplicate_query_ids
+from scripts.matching.validate_calibration_event_queries import (
+    duplicate_query_ids,
+    main as validate_event_queries_main,
+)
 
 
 def test_duplicate_query_ids_reports_only_repeated_ids():
@@ -33,6 +37,21 @@ def test_unique_query_ids_pass_cli_with_twenty_queries(tmp_path):
 
     assert result.returncode == 0
     assert 'Unique query_id check passed: 20 queries.' in result.stdout
+
+
+def test_event_query_validator_cli_rejects_nonstandard_json_number(tmp_path, capsys):
+    source = (
+        Path(__file__).resolve().parents[2]
+        / 'docs' / 'experiments' / 'audio-similarity-calibration' / 'event-queries.json'
+    )
+    text = source.read_text(encoding='utf-8')
+    path = tmp_path / 'event-queries.json'
+    path.write_text(text[:-2] + ', "probe": NaN}\n', encoding='utf-8')
+
+    result = validate_event_queries_main([str(path)])
+
+    assert result == 1
+    assert 'Non-finite JSON' in capsys.readouterr().err
 
 
 def test_duplicate_query_id_fails_cli_even_with_twenty_queries(tmp_path):

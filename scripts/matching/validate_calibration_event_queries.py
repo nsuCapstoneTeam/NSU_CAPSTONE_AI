@@ -1,9 +1,10 @@
 """Calibration Event query inventory의 query_id 고유성을 검사하는 CLI."""
 
 import argparse
-import json
 import sys
 from pathlib import Path
+
+from scripts.matching.strict_json import parse_json_bytes
 
 
 DEFAULT_EVENT_QUERIES = (
@@ -200,9 +201,11 @@ def main(argv=None):
     args = parser.parse_args(argv)
 
     try:
-        payload = json.loads(args.event_queries.read_text(encoding='utf-8-sig'))
+        payload = parse_json_bytes(
+            args.event_queries.read_bytes(), 'event query inventory', args.event_queries
+        )
         duplicates = duplicate_query_ids(payload)
-    except (OSError, json.JSONDecodeError, ValueError) as exc:
+    except (OSError, ValueError) as exc:
         print(f'Invalid calibration Event query inventory: {exc}', file=sys.stderr)
         return 1
 
