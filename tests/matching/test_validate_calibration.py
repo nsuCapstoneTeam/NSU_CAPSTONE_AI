@@ -4,6 +4,7 @@ import sys
 from pathlib import Path
 
 import pytest
+from jsonschema import Draft202012Validator, FormatChecker
 
 from scripts.matching.validate_calibration import _read_json, main
 
@@ -37,9 +38,160 @@ def _run_validator(tmp_path, capsys, *, manifest=None, event_queries=None):
     return result, capsys.readouterr()
 
 
+def _acquired_full_track_sample(*, prepared=False):
+    sample = _load_json('manifest.json')['samples'][0]
+    sample.update({
+        'acquisition_method': 'official_direct_download',
+        'source_local_path': 'data/calibration/audio/source/cal-incompetech-mandeville/track.mp3',
+        'source_sha256': 'a' * 64,
+        'source_file_size': 1024,
+        'decoded_duration': 120,
+        'decoded_frame_count': 960000,
+        'source_sample_rate': 8000,
+        'source_channels': 2,
+        'source_codec': 'mp3',
+        'source_file_kind': 'full_track',
+        'full_track_verified': True,
+        'full_track_evidence': 'Verified acquired full-track file against the provider track page.',
+    })
+    if prepared:
+        sample.update({
+            'prepared_local_path': 'data/calibration/audio/prepared/cal-incompetech-mandeville.wav',
+            'segment_start_frame': 240000,
+            'segment_end_frame_exclusive': 720000,
+            'prepared_sha256': 'b' * 64,
+            'prepared_duration': 60,
+        })
+    return sample
+
+
+def _manifest_with_sample(sample):
+    manifest = _load_json('manifest.json')
+    manifest['samples'][0] = sample
+    return manifest
+
+
+def _manifest_schema_valid(manifest):
+    schema = _load_json('manifest.schema.json')
+    errors = list(Draft202012Validator(schema, format_checker=FormatChecker()).iter_errors(manifest))
+    return not errors
+
+
 def test_current_manifest_and_event_queries_pass(capsys):
     assert main([]) == 0
     assert 'Calibration validation passed' in capsys.readouterr().out
+
+
+def test_valid_acquired_full_track_state_passes(tmp_path, capsys):
+    result, output = _run_validator(
+        tmp_path, capsys, manifest=_manifest_with_sample(_acquired_full_track_sample())
+    )
+    assert result == 0, output.err
+
+
+def test_valid_prepared_full_track_state_passes(tmp_path, capsys):
+    result, output = _run_validator(
+        tmp_path, capsys, manifest=_manifest_with_sample(_acquired_full_track_sample(prepared=True))
+    )
+    assert result == 0, output.err
+
+
+@pytest.mark.parametrize(
+    'path',
+    [
+        'data/calibration/audio/source/../outside.mp3',
+        'data/calibration/audio/source/./outside.mp3',
+        'data/calibration/audio/source/cal-incompetech-mandeville/a/../outside.mp3',
+        'data/calibration/audio/source/cal-incompetech-mandeville/a/./outside.mp3',
+        '/data/calibration/audio/source/cal-incompetech-mandeville/track.mp3',
+        'C:/data/calibration/audio/source/cal-incompetech-mandeville/track.mp3',
+        '\\\\server\\share\\track.mp3',
+    ],
+)
+def test_schema_only_rejects_unsafe_source_paths(path):
+    sample = _acquired_full_track_sample()
+    sample['source_local_path'] = path
+    assert not _manifest_schema_valid(_manifest_with_sample(sample))
+
+
+@pytest.mark.parametrize(
+    'path',
+    [
+        'data/calibration/audio/prepared/../outside.wav',
+        'data/calibration/audio/prepared/cal-incompetech-mandeville/../outside.wav',
+        '/data/calibration/audio/prepared/cal-incompetech-mandeville.wav',
+        'D:/data/calibration/audio/prepared/cal-incompetech-mandeville.wav',
+        '\\\\server\\share\\cal-incompetech-mandeville.wav',
+    ],
+)
+def test_schema_only_rejects_unsafe_prepared_paths(path):
+    sample = _acquired_full_track_sample(prepared=True)
+    sample['prepared_local_path'] = path
+    assert not _manifest_schema_valid(_manifest_with_sample(sample))
+
+
+def test_schema_leaves_sample_id_path_binding_to_semantic_validator(tmp_path, capsys):
+    sample = _acquired_full_track_sample(prepared=True)
+    sample['source_local_path'] = 'data/calibration/audio/source/cal-other/track.mp3'
+    sample['prepared_local_path'] = 'data/calibration/audio/prepared/cal-other.wav'
+    manifest = _manifest_with_sample(sample)
+
+    # JSON Schema validates path syntax only; sibling identity is a Python semantic rule.
+    assert _manifest_schema_valid(manifest)
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+    assert result == 1
+    assert 'source_local_path' in output.err
+    assert 'prepared_local_path' in output.err
+
+
+@pytest.mark.parametrize('prepared', [False, True])
+def test_acquired_and_prepared_states_require_source_file_size(tmp_path, capsys, prepared):
+    sample = _acquired_full_track_sample(prepared=prepared)
+    sample['source_file_size'] = None
+    result, output = _run_validator(
+        tmp_path, capsys, manifest=_manifest_with_sample(sample)
+    )
+    assert result == 1
+    assert 'source_file_size' in output.err
+
+
+@pytest.mark.parametrize(
+    ('mutate', 'expected'),
+    [
+        (lambda s: s.update(source_file_kind='preview'), 'full_track'),
+        (lambda s: s.update(full_track_evidence=None), 'full_track_evidence'),
+        (lambda s: s.update(source_file_kind='unknown'), 'verified full-track'),
+        (lambda s: s.update(source_file_kind='preview'), 'cannot be prepared'),
+        (lambda s: s.update(decoded_duration=59), 'decoded_duration'),
+        (lambda s: s.update(segment_end_frame_exclusive=719999), 'frame span'),
+        (lambda s: s.update(source_local_path='D:/audio/track.mp3'), 'source_local_path'),
+        (lambda s: s.update(source_local_path='data/calibration/audio/source/../outside.mp3'), 'source_local_path'),
+        (lambda s: s.update(source_local_path='data/calibration/audio/source/another-song/track.mp3'), 'source_local_path'),
+        (lambda s: s.update(prepared_local_path='data/calibration/audio/prepared/another-song.wav'), 'prepared_local_path'),
+        (lambda s: s.update(prepared_local_path=None), 'prepared_local_path'),
+        (lambda s: s.update(source_sha256=None), 'source_sha256'),
+        (lambda s: s.update(source_local_path=None), 'source_local_path'),
+    ],
+    ids=[
+        'verified-preview', 'missing-full-track-evidence', 'unknown-prepared', 'preview-prepared',
+        'duration-under-60', 'wrong-frame-span', 'absolute-source-path', 'source-path-traversal',
+        'wrong-source-song-directory', 'wrong-prepared-file-name', 'missing-prepared-path',
+        'missing-source-hash', 'missing-source-path',
+    ],
+)
+def test_invalid_acquisition_or_prepared_state_fails(tmp_path, capsys, mutate, expected):
+    sample = _acquired_full_track_sample(prepared=True)
+    mutate(sample)
+    result, output = _run_validator(tmp_path, capsys, manifest=_manifest_with_sample(sample))
+    assert result == 1
+    assert expected in output.err
+
+
+def test_not_acquired_manifest_does_not_require_audio_filesystem_access():
+    manifest = _load_json('manifest.json')
+    assert all(sample['acquisition_method'] == 'not_acquired' for sample in manifest['samples'])
+    assert all(sample['source_local_path'] is None for sample in manifest['samples'])
+    assert all(sample['prepared_local_path'] is None for sample in manifest['samples'])
 
 
 @pytest.mark.parametrize('token', ['NaN', 'Infinity', '-Infinity', '1e999', '-1e999'])
@@ -587,6 +739,7 @@ def test_finite_source_measurements_with_valid_integer_units_pass(tmp_path, caps
     manifest = _load_json('manifest.json')
     sample = manifest['samples'][0]
     sample['acquisition_method'] = 'official_direct_download'
+    sample['source_local_path'] = 'data/calibration/audio/source/cal-incompetech-mandeville/track.mp3'
     sample['source_sha256'] = 'a' * 64
     sample['source_sample_rate'] = 44100
     sample['source_channels'] = 2
@@ -733,10 +886,39 @@ def test_optional_attribution_may_be_null(tmp_path, capsys):
     assert result == 0, output.err
 
 
-def test_complete_cohort_with_decoded_duration_below_60_fails(tmp_path, capsys):
+def test_acquired_short_preview_is_valid_metadata(tmp_path, capsys):
     manifest = _load_json('manifest.json')
-    manifest['samples'][0]['decoded_duration'] = 59.9
-    manifest['samples'][0]['acquisition_method'] = 'official_direct_download'
+    sample = manifest['samples'][0]
+    sample['acquisition_method'] = 'official_direct_download'
+    sample['source_local_path'] = 'data/calibration/audio/source/cal-incompetech-mandeville/track.mp3'
+    sample['source_sha256'] = 'a' * 64
+    sample['source_file_size'] = 4096
+    sample['source_file_kind'] = 'preview'
+    sample['full_track_verified'] = False
+    sample['decoded_duration'] = 59.9
+    sample['decoded_frame_count'] = int(59.9 * 44100)
+    sample['source_sample_rate'] = 44100
+    sample['source_channels'] = 2
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
+
+
+def test_short_source_cannot_be_marked_verified_full_track(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    sample = manifest['samples'][0]
+    sample['acquisition_method'] = 'official_direct_download'
+    sample['source_local_path'] = 'data/calibration/audio/source/cal-incompetech-mandeville/track.mp3'
+    sample['source_sha256'] = 'a' * 64
+    sample['source_file_size'] = 4096
+    sample['source_file_kind'] = 'full_track'
+    sample['full_track_verified'] = True
+    sample['full_track_evidence'] = 'Provider track metadata and source file reviewed.'
+    sample['decoded_duration'] = 59
+    sample['decoded_frame_count'] = 59 * 44100
+    sample['source_sample_rate'] = 44100
+    sample['source_channels'] = 2
 
     result, output = _run_validator(tmp_path, capsys, manifest=manifest)
 
@@ -744,21 +926,38 @@ def test_complete_cohort_with_decoded_duration_below_60_fails(tmp_path, capsys):
     assert 'decoded_duration' in output.err
 
 
-def test_acquired_complete_sample_requires_decoded_duration(tmp_path, capsys):
+def test_acquired_sample_requires_source_path_hash_and_size(tmp_path, capsys):
     manifest = _load_json('manifest.json')
     manifest['samples'][0]['acquisition_method'] = 'official_direct_download'
 
     result, output = _run_validator(tmp_path, capsys, manifest=manifest)
 
     assert result == 1
-    assert 'decoded_duration' in output.err
+    assert 'source_local_path' in output.err
+    assert 'source_sha256' in output.err
+    assert 'source_file_size' in output.err
+
+
+def test_acquired_sample_can_be_awaiting_decode(tmp_path, capsys):
+    manifest = _load_json('manifest.json')
+    sample = manifest['samples'][0]
+    sample['acquisition_method'] = 'official_direct_download'
+    sample['source_local_path'] = 'data/calibration/audio/source/cal-incompetech-mandeville/track.mp3'
+    sample['source_sha256'] = 'a' * 64
+    sample['source_file_size'] = 4096
+
+    result, output = _run_validator(tmp_path, capsys, manifest=manifest)
+
+    assert result == 0, output.err
 
 
 def test_acquired_complete_sample_with_60_second_decode_passes(tmp_path, capsys):
     manifest = _load_json('manifest.json')
     sample = manifest['samples'][0]
     sample['acquisition_method'] = 'official_direct_download'
+    sample['source_local_path'] = 'data/calibration/audio/source/cal-incompetech-mandeville/track.mp3'
     sample['source_sha256'] = 'a' * 64
+    sample['source_file_size'] = 4096
     sample['decoded_duration'] = 60
     sample['decoded_frame_count'] = 60 * 44100
     sample['source_sample_rate'] = 44100
@@ -771,13 +970,19 @@ def test_acquired_complete_sample_with_60_second_decode_passes(tmp_path, capsys)
 
 def _set_valid_prepared_segment(sample):
     sample['acquisition_method'] = 'official_direct_download'
+    sample['source_local_path'] = 'data/calibration/audio/source/cal-incompetech-mandeville/track.mp3'
     sample['source_sha256'] = 'a' * 64
+    sample['source_file_size'] = 4096
+    sample['source_file_kind'] = 'full_track'
+    sample['full_track_verified'] = True
+    sample['full_track_evidence'] = 'Verified acquired full-track file against the provider track page.'
     sample['decoded_frame_count'] = 80 * 44100
     sample['decoded_duration'] = 80
     sample['source_sample_rate'] = 44100
     sample['source_channels'] = 2
     sample['segment_start_frame'] = 10 * 44100
     sample['segment_end_frame_exclusive'] = 70 * 44100
+    sample['prepared_local_path'] = 'data/calibration/audio/prepared/cal-incompetech-mandeville.wav'
     sample['prepared_sha256'] = 'b' * 64
     sample['prepared_duration'] = 60
 

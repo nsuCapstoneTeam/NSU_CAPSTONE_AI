@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -13,6 +14,162 @@ DEFAULT_MANIFEST = (
     / 'audio-similarity-calibration'
     / 'manifest.json'
 )
+
+_SHA256_RE = re.compile(r'^[a-f0-9]{64}$')
+_SOURCE_AUDIO_ROOT = 'data/calibration/audio/source/'
+_PREPARED_AUDIO_ROOT = 'data/calibration/audio/prepared/'
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+
+
+def _valid_repository_relative_audio_path(value, prefix):
+    """Accept only a repository-relative POSIX path below the requested data directory."""
+    if not isinstance(value, str) or not value.strip() or '\\' in value:
+        return False
+    if value.startswith('/') or re.match(r'^[A-Za-z]:', value):
+        return False
+    if not value.startswith(prefix):
+        return False
+    components = value.split('/')
+    return all(component not in ('', '.', '..') for component in components)
+
+
+def _resolves_within_repository(value, repository_root):
+    root = Path(repository_root).resolve()
+    candidate = root.joinpath(*value.split('/')).resolve(strict=False)
+    return candidate.is_relative_to(root)
+
+
+def acquisition_preparation_errors(manifest, repository_root=_REPOSITORY_ROOT):
+    """Validate acquisition identity and the prerequisites for a prepared 60-second asset."""
+    if not isinstance(manifest, dict) or not isinstance(manifest.get('samples'), list):
+        raise ValueError("manifest must contain a 'samples' array")
+
+    errors = []
+    for index, sample in enumerate(manifest['samples']):
+        if not isinstance(sample, dict):
+            raise ValueError(f'samples[{index}] must be an object')
+        sample_id = sample.get('sample_id', f'samples[{index}]')
+
+        source_path = sample.get('source_local_path')
+        source_prefix = f'{_SOURCE_AUDIO_ROOT}{sample_id}/'
+        if source_path is not None and not _valid_repository_relative_audio_path(source_path, source_prefix):
+            errors.append(
+                f'{sample_id}.source_local_path must be a repository-relative path below {source_prefix}'
+            )
+        elif source_path is not None:
+            try:
+                if not _resolves_within_repository(source_path, repository_root):
+                    errors.append(f'{sample_id}.source_local_path resolves outside the repository root')
+            except (OSError, RuntimeError, ValueError):
+                errors.append(f'{sample_id}.source_local_path cannot be safely resolved')
+
+        prepared_path = sample.get('prepared_local_path')
+        expected_prepared_path = f'{_PREPARED_AUDIO_ROOT}{sample_id}.wav'
+        if prepared_path is not None and prepared_path != expected_prepared_path:
+            errors.append(
+                f'{sample_id}.prepared_local_path must equal {expected_prepared_path}'
+            )
+        elif prepared_path is not None:
+            try:
+                if not _resolves_within_repository(prepared_path, repository_root):
+                    errors.append(f'{sample_id}.prepared_local_path resolves outside the repository root')
+            except (OSError, RuntimeError, ValueError):
+                errors.append(f'{sample_id}.prepared_local_path cannot be safely resolved')
+
+        method = sample.get('acquisition_method')
+        kind = sample.get('source_file_kind')
+        verified = sample.get('full_track_verified')
+        evidence = sample.get('full_track_evidence')
+        source_hash = sample.get('source_sha256')
+        prepared_fields = (
+            'prepared_local_path', 'prepared_sha256', 'prepared_duration',
+            'segment_start_frame', 'segment_end_frame_exclusive',
+        )
+        prepared = any(sample.get(field) is not None for field in prepared_fields)
+
+        if verified is True:
+            if kind != 'full_track':
+                errors.append(f'{sample_id}.full_track_verified=true requires source_file_kind=full_track')
+            if not isinstance(evidence, str) or not evidence.strip():
+                errors.append(f'{sample_id}.full_track_evidence must be non-blank when full_track_verified=true')
+
+        if kind in ('preview', 'sample', 'unknown') and verified is True:
+            errors.append(f'{sample_id} cannot verify {kind} as a full track')
+        if kind in ('preview', 'sample', 'unknown') and prepared:
+            errors.append(f'{sample_id} cannot be prepared when source_file_kind is {kind}')
+
+        if method in ('not_acquired', 'pending'):
+            pre_acquisition_fields = (
+                'source_local_path', 'source_sha256', 'source_file_size', 'decoded_duration',
+                'decoded_frame_count', 'source_sample_rate', 'source_channels', 'source_codec',
+                'prepared_local_path', 'prepared_sha256', 'prepared_duration',
+                'segment_start_frame', 'segment_end_frame_exclusive',
+            )
+            if any(sample.get(field) is not None for field in pre_acquisition_fields):
+                errors.append(f'{sample_id} cannot record acquired/prepared metadata while {method}')
+            if kind != 'unknown' or verified is not None or evidence is not None:
+                errors.append(f'{sample_id} must leave full-track verification unknown while {method}')
+            continue
+
+        if method in ('official_direct_download', 'other_confirmed_method'):
+            if not _valid_repository_relative_audio_path(source_path, source_prefix):
+                errors.append(f'{sample_id}.source_local_path is required for an acquired source')
+            if not isinstance(source_hash, str) or not _SHA256_RE.fullmatch(source_hash):
+                errors.append(f'{sample_id}.source_sha256 is required for an acquired source')
+            size = sample.get('source_file_size')
+            if type(size) is not int or size <= 0:
+                errors.append(f'{sample_id}.source_file_size must be a positive integer for an acquired source')
+
+        if verified is True:
+            required_verified_fields = (
+                'source_local_path', 'source_sha256', 'source_file_size', 'decoded_duration',
+                'decoded_frame_count', 'source_sample_rate', 'source_channels',
+            )
+            missing = [field for field in required_verified_fields if sample.get(field) is None]
+            if missing:
+                errors.append(f'{sample_id} verified full-track state requires: {", ".join(missing)}')
+            duration = sample.get('decoded_duration')
+            if isinstance(duration, (int, float)) and duration < 60:
+                errors.append(f'{sample_id} verified full-track decoded_duration must be at least 60 seconds')
+
+        if prepared:
+            required_source = (
+                ('source_local_path', source_path),
+                ('source_sha256', source_hash),
+                ('source_file_size', sample.get('source_file_size')),
+                ('decoded_duration', sample.get('decoded_duration')),
+                ('decoded_frame_count', sample.get('decoded_frame_count')),
+                ('source_sample_rate', sample.get('source_sample_rate')),
+                ('source_channels', sample.get('source_channels')),
+            )
+            missing = [field for field, value in required_source if value is None]
+            if missing:
+                errors.append(f'{sample_id} prepared metadata requires source/decode fields: {", ".join(missing)}')
+            if method not in ('official_direct_download', 'other_confirmed_method'):
+                errors.append(f'{sample_id} prepared metadata requires a completed acquisition')
+            if kind != 'full_track' or verified is not True or not isinstance(evidence, str) or not evidence.strip():
+                errors.append(f'{sample_id} prepared metadata requires verified full-track evidence')
+            duration = sample.get('decoded_duration')
+            if isinstance(duration, (int, float)) and duration < 60:
+                errors.append(f'{sample_id} decoded_duration must be at least 60 seconds before preparation')
+
+    return errors
+
+
+def duplicate_source_content_hashes(manifest):
+    """Return repeated non-blank source hashes regardless of cohort status."""
+    if not isinstance(manifest, dict) or not isinstance(manifest.get('samples'), list):
+        raise ValueError("manifest must contain a 'samples' array")
+
+    seen = set()
+    duplicates = set()
+    for sample in manifest['samples']:
+        digest = sample.get('source_sha256') if isinstance(sample, dict) else None
+        if isinstance(digest, str) and digest.strip() and _SHA256_RE.fullmatch(digest):
+            if digest in seen:
+                duplicates.add(digest)
+            seen.add(digest)
+    return sorted(duplicates)
 
 
 def duplicate_sample_ids(manifest):
@@ -164,6 +321,7 @@ def decoded_audio_consistency_errors(manifest):
                 )
 
         prepared_fields = (
+            'prepared_local_path',
             'prepared_sha256',
             'prepared_duration',
             'segment_start_frame',

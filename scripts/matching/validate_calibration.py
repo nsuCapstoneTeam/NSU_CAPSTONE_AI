@@ -17,6 +17,8 @@ from scripts.matching.validate_calibration_manifest import (
     artist_count_errors,
     complete_cohort_license_evidence_errors,
     decoded_audio_consistency_errors,
+    acquisition_preparation_errors,
+    duplicate_source_content_hashes,
     duplicate_provider_track_identities,
     duplicate_sample_ids,
     duplicate_source_urls,
@@ -55,6 +57,7 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
         errors.extend(complete_cohort_license_evidence_errors(manifest))
         errors.extend(artist_count_errors(manifest))
         errors.extend(decoded_audio_consistency_errors(manifest))
+        errors.extend(acquisition_preparation_errors(manifest))
     except ValueError as exc:
         errors.append(str(exc))
 
@@ -69,6 +72,9 @@ def validate_calibration(manifest, manifest_schema, event_queries, event_queries
         if duplicates:
             formatted = ', '.join(f'({provider}, {track_id})' for provider, track_id in duplicates)
             errors.append('Duplicate (provider, provider_track_id) identities: ' + formatted)
+        duplicates = duplicate_source_content_hashes(manifest)
+        if duplicates:
+            errors.append('Duplicate source content SHA-256 values: ' + ', '.join(duplicates))
     except ValueError as exc:
         errors.append(str(exc))
 

@@ -53,6 +53,7 @@ Thumbs.db
 *.log
 tmp/
 temp/
+.review-tests-*/
 
 # =========================
 # Audio / Dataset
