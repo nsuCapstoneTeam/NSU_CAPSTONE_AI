@@ -22,6 +22,7 @@ from app.embedding.audio_embedding import (
 )
 from scripts.datasets.highlight_dataset import relative_path, sha256
 from scripts.matching import prepare_calibration_audio as preparation
+from scripts.matching.calibration_manifest_io import exclusive_manifest_update
 from scripts.matching.strict_json import parse_json_bytes
 from scripts.matching.validate_calibration import CALIBRATION_DIR, _read_json, validate_calibration
 
@@ -528,9 +529,15 @@ def publish_output_pair(artifact_temp, artifact_path, evidence_temp, evidence_pa
         os.link(evidence_temp, evidence_path)
         published.append(evidence_path)
         validate_artifact_evidence_pair(artifact_path, evidence_path)
-    except Exception as publish_error:
+    except BaseException as publish_error:
         rollback_errors = []
-        for path in reversed(published):
+        for temporary_path, path in reversed((
+            (artifact_temp, artifact_path), (evidence_temp, evidence_path),
+        )):
+            # A signal may arrive after link() succeeds but before published.append().
+            # Compare inode identity so rollback never removes another writer's file.
+            if path not in published and not _same_file_identity(temporary_path, path):
+                continue
             try:
                 path.unlink()
             except OSError as rollback_error:
@@ -544,6 +551,15 @@ def publish_output_pair(artifact_temp, artifact_path, evidence_temp, evidence_pa
     finally:
         artifact_temp.unlink(missing_ok=True)
         evidence_temp.unlink(missing_ok=True)
+
+
+def _same_file_identity(first, second):
+    try:
+        first_stat = Path(first).stat()
+        second_stat = Path(second).stat()
+    except OSError:
+        return False
+    return (first_stat.st_dev, first_stat.st_ino) == (second_stat.st_dev, second_stat.st_ino)
 
 
 def _expected_checkpoint_identity(root):
@@ -611,7 +627,24 @@ def run(
     artifact_temp, evidence_temp = _write_temporary_outputs(
         artifact_path, evidence_path, vectors, sample_ids, evidence
     )
-    publish_output_pair(artifact_temp, artifact_path, evidence_temp, evidence_path)
+    try:
+        if canonical_outputs:
+            with exclusive_manifest_update(manifest_path, manifest_sha256) as current_manifest_bytes:
+                _require(
+                    current_manifest_bytes == manifest_bytes
+                    and hashlib.sha256(current_manifest_bytes).hexdigest() == manifest_sha256,
+                    'canonical manifest changed before artifact/evidence publish',
+                )
+                _require(
+                    evidence['input_identity']['manifest_bytes_sha256'] == manifest_sha256,
+                    'canonical evidence manifest SHA-256 differs from the publish-validated manifest',
+                )
+                publish_output_pair(artifact_temp, artifact_path, evidence_temp, evidence_path)
+        else:
+            publish_output_pair(artifact_temp, artifact_path, evidence_temp, evidence_path)
+    finally:
+        artifact_temp.unlink(missing_ok=True)
+        evidence_temp.unlink(missing_ok=True)
     return parse_json_bytes(evidence_path.read_bytes(), 'Audio embedding evidence', evidence_path)
 
 

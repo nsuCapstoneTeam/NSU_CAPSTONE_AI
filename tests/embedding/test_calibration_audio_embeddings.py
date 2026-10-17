@@ -162,6 +162,103 @@ def test_deterministic_npz_and_evidence_publish_as_matching_pair(tmp_path):
     assert second_artifact.read_bytes() == artifact_path.read_bytes()
 
 
+def _prepare_canonical_run(tmp_path, monkeypatch, *, mutate_manifest_before_publish=False):
+    manifest, original_manifest_path, rows = _prepared_fixture(tmp_path)
+    manifest_path = tmp_path / audio_runner.DEFAULT_MANIFEST.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_bytes = original_manifest_path.read_bytes()
+    manifest_path.write_bytes(manifest_bytes)
+    manifest = json.loads(manifest_bytes)
+    vectors, sample_ids, evidence, _ = _result(
+        tmp_path, manifest, manifest_path, rows, tmp_path
+    )
+    monkeypatch.setattr(audio_runner, '_git_identity', lambda root: ('a' * 40, True))
+    monkeypatch.setattr(
+        audio_runner,
+        '_expected_checkpoint_identity',
+        lambda root: (
+            evidence['model_runtime']['checkpoint_sha256'],
+            evidence['model_runtime']['checkpoint_revision'],
+        ),
+    )
+    monkeypatch.setattr(
+        audio_runner,
+        'generate_embedding_result',
+        lambda *args, **kwargs: (vectors, sample_ids, evidence),
+    )
+    write_temporary_outputs = audio_runner._write_temporary_outputs
+
+    def write_then_maybe_change_manifest(*args, **kwargs):
+        result = write_temporary_outputs(*args, **kwargs)
+        if mutate_manifest_before_publish:
+            manifest_path.write_bytes(manifest_path.read_bytes() + b' ')
+        return result
+
+    monkeypatch.setattr(
+        audio_runner, '_write_temporary_outputs', write_then_maybe_change_manifest
+    )
+    return manifest_path, manifest_bytes
+
+
+def test_canonical_run_publishes_when_manifest_identity_is_stable(tmp_path, monkeypatch):
+    manifest_path, manifest_bytes = _prepare_canonical_run(tmp_path, monkeypatch)
+
+    evidence = audio_runner.run(
+        manifest_path=manifest_path,
+        artifact_output=audio_runner.DEFAULT_ARTIFACT.relative_to(
+            audio_runner.REPOSITORY_ROOT
+        ),
+        evidence_output=audio_runner.DEFAULT_EVIDENCE.relative_to(
+            audio_runner.REPOSITORY_ROOT
+        ),
+        root=tmp_path,
+        generator=object(),
+        require_complete_cohort=False,
+    )
+
+    artifact_path = tmp_path / audio_runner.DEFAULT_ARTIFACT.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )
+    evidence_path = tmp_path / audio_runner.DEFAULT_EVIDENCE.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )
+    assert artifact_path.is_file()
+    assert evidence_path.is_file()
+    assert evidence['input_identity']['manifest_bytes_sha256'] == hashlib.sha256(
+        manifest_bytes
+    ).hexdigest()
+
+
+def test_canonical_run_rejects_manifest_change_before_publish(tmp_path, monkeypatch):
+    manifest_path, manifest_bytes = _prepare_canonical_run(
+        tmp_path, monkeypatch, mutate_manifest_before_publish=True
+    )
+
+    with pytest.raises(ValueError, match='manifest changed since this operation started'):
+        audio_runner.run(
+            manifest_path=manifest_path,
+            artifact_output=audio_runner.DEFAULT_ARTIFACT.relative_to(
+                audio_runner.REPOSITORY_ROOT
+            ),
+            evidence_output=audio_runner.DEFAULT_EVIDENCE.relative_to(
+                audio_runner.REPOSITORY_ROOT
+            ),
+            root=tmp_path,
+            generator=object(),
+            require_complete_cohort=False,
+        )
+
+    assert manifest_path.read_bytes() != manifest_bytes
+    assert not (tmp_path / audio_runner.DEFAULT_ARTIFACT.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )).exists()
+    assert not (tmp_path / audio_runner.DEFAULT_EVIDENCE.relative_to(
+        audio_runner.REPOSITORY_ROOT
+    )).exists()
+
+
 def test_content_digest_includes_sample_order(tmp_path):
     embeddings = np.asarray([[1.0, 2.0], [3.0, 4.0]], dtype=np.float32)
     assert audio_runner.artifact_content_digest(embeddings, ['one', 'two']) != audio_runner.artifact_content_digest(embeddings, ['two', 'one'])
@@ -425,6 +522,70 @@ def test_artifact_evidence_publish_failure_rolls_back_first_file(tmp_path, monke
     monkeypatch.setattr(audio_runner.os, 'link', fail_evidence_link)
     with pytest.raises(OSError, match='injected evidence publish failure'):
         audio_runner.publish_output_pair(artifact_temp, artifact_path, evidence_temp, evidence_path)
+    assert not artifact_path.exists()
+    assert not evidence_path.exists()
+
+
+@pytest.mark.parametrize('interrupt_type', [KeyboardInterrupt, SystemExit])
+def test_publish_output_pair_rolls_back_interrupt_after_first_link(
+    tmp_path, monkeypatch, interrupt_type,
+):
+    manifest, manifest_path, rows = _prepared_fixture(tmp_path)
+    vectors, ids, evidence, _ = _result(tmp_path, manifest, manifest_path, rows, tmp_path)
+    artifact_path = tmp_path / 'interrupt' / 'out.npz'
+    evidence_path = tmp_path / 'interrupt' / 'out.json'
+    artifact_path.parent.mkdir()
+    artifact_temp, evidence_temp = audio_runner._write_temporary_outputs(
+        artifact_path, evidence_path, vectors, ids, evidence
+    )
+    original_link = audio_runner.os.link
+
+    def link_then_interrupt(source, destination):
+        original_link(source, destination)
+        if Path(destination) == artifact_path:
+            raise interrupt_type('injected after artifact link')
+
+    monkeypatch.setattr(audio_runner.os, 'link', link_then_interrupt)
+    with pytest.raises(interrupt_type, match='injected after artifact link'):
+        audio_runner.publish_output_pair(
+            artifact_temp, artifact_path, evidence_temp, evidence_path
+        )
+    assert not artifact_path.exists()
+    assert not evidence_path.exists()
+
+
+@pytest.mark.parametrize('interrupt_during', ['evidence_link', 'pair_validation'])
+def test_publish_output_pair_rolls_back_interrupt_after_second_link(
+    tmp_path, monkeypatch, interrupt_during,
+):
+    manifest, manifest_path, rows = _prepared_fixture(tmp_path)
+    vectors, ids, evidence, _ = _result(tmp_path, manifest, manifest_path, rows, tmp_path)
+    artifact_path = tmp_path / 'second-interrupt' / 'out.npz'
+    evidence_path = tmp_path / 'second-interrupt' / 'out.json'
+    artifact_path.parent.mkdir()
+    artifact_temp, evidence_temp = audio_runner._write_temporary_outputs(
+        artifact_path, evidence_path, vectors, ids, evidence
+    )
+    original_link = audio_runner.os.link
+
+    if interrupt_during == 'evidence_link':
+        def link_then_interrupt(source, destination):
+            original_link(source, destination)
+            if Path(destination) == evidence_path:
+                raise SystemExit('injected after evidence link')
+
+        monkeypatch.setattr(audio_runner.os, 'link', link_then_interrupt)
+    else:
+        def interrupt_validation(*args, **kwargs):
+            raise KeyboardInterrupt('injected during pair validation')
+
+        monkeypatch.setattr(audio_runner, 'validate_artifact_evidence_pair', interrupt_validation)
+
+    expected = SystemExit if interrupt_during == 'evidence_link' else KeyboardInterrupt
+    with pytest.raises(expected):
+        audio_runner.publish_output_pair(
+            artifact_temp, artifact_path, evidence_temp, evidence_path
+        )
     assert not artifact_path.exists()
     assert not evidence_path.exists()
 
