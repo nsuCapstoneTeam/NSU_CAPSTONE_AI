@@ -28,7 +28,9 @@
     .topline { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
     .position { font-weight: 700; color: #34445d; white-space: nowrap; }
     progress { width: 100%; height: 12px; margin: 10px 0 22px; accent-color: #2459c4; }
-    .event { background: #f5f7fb; border-radius: 10px; padding: 18px; min-height: 96px; font-size: 1.08rem; }
+    .event { background: #f5f7fb; border-radius: 10px; padding: 18px; min-height: 96px; font-size: 1.08rem; line-height: 1.7; }
+    .event-english { margin-top: 16px; border-top: 1px solid #dfe4ed; padding-top: 12px; color: #5b6678; font-size: .94rem; }
+    .event p { margin: 4px 0 0; }
     audio { display: block; width: 100%; margin: 20px 0 4px; }
     .time { text-align: right; color: #647188; font-variant-numeric: tabular-nums; font-size: .9rem; }
     .question { margin: 25px 0 13px; font-size: 1.08rem; font-weight: 650; }
@@ -56,7 +58,7 @@
   <main>
     <section class="card" id="start">
       <h1>음악-행사 적합도 평가</h1>
-      <p class="intro">행사 설명을 읽고 음악을 들은 뒤,<br>이 행사에서 이 음악이 얼마나 자연스럽게 어울리는지 평가해주세요.<br><br>개인적인 음악 취향보다 행사 분위기와 음악의 적합도를 기준으로 판단해주세요.</p>
+      <p class="intro">행사 설명을 읽고 음악을 들은 뒤,<br>이 행사에서 이 음악이 얼마나 자연스럽게 어울리는지 평가해주세요.<br><br>개인적으로 이 음악을 좋아하는지가 아니라, 이 행사에서 이 음악이 나오는 것이 자연스러운지를 기준으로 평가해주세요.</p>
       <label for="evaluator">평가자 선택</label>
       <select id="evaluator">
         <option value="">선택하세요</option>
@@ -78,7 +80,10 @@
       </div>
       <progress id="progress" max="96" value="0" aria-label="평가 진행률"></progress>
       <h2>행사 설명</h2>
-      <div class="event" id="event-text"></div>
+      <div class="event">
+        <div class="event-korean"><strong>한국어</strong><p id="event-text-ko"></p></div>
+        <div class="event-english"><strong>English</strong><p id="event-text-en"></p></div>
+      </div>
       <audio id="audio" controls preload="none"></audio>
       <div class="time"><span id="elapsed">00:00</span> / <span id="duration">00:56</span></div>
       <p class="question">이 행사에 이 음악이 얼마나 잘 어울린다고 생각하시나요?</p>
@@ -109,6 +114,24 @@
       const mappingUrl = `${base}/artifacts/listening-evaluation-mapping.json`;
       const queryUrl = `${base}/event-queries.json`;
       const evaluatorIds = ['evaluator-01', 'evaluator-02', 'evaluator-03'];
+      const queryTranslations = {
+        'event-01': '야외 대학 축제에서 관객이 함께 즐길 수 있는 록 또는 팝 음악.',
+        'event-02': '야외 결혼식의 예식 전 시간에 어울리는 차분한 어쿠스틱 음악.',
+        'event-03': '기업 시상식에서 수상자가 입장할 때 사용할 웅장한 사운드트랙 음악.',
+        'event-04': '사람들이 대화를 나누는 미술 전시 개막 행사에서 틀 재즈 또는 라운지 배경 음악.',
+        'event-05': '야간 게임 행사에 어울리는 약간 긴장감 있는 전자 음악.',
+        'event-06': '낮 시간에 열리는 지역 문화 축제에 어울리는 포크 또는 월드 뮤직.',
+        'event-07': '졸업 축하 저녁 식사에서 식사와 대화에 어울리는 부드럽고 희망적인 연주곡.',
+        'event-08': '패션 런웨이에 어울리는 리듬감 있는 팝 또는 전자 음악.',
+        'event-09': '추모식에서 조용히 고인을 기억하는 시간에 어울리는 피아노 중심 음악.',
+        'event-12': '해변 여름 파티에 어울리는 가볍고 춤추기 좋은 레게 또는 라틴 음악.',
+        'event-13': '너무 차갑지 않은 느낌의 제품 발표회용 전자 배경 음악.',
+        'event-14': '전통 공연 개막에 어울리는 웅장한 음악.',
+        'event-15': '친구들과 함께하는 저녁 파티에 어울리는 그루브감 있는 펑크(funk) 또는 디스코 음악.',
+        'event-16': '집중을 방해하지 않아야 하는 명상 워크숍용 앰비언트 음악.',
+        'event-17': '시상식 후 리셉션에 어울리는 팝 또는 소울 음악. 보컬이 있어도 괜찮습니다.',
+        'event-20': '긴장감이 점차 고조되는 현대 무용 장면을 위한 전자 음악.'
+      };
       const scaleLabels = {
         1: '전혀 어울리지 않음', 2: '잘 어울리지 않음', 3: '보통',
         4: '잘 어울림', 5: '매우 잘 어울림'
@@ -155,6 +178,7 @@
         if (pairIds.size !== 96 || pairByEvaluation.size !== 288) throw new Error('mapping coverage mismatch');
         const canonicalText = new Map(queryData.queries.filter((q) => q.selection_status === 'active_v1').map((q) => [q.query_id, q.msclap_model_input?.text]));
         if (canonicalText.size !== 16 || [...canonicalText.values()].some((v) => typeof v !== 'string' || !v.trim())) throw new Error('canonical event query text missing');
+        if (Object.keys(queryTranslations).length !== canonicalText.size || [...canonicalText.keys()].some((queryId) => !queryTranslations[queryId]?.trim())) throw new Error('Korean event query translation missing');
         const byEvaluator = Object.fromEntries(evaluatorIds.map((id) => [id, []]));
         const evaluationIds = new Set();
         const assignedEvaluators = new Map([...pairIds].map((id) => [id, new Set()]));
@@ -174,6 +198,7 @@
             pair_id: pair.pair_id,
             query_id: row.query_id,
             query_text: text,
+            query_text_ko: queryTranslations[row.query_id],
             playback_path: row.playback_path,
             blind_audio_id: row.sample_id
           });
@@ -268,7 +293,8 @@
         const completeCount = state.responses.size;
         el('position').textContent = `${state.index + 1} / 96`;
         el('progress').value = completeCount;
-        el('event-text').textContent = item.query_text;
+        el('event-text-ko').textContent = item.query_text_ko;
+        el('event-text-en').textContent = item.query_text;
         const audio = el('audio');
         audio.pause();
         audio.src = `/${item.playback_path.replace(/^\/+/, '')}`;
