@@ -115,6 +115,7 @@ def test_generates_one_valid_raw_embedding_with_calibration_metadata(configured_
     assert metadata["text_encoder"]["model_file_sha256"] == text_embedding.TEXT_ENCODER_MODEL_SHA256
     assert metadata["packages"]["tokenizers"] == "test-tokenizers"
     assert metadata["text_preprocessing"]["normalization"] == "none; raw MSCLAP Text Embedding"
+    assert metadata["text_preprocessing"]["token_count_including_model_end_marker_and_specials"] == 4
     assert "query_text" not in metadata
 
 

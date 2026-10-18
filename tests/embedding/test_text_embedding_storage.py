@@ -15,6 +15,11 @@ from app.embedding.text_embedding import (
     GENERATION_PROFILE,
     GENERATION_VERSION,
     MODEL_VERSION,
+    TEXT_EMBEDDING_DIMENSION,
+    TEXT_ENCODER_MODEL_ID,
+    TEXT_ENCODER_MODEL_SHA256,
+    TEXT_ENCODER_REVISION,
+    TEXT_ENCODER_TOKENIZER_FILE_SHA256,
     TextEmbeddingResult,
 )
 from app.repository.embedding_repository import (
@@ -27,7 +32,7 @@ from app.repository.embedding_repository import (
 
 def make_result(vector=None, **changes):
     metadata = {
-        'query_text_sha256': 'a' * 64, 'shape': [1, 4], 'dimension': 4,
+        'query_text_sha256': 'a' * 64, 'shape': [1, TEXT_EMBEDDING_DIMENSION], 'dimension': TEXT_EMBEDDING_DIMENSION,
         'model': 'MSCLAP', 'model_version': '2023',
         'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
         'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
@@ -39,18 +44,27 @@ def make_result(vector=None, **changes):
             'config_sha256': CALIBRATION_MSCLAP_CONFIG_SHA256,
         },
         'text_encoder': {
-            'model_id': 'gpt2', 'revision': 'e' * 40, 'model_file_sha256': 'f' * 64,
-            'tokenizer_id': 'gpt2', 'tokenizer_revision': 'e' * 40,
+            'model_id': TEXT_ENCODER_MODEL_ID, 'revision': TEXT_ENCODER_REVISION,
+            'config_sha256': TEXT_ENCODER_TOKENIZER_FILE_SHA256['config.json'],
+            'model_file': 'model.safetensors', 'model_file_sha256': TEXT_ENCODER_MODEL_SHA256,
+            'tokenizer_id': TEXT_ENCODER_MODEL_ID, 'tokenizer_revision': TEXT_ENCODER_REVISION,
+            'tokenizer_runtime_sha256': '1' * 64,
+            'tokenizer_files_sha256': TEXT_ENCODER_TOKENIZER_FILE_SHA256.copy(),
         },
         'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION, 'torch': 'test'},
         'generation_version': GENERATION_VERSION,
         'embedding_generation_profile': GENERATION_PROFILE,
-        'text_preprocessing': {'encoder_api': 'encode_text', 'normalization': 'none'},
+        'text_preprocessing': {
+            'encoder_api': 'CLAP.get_text_embeddings', 'text_model': TEXT_ENCODER_MODEL_ID,
+            'text_model_revision': TEXT_ENCODER_REVISION, 'token_limit': 77,
+            'truncation': 'rejected', 'normalization': 'none; raw MSCLAP Text Embedding',
+        },
         'dtype': 'torch.float32', 'device': 'cpu',
     }
     metadata.update(changes)
     if vector is None:
-        vector = torch.tensor([[1.0, 2.0, 3.0, 4.0]], dtype=torch.float32)
+        vector = torch.zeros((1, TEXT_EMBEDDING_DIMENSION), dtype=torch.float32)
+        vector[0, :4] = torch.tensor([1.0, 2.0, 3.0, 4.0])
     return TextEmbeddingResult(vector, metadata)
 
 
@@ -86,18 +100,67 @@ class Connection:
 def test_text_vector_is_validated_and_profile_identity_is_stable():
     prepared = prepare_text_embedding(make_result())
     changed_input = prepare_text_embedding(make_result(query_text_sha256='f' * 64))
-    changed_profile = prepare_text_embedding(make_result(generation_version='text-v3'))
     assert prepared[2] == changed_input[2]
-    assert prepared[2] != changed_profile[2]
-    assert prepared[3] == '[1.0, 2.0, 3.0, 4.0]'
+    assert prepared[3].startswith('[1.0, 2.0, 3.0, 4.0, 0.0')
+
+
+def test_query_metadata_does_not_change_generation_profile_sha():
+    first = make_result(query_text_sha256='a' * 64, text_preprocessing={
+        'encoder_api': 'CLAP.get_text_embeddings', 'text_model': TEXT_ENCODER_MODEL_ID,
+        'text_model_revision': TEXT_ENCODER_REVISION,
+        'token_count_including_model_end_marker_and_specials': 8,
+        'token_limit': 77, 'truncation': 'rejected', 'normalization': 'none; raw MSCLAP Text Embedding',
+    })
+    second = make_result(query_text_sha256='b' * 64, text_preprocessing={
+        'encoder_api': 'CLAP.get_text_embeddings', 'text_model': TEXT_ENCODER_MODEL_ID,
+        'text_model_revision': TEXT_ENCODER_REVISION,
+        'token_count_including_model_end_marker_and_specials': 24,
+        'token_limit': 77, 'truncation': 'rejected', 'normalization': 'none; raw MSCLAP Text Embedding',
+    })
+    first_prepared = prepare_text_embedding(first)
+    second_prepared = prepare_text_embedding(second)
+    assert first_prepared[2] == second_prepared[2]
+    assert first_prepared[0]['text_preprocessing']['token_count_including_model_end_marker_and_specials'] == 8
+    assert second_prepared[0]['text_preprocessing']['token_count_including_model_end_marker_and_specials'] == 24
+    assert 'token_count_including_model_end_marker_and_specials' not in first_prepared[1]['text_preprocessing']
+
+
+def test_changed_pinned_resource_has_a_distinct_profile_identity():
+    original = prepare_text_embedding(make_result())[2]
+    other_checkpoint = make_result(
+        checkpoint_revision='f' * 40,
+        checkpoint_sha256='e' * 64,
+    )
+    other_encoder = make_result()
+    other_encoder.metadata['text_encoder']['revision'] = 'd' * 40
+    other_encoder.metadata['text_encoder']['tokenizer_revision'] = 'd' * 40
+    assert prepare_text_embedding(other_checkpoint)[2] != original
+    assert prepare_text_embedding(other_encoder)[2] != original
+
+
+@pytest.mark.parametrize('change', [
+    ('text_encoder.revision', 'f' * 40),
+    ('checkpoint_sha256', 'f' * 64),
+])
+def test_different_valid_resource_identity_gets_distinct_profile(change):
+    result = make_result()
+    key, value = change
+    if key.startswith('text_encoder.'):
+        if key.endswith('revision'):
+            result.metadata['text_encoder']['tokenizer_revision'] = value
+        result.metadata['text_encoder'][key.split('.', 1)[1]] = value
+    else:
+        result.metadata['checkpoint_revision'] = 'e' * 40
+        result.metadata[key] = value
+    assert prepare_text_embedding(result)[2] != prepare_text_embedding(make_result())[2]
 
 
 @pytest.mark.parametrize('vector', [
-    torch.tensor([[float('nan'), 1, 1, 1]]),
-    torch.tensor([[float('inf'), 1, 1, 1]]),
-    torch.zeros((1, 4)),
-    torch.ones((1, 3)),
-    torch.ones((1, 4), dtype=torch.int64),
+    torch.full((1, TEXT_EMBEDDING_DIMENSION), float('nan')),
+    torch.full((1, TEXT_EMBEDDING_DIMENSION), float('inf')),
+    torch.zeros((1, TEXT_EMBEDDING_DIMENSION)),
+    torch.ones((1, TEXT_EMBEDDING_DIMENSION - 1)),
+    torch.ones((1, TEXT_EMBEDDING_DIMENSION), dtype=torch.int64),
 ])
 def test_invalid_text_vectors_are_rejected(vector):
     with pytest.raises(ValueError):
@@ -122,8 +185,15 @@ def test_same_text_and_profile_reuses_identical_row_and_rejects_vector_conflict(
     repository = TextEmbeddingRepository()
     assert repository.save(inserted, result).created
     assert not repository.save(reused, result).created
+    different_input = Connection([('created',)])
+    assert repository.save(
+        different_input,
+        make_result(query_text_sha256='b' * 64),
+    ).created
     with pytest.raises(EmbeddingConflict):
-        repository.save(conflict, make_result(torch.tensor([[4., 3., 2., 1.]])))
+        conflicting_vector = torch.zeros((1, TEXT_EMBEDDING_DIMENSION))
+        conflicting_vector[0, :4] = torch.tensor([4., 3., 2., 1.])
+        repository.save(conflict, make_result(conflicting_vector))
     assert 'ON CONFLICT (query_text_sha256, generation_profile_sha256) DO NOTHING' in inserted.cursor_instance.calls[0][0]
 
 
@@ -149,14 +219,21 @@ def test_profile_compatibility_uses_shared_model_checkpoint_package_and_dimensio
             'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
             'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
             'msclap_implementation': implementation,
-            'dimension': 4, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
+            'dimension': TEXT_EMBEDDING_DIMENSION, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
+            'text_encoder': make_result().metadata['text_encoder'],
+            'dtype': 'torch.float32',
+            'text_preprocessing': {
+                'encoder_api': 'CLAP.get_text_embeddings', 'text_model': TEXT_ENCODER_MODEL_ID,
+                'text_model_revision': TEXT_ENCODER_REVISION, 'token_limit': 77,
+                'truncation': 'rejected', 'normalization': 'none; raw MSCLAP Text Embedding',
+            },
             'generation_version': GENERATION_VERSION, 'embedding_generation_profile': GENERATION_PROFILE,
             'generation_profile_sha256': 'a' * 64}
     audio = {'model': 'MSCLAP', 'model_version': MODEL_VERSION,
              'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
              'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
              'msclap_implementation': implementation,
-             'dimension': 4, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
+             'dimension': TEXT_EMBEDDING_DIMENSION, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
              'preprocessing_version': PREPROCESSING_VERSION,
              'generation_version': 'audio-generation-v2',
              'embedding_generation_profile': 'audio-first56s-8x7s-v2',
@@ -169,7 +246,7 @@ def test_profile_compatibility_uses_shared_model_checkpoint_package_and_dimensio
     ('model_version', '2023', '2024'),
     ('checkpoint_revision', 'rev-a', 'rev-b'),
     ('checkpoint_sha256', CALIBRATION_CHECKPOINT_SHA256, '9' * 64),
-    ('dimension', 4, 5),
+    ('dimension', TEXT_EMBEDDING_DIMENSION, TEXT_EMBEDDING_DIMENSION + 1),
     ('packages', {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION}, {'msclap': '1.4.0'}),
 ])
 def test_profile_compatibility_rejects_different_shared_embedding_space(field, text_value, audio_value):
@@ -184,13 +261,20 @@ def test_profile_compatibility_rejects_different_shared_embedding_space(field, t
             'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
             'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
             'msclap_implementation': implementation,
-            'dimension': 4, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
+            'dimension': TEXT_EMBEDDING_DIMENSION, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
+            'text_encoder': make_result().metadata['text_encoder'],
+            'dtype': 'torch.float32',
+            'text_preprocessing': {
+                'encoder_api': 'CLAP.get_text_embeddings', 'text_model': TEXT_ENCODER_MODEL_ID,
+                'text_model_revision': TEXT_ENCODER_REVISION, 'token_limit': 77,
+                'truncation': 'rejected', 'normalization': 'none; raw MSCLAP Text Embedding',
+            },
             'generation_version': GENERATION_VERSION, 'embedding_generation_profile': GENERATION_PROFILE}
     audio = {'model': 'MSCLAP', 'model_version': MODEL_VERSION,
              'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
              'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
              'msclap_implementation': implementation,
-             'dimension': 4, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
+             'dimension': TEXT_EMBEDDING_DIMENSION, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
              'preprocessing_version': PREPROCESSING_VERSION}
     text[field] = text_value
     audio[field] = audio_value
@@ -237,13 +321,20 @@ def test_profile_compatibility_rejects_unsupported_modality_profiles():
             'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
             'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
             'msclap_implementation': implementation,
-            'dimension': 4, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
+            'dimension': TEXT_EMBEDDING_DIMENSION, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
+            'text_encoder': make_result().metadata['text_encoder'],
+            'dtype': 'torch.float32',
+            'text_preprocessing': {
+                'encoder_api': 'CLAP.get_text_embeddings', 'text_model': TEXT_ENCODER_MODEL_ID,
+                'text_model_revision': TEXT_ENCODER_REVISION, 'token_limit': 77,
+                'truncation': 'rejected', 'normalization': 'none; raw MSCLAP Text Embedding',
+            },
             'generation_version': GENERATION_VERSION, 'embedding_generation_profile': GENERATION_PROFILE}
     audio = {'model': 'MSCLAP', 'model_version': MODEL_VERSION,
              'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
              'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
              'msclap_implementation': implementation,
-             'dimension': 4, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
+             'dimension': TEXT_EMBEDDING_DIMENSION, 'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
              'preprocessing_version': PREPROCESSING_VERSION}
     assert text_audio_profiles_compatible(text, audio)
     assert not text_audio_profiles_compatible(text, {**audio, 'preprocessing_version': 'unsupported-audio-v99'})
@@ -260,7 +351,7 @@ def test_text_search_filters_audio_by_shared_profile_identity():
     assert "generation_profile->>'checkpoint_sha256' = %s" in sql
     assert "generation_profile->'msclap_implementation' = %s" in sql
     assert params[0:6] == (
-        4, 'MSCLAP', MODEL_VERSION, CALIBRATION_CHECKPOINT_REVISION,
+        TEXT_EMBEDDING_DIMENSION, 'MSCLAP', MODEL_VERSION, CALIBRATION_CHECKPOINT_REVISION,
         CALIBRATION_CHECKPOINT_SHA256, CALIBRATION_MSCLAP_PACKAGE_VERSION,
     )
     assert params[7] == PREPROCESSING_VERSION
@@ -269,7 +360,28 @@ def test_text_search_filters_audio_by_shared_profile_identity():
 def test_unsupported_text_generation_profile_cannot_search_audio():
     connection = Connection([])
     result = make_result(generation_version='unvalidated-text-v99')
-    with pytest.raises(ValueError, match='not_audio_search_compatible'):
+    with pytest.raises(ValueError):
+        TextEmbeddingRepository().search_audio(connection, result)
+    assert connection.cursor_instance.calls == []
+
+
+@pytest.mark.parametrize('mutation', [
+    ('text_encoder', 'revision', 'f' * 40),
+    ('text_encoder', 'model_file_sha256', 'f' * 64),
+    ('text_encoder', 'tokenizer_id', 'other-tokenizer'),
+    ('text_encoder', 'model_id', 'other-model'),
+    ('checkpoint_sha256', None, 'f' * 64),
+    ('text_preprocessing', 'token_limit', 76),
+])
+def test_unsupported_actual_text_identity_is_rejected_before_audio_search(mutation):
+    result = make_result()
+    field, nested, value = mutation
+    if nested:
+        result.metadata[field][nested] = value
+    else:
+        result.metadata[field] = value
+    connection = Connection([])
+    with pytest.raises(ValueError):
         TextEmbeddingRepository().search_audio(connection, result)
     assert connection.cursor_instance.calls == []
 

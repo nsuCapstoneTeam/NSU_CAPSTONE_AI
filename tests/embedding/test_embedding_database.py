@@ -16,7 +16,9 @@ from app.embedding.audio_embedding import (
 from app.embedding.text_embedding import (
     CALIBRATION_MSCLAP_CONFIG_SHA256, CALIBRATION_MSCLAP_PACKAGE_VERSION,
     CALIBRATION_MSCLAP_SOURCE_FILE_COUNT, CALIBRATION_MSCLAP_SOURCE_SHA256,
-    GENERATION_PROFILE, GENERATION_VERSION, TextEmbeddingResult,
+    GENERATION_PROFILE, GENERATION_VERSION, TEXT_EMBEDDING_DIMENSION,
+    TEXT_ENCODER_MODEL_ID, TEXT_ENCODER_MODEL_SHA256, TEXT_ENCODER_REVISION,
+    TEXT_ENCODER_TOKENIZER_FILE_SHA256, TextEmbeddingResult,
 )
 from app.repository.embedding_repository import (
     AudioEmbeddingRepository, EmbeddingConflict, TextEmbeddingRepository,
@@ -38,8 +40,8 @@ def connection():
 
 
 def result(value=1.0):
-    return AudioEmbeddingResult(torch.full((1, 4), value), {
-        'source_sha256': 'a' * 64, 'shape': [1, 4], 'dimension': 4,
+    return AudioEmbeddingResult(torch.full((1, TEXT_EMBEDDING_DIMENSION), value), {
+        'source_sha256': 'a' * 64, 'shape': [1, TEXT_EMBEDDING_DIMENSION], 'dimension': TEXT_EMBEDDING_DIMENSION,
         'model': 'MSCLAP', 'model_version': '2023', 'preprocessing_version': 'test-v1',
         'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
         'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
@@ -61,8 +63,8 @@ def result(value=1.0):
 
 
 def text_result(value=1.0, *, generation_version=GENERATION_VERSION):
-    return TextEmbeddingResult(torch.full((1, 4), value), {
-        'query_text_sha256': 'b' * 64, 'shape': [1, 4], 'dimension': 4,
+    return TextEmbeddingResult(torch.full((1, TEXT_EMBEDDING_DIMENSION), value), {
+        'query_text_sha256': 'b' * 64, 'shape': [1, TEXT_EMBEDDING_DIMENSION], 'dimension': TEXT_EMBEDDING_DIMENSION,
         'model': 'MSCLAP', 'model_version': '2023',
         'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
         'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
@@ -74,13 +76,22 @@ def text_result(value=1.0, *, generation_version=GENERATION_VERSION):
             'config_sha256': CALIBRATION_MSCLAP_CONFIG_SHA256,
         },
         'text_encoder': {
-            'model_id': 'gpt2', 'revision': 'a' * 40, 'model_file_sha256': '1' * 64,
-            'tokenizer_id': 'gpt2', 'tokenizer_revision': 'a' * 40,
+            'model_id': TEXT_ENCODER_MODEL_ID, 'revision': TEXT_ENCODER_REVISION,
+            'config_sha256': TEXT_ENCODER_TOKENIZER_FILE_SHA256['config.json'],
+            'model_file': 'model.safetensors', 'model_file_sha256': TEXT_ENCODER_MODEL_SHA256,
+            'tokenizer_id': TEXT_ENCODER_MODEL_ID, 'tokenizer_revision': TEXT_ENCODER_REVISION,
+            'tokenizer_runtime_sha256': '1' * 64,
+            'tokenizer_files_sha256': TEXT_ENCODER_TOKENIZER_FILE_SHA256.copy(),
         },
         'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION, 'torch': 'test'},
         'generation_version': generation_version,
         'embedding_generation_profile': GENERATION_PROFILE,
-        'text_preprocessing': {'encoder_api': 'encode_text'},
+        'text_preprocessing': {
+            'encoder_api': 'CLAP.get_text_embeddings', 'text_model': TEXT_ENCODER_MODEL_ID,
+            'text_model_revision': TEXT_ENCODER_REVISION, 'token_limit': 77,
+            'truncation': 'rejected', 'normalization': 'none; raw MSCLAP Text Embedding',
+            'token_count_including_model_end_marker_and_specials': 4,
+        },
         'dtype': 'torch.float32', 'device': 'cpu',
     })
 
@@ -161,7 +172,7 @@ def test_text_embedding_roundtrip_reuse_profile_separation_and_conflict(connecti
     assert saved.created
     assert not repository.save(connection, first).created
     row = repository.get(connection, saved.query_text_sha256, saved.generation_profile_sha256)
-    assert row['dimension'] == 4
+    assert row['dimension'] == TEXT_EMBEDDING_DIMENSION
     assert row['generation_version'] == GENERATION_VERSION
     assert row['metadata']['query_text_sha256'] == 'b' * 64
 

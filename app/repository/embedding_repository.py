@@ -19,6 +19,11 @@ from app.embedding.text_embedding import (
     GENERATION_PROFILE as TEXT_GENERATION_PROFILE,
     GENERATION_VERSION as TEXT_GENERATION_VERSION,
     MODEL_VERSION as TEXT_MODEL_VERSION,
+    TEXT_EMBEDDING_DIMENSION,
+    TEXT_ENCODER_MODEL_ID,
+    TEXT_ENCODER_MODEL_SHA256,
+    TEXT_ENCODER_REVISION,
+    TEXT_ENCODER_TOKENIZER_FILE_SHA256,
     TextEmbeddingError,
     validate_text_embedding,
 )
@@ -170,7 +175,7 @@ def prepare_text_embedding(result):
     try:
         metadata = result.metadata
         dimension = metadata.get('dimension')
-        if type(dimension) is not int or not 1 <= dimension <= 16000:
+        if type(dimension) is not int or dimension != TEXT_EMBEDDING_DIMENSION:
             raise ValueError('invalid_embedding_dimension')
         vector_tensor = validate_text_embedding(result.vector, expected_count=1, expected_dimension=dimension)
         if metadata.get('shape') != [1, dimension]:
@@ -198,7 +203,10 @@ def prepare_text_embedding(result):
         if (
             not isinstance(implementation, dict)
             or implementation.get('package_version') != packages.get('msclap')
+            or type(implementation.get('source_file_count')) is not int
+            or implementation['source_file_count'] < 1
             or not re.fullmatch('[0-9a-f]{64}', str(implementation.get('source_sha256', '')))
+            or implementation.get('config_file') != 'configs/config_2023.yml'
             or not re.fullmatch('[0-9a-f]{64}', str(implementation.get('config_sha256', '')))
         ):
             raise ValueError('missing_msclap_implementation_identity')
@@ -208,26 +216,44 @@ def prepare_text_embedding(result):
             or not isinstance(text_encoder.get('model_id'), str)
             or not text_encoder['model_id'].strip()
             or not re.fullmatch('[0-9a-f]{40}', str(text_encoder.get('revision', '')))
+            or not re.fullmatch('[0-9a-f]{64}', str(text_encoder.get('config_sha256', '')))
+            or not isinstance(text_encoder.get('model_file'), str)
+            or not re.fullmatch('[0-9a-f]{64}', str(text_encoder.get('model_file_sha256', '')))
             or text_encoder.get('tokenizer_id') != text_encoder.get('model_id')
             or text_encoder.get('tokenizer_revision') != text_encoder.get('revision')
-            or not re.fullmatch('[0-9a-f]{64}', str(text_encoder.get('model_file_sha256', '')))
+            or not isinstance(text_encoder.get('tokenizer_files_sha256'), dict)
+            or any(not re.fullmatch('[0-9a-f]{64}', str(value))
+                   for value in text_encoder['tokenizer_files_sha256'].values())
+            or not re.fullmatch('[0-9a-f]{64}', str(text_encoder.get('tokenizer_runtime_sha256', '')))
         ):
-            raise ValueError('missing_text_encoder_identity')
+            raise ValueError('unsupported_text_encoder_identity')
         if metadata.get('dtype') != str(vector_tensor.dtype):
             raise ValueError('embedding_metadata_dtype_mismatch')
         if not isinstance(metadata.get('device'), str) or not metadata['device'].strip():
             raise ValueError('invalid_embedding_device')
 
         # Token counts and query hash describe the input, not the generation profile.
+        preprocessing = metadata.get('text_preprocessing')
+        if not isinstance(preprocessing, dict):
+            raise ValueError('missing_text_generation_profile')
+        input_independent_preprocessing = {
+            key: preprocessing[key] for key in (
+                'encoder_api', 'text_model', 'text_model_revision', 'token_limit',
+                'truncation', 'normalization',
+            ) if key in preprocessing
+        }
+        if set(input_independent_preprocessing) != {
+            'encoder_api', 'text_model', 'text_model_revision', 'token_limit', 'truncation', 'normalization'
+        }:
+            raise ValueError('missing_text_generation_profile')
         profile = {
             key: metadata[key] for key in (
                 'model', 'model_version', 'checkpoint_revision', 'checkpoint_sha256',
                 'msclap_implementation', 'text_encoder', 'packages', 'dimension', 'dtype',
-                'device', 'generation_version', 'embedding_generation_profile', 'text_preprocessing',
+                'generation_version', 'embedding_generation_profile',
             ) if key in metadata
         }
-        if 'text_preprocessing' not in profile or not isinstance(profile['text_preprocessing'], dict):
-            raise ValueError('missing_text_generation_profile')
+        profile['text_preprocessing'] = input_independent_preprocessing
         profile_json = json.dumps(profile, sort_keys=True, separators=(',', ':'), allow_nan=False)
         json.dumps(metadata, sort_keys=True, separators=(',', ':'), allow_nan=False)
         import torch
@@ -257,6 +283,14 @@ def text_audio_profiles_compatible(text_profile, audio_profile):
     }
     text_implementation = text_profile.get('msclap_implementation')
     audio_implementation = audio_profile.get('msclap_implementation')
+    expected_text_preprocessing = {
+        'encoder_api': 'CLAP.get_text_embeddings',
+        'text_model': TEXT_ENCODER_MODEL_ID,
+        'text_model_revision': TEXT_ENCODER_REVISION,
+        'token_limit': 77,
+        'truncation': 'rejected',
+        'normalization': 'none; raw MSCLAP Text Embedding',
+    }
     return all((
         text_profile.get('generation_version') == TEXT_GENERATION_VERSION,
         text_profile.get('embedding_generation_profile') == TEXT_GENERATION_PROFILE,
@@ -268,11 +302,25 @@ def text_audio_profiles_compatible(text_profile, audio_profile):
         text_profile.get('checkpoint_revision') == CALIBRATION_CHECKPOINT_REVISION,
         text_profile.get('checkpoint_revision') == audio_profile.get('checkpoint_revision'),
         text_profile.get('checkpoint_sha256') == CALIBRATION_CHECKPOINT_SHA256,
+        text_profile.get('dtype') == 'torch.float32',
+        text_profile.get('text_preprocessing') == expected_text_preprocessing,
+        isinstance(text_profile.get('text_encoder'), dict)
+        and text_profile['text_encoder'].get('model_id') == TEXT_ENCODER_MODEL_ID
+        and text_profile['text_encoder'].get('revision') == TEXT_ENCODER_REVISION
+        and text_profile['text_encoder'].get('config_sha256') == TEXT_ENCODER_TOKENIZER_FILE_SHA256['config.json']
+        and text_profile['text_encoder'].get('model_file') == 'model.safetensors'
+        and text_profile['text_encoder'].get('model_file_sha256') == TEXT_ENCODER_MODEL_SHA256
+        and text_profile['text_encoder'].get('tokenizer_id') == TEXT_ENCODER_MODEL_ID
+        and text_profile['text_encoder'].get('tokenizer_revision') == TEXT_ENCODER_REVISION
+        and text_profile['text_encoder'].get('tokenizer_files_sha256') == TEXT_ENCODER_TOKENIZER_FILE_SHA256
+        and isinstance(text_profile['text_encoder'].get('tokenizer_runtime_sha256'), str)
+        and re.fullmatch('[0-9a-f]{64}', text_profile['text_encoder']['tokenizer_runtime_sha256']) is not None,
         text_profile.get('checkpoint_sha256') == audio_profile.get('checkpoint_sha256'),
         text_implementation == expected_implementation,
         audio_implementation == expected_implementation,
         text_implementation == audio_implementation,
-        type(text_profile.get('dimension')) is int and type(audio_profile.get('dimension')) is int
+        text_profile.get('dimension') == TEXT_EMBEDDING_DIMENSION
+        and type(audio_profile.get('dimension')) is int
         and text_profile.get('dimension') == audio_profile.get('dimension'),
         isinstance(text_packages, dict) and isinstance(audio_packages, dict)
         and text_packages.get('msclap') == CALIBRATION_MSCLAP_PACKAGE_VERSION
