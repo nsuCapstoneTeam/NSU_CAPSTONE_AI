@@ -5,9 +5,10 @@
 처리 상태·stale 복구·삭제 기록을 포함한 [연동 계약](../api/AUDIO_SYNC_BACKEND_HANDOFF.md)은 미구현이며
 아래 테이블·CLI가 이미 보장하는 기능과 구분한다.
 
-Phase 3의 테이블 생성과 저장 기능을 구현했습니다. 백엔드 계약이 미정인 상태에서
-AI 내부 저장을 검증하기 위한 임시 구조입니다. HTTP 등록 API, 백엔드 음악 FK,
-수정·삭제·상태 동기화, Text 임베딩은 아직 연결하지 않았습니다.
+Phase 3의 Audio 테이블과 저장 기능을 구현했습니다. Audio 저장은 백엔드 계약이 미정인
+상태에서 AI 내부 저장을 검증하기 위한 임시 구조입니다. HTTP 등록 API, 백엔드 음악 FK,
+수정·삭제·상태 동기화는 아직 연결하지 않았습니다. Text query는 음악 ID와 분리된
+query SHA-256 및 generation profile identity로 별도 pgvector 테이블에 저장합니다.
 저장 벡터를 사용하는 CLI는 [DB 후보 검색](DATABASE_AUDIO_SEARCH.md)에 연결했습니다.
 
 ## 임시 계약과 협의 필요 사항
@@ -125,12 +126,19 @@ ON CONFLICT (music_id) DO NOTHING RETURNING music_id;
 docker compose run --rm --no-deps ai python -m scripts.database.migrate_embeddings
 ```
 
-SQL은 `app/repository/migrations/0001_audio_embeddings.sql`에 있으며 Git에 포함합니다.
+SQL migration은 `app/repository/migrations/`의 번호가 붙은 파일로 관리하며 Git에 포함합니다.
 실제 DB 행·음원·모델 가중치·`.env` 비밀번호를 Git에 올리는 것은 아닙니다.
 마이그레이션 도구는 DB 적용 이력과 SQL checksum을 저장합니다. 재실행은 미적용 파일만
 실행하며, 기존 SQL이 변경되면 거부합니다. 후속 변경은 새로운 번호의 SQL 파일로 추가합니다.
 Windows/Linux 줄바꿈은 checksum 계산 전에 정규화합니다.
 pgvector는 대상 DB에 미리 활성화되어 있어야 합니다. 서버 시작 시 자동 적용하지 않습니다.
+
+Text 저장은 `TextEmbeddingStorage.store(query_text)`에서 기존 `TextEmbeddingGenerator`를
+호출한 뒤 `TextEmbeddingRepository`를 통해 수행합니다. 입력 SHA와 정렬된 generation profile의
+SHA가 저장 identity이며, 같은 identity의 같은 vector는 재사용하고 다른 vector는 충돌로 거부합니다.
+현재 text-to-audio repository 검색은 현재 Text generation/profile과 공통 MSCLAP model,
+checkpoint revision/SHA-256, MSCLAP package version, pinned implementation/config identity, dimension 및 Audio preprocessing version이 맞는 행만 후보로 봅니다.
+이 경계는 내부 AI 저장·검색이며 Event ID나 서버 API 계약을 정하지 않습니다.
 
 ## 실제 파일 저장
 

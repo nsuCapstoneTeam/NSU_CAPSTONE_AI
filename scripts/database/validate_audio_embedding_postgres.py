@@ -227,10 +227,17 @@ def aggregate_status(records):
 
 def synthetic_result(values, label, profile='synthetic-v1'):
     vector = torch.tensor([values], dtype=torch.float32)
+    # Synthetic DB checks need a structurally complete identity but must never
+    # advertise compatibility with the calibrated production CLAP space.
+    synthetic_sha = hashlib.sha256(b'postgres-validation-synthetic-identity').hexdigest()
     return AudioEmbeddingResult(vector, {'shape': list(vector.shape), 'dimension': vector.shape[1],
         'source_sha256': hashlib.sha256(label.encode()).hexdigest(), 'model': 'synthetic-cosine-fixture',
-        'model_version': '1', 'preprocessing_version': profile, 'checkpoint_revision': 'synthetic',
-        'packages': {'fixture': '1'}, 'preprocessing': {'channel_policy': 'mono', 'target_sample_rate': 44100,
+        'model_version': '1', 'preprocessing_version': profile, 'checkpoint_revision': 'a' * 40,
+        'checkpoint_sha256': synthetic_sha,
+        'msclap_implementation': {'package_version': '1.3.3', 'source_file_count': 13,
+            'source_sha256': synthetic_sha, 'config_file': 'configs/config_2023.yml',
+            'config_sha256': synthetic_sha},
+        'packages': {'msclap': '1.3.3', 'fixture': '1'}, 'preprocessing': {'channel_policy': 'mono', 'target_sample_rate': 44100,
         'chunk_count': 8, 'chunk_normalization': 'l2', 'aggregation': 'mean', 'final_normalization': 'l2'},
         'dtype': 'torch.float32', 'device': 'cpu'})
 

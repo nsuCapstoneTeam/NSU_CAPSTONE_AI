@@ -14,9 +14,17 @@ from app.embedding.audio_embedding import (
     TARGET_SAMPLE_RATE,
     AudioEmbeddingError,
     AudioEmbeddingGenerator,
+    CALIBRATION_CHECKPOINT_REVISION,
+    CALIBRATION_CHECKPOINT_SHA256,
     audio_file_sha256,
     validate_audio_embedding,
     validate_chunk_embeddings,
+)
+from app.embedding.text_embedding import (
+    CALIBRATION_MSCLAP_CONFIG_SHA256,
+    CALIBRATION_MSCLAP_PACKAGE_VERSION,
+    CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+    CALIBRATION_MSCLAP_SOURCE_SHA256,
 )
 
 
@@ -48,14 +56,25 @@ def write_audio(path, duration, *, channels=1, tail_value=20_000, sample_rate=SA
 
 @pytest.fixture(autouse=True)
 def package_metadata(monkeypatch):
-    monkeypatch.setattr('app.embedding.audio_embedding.importlib.metadata.version', lambda name: 'test')
+    monkeypatch.setattr(
+        'app.embedding.audio_embedding.importlib.metadata.version',
+        lambda name: CALIBRATION_MSCLAP_PACKAGE_VERSION if name == 'msclap' else 'test',
+    )
+    monkeypatch.setattr('app.embedding.audio_embedding._runtime_msclap_implementation_identity', lambda: {
+        'package_version': CALIBRATION_MSCLAP_PACKAGE_VERSION,
+        'source_file_count': CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+        'source_sha256': CALIBRATION_MSCLAP_SOURCE_SHA256,
+        'config_file': 'configs/config_2023.yml',
+        'config_sha256': CALIBRATION_MSCLAP_CONFIG_SHA256,
+    })
 
 
 def audio_reading_model(*, vectors=None, mutate=None):
     import torchaudio
 
     observed = {'calls': [], 'paths': [], 'chunks': []}
-    model = Mock(model_fp='/cache/snapshots/revision123/CLAP_weights_2023.pth')
+    model = Mock(model_fp=f'/cache/snapshots/{CALIBRATION_CHECKPOINT_REVISION}/CLAP_weights_2023.pth')
+    model.verified_checkpoint_sha256 = CALIBRATION_CHECKPOINT_SHA256
 
     def encode(paths, *, resample):
         observed['calls'].append((list(paths), resample))
@@ -262,6 +281,10 @@ def test_metadata_has_stable_generation_profile_without_crop_seed(tmp_path):
     preprocessing = metadata['preprocessing']
 
     assert metadata['preprocessing_version'] == PREPROCESSING_VERSION
+    assert metadata['checkpoint_revision'] == CALIBRATION_CHECKPOINT_REVISION
+    assert metadata['checkpoint_sha256'] == CALIBRATION_CHECKPOINT_SHA256
+    assert metadata['msclap_implementation']['source_sha256'] == CALIBRATION_MSCLAP_SOURCE_SHA256
+    assert metadata['msclap_implementation']['config_sha256'] == CALIBRATION_MSCLAP_CONFIG_SHA256
     assert preprocessing == {
         'resample': True,
         'target_sample_rate': TARGET_SAMPLE_RATE,

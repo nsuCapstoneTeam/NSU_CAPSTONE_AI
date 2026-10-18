@@ -1,5 +1,6 @@
 """실제 모델을 로드하지 않고 관측 도구의 비간섭·실패·증거 정책을 검사한다."""
 
+import hashlib
 import json
 import subprocess
 import sys
@@ -12,12 +13,22 @@ import soundfile as sf
 import torch
 
 from app.embedding.audio_embedding import AudioEmbeddingGenerator, audio_file_sha256
+from app.embedding import audio_embedding as audio_embedding_module
+from app.embedding.text_embedding import (
+    CALIBRATION_CHECKPOINT_REVISION,
+    CALIBRATION_CHECKPOINT_SHA256,
+    CALIBRATION_MSCLAP_CONFIG_SHA256,
+    CALIBRATION_MSCLAP_PACKAGE_VERSION,
+    CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+    CALIBRATION_MSCLAP_SOURCE_SHA256,
+)
 from scripts.embedding import validate_audio_highlight_msclap as tool
 
 
 class Model:
     def __init__(self, checkpoint):
         self.model_fp = str(checkpoint)
+        self.verified_checkpoint_sha256 = hashlib.sha256(b'synthetic checkpoint, not loaded').hexdigest()
         self.calls = 0
 
     def get_audio_embeddings(self, paths, *, resample):
@@ -31,12 +42,27 @@ def synthetic(root, rate):
     time = np.arange(60 * rate, dtype=np.float32) / rate
     wave = np.sin(time * 100).astype(np.float32) * .25
     sf.write(path, np.column_stack([wave, wave * .5]), rate, subtype='FLOAT')
-    checkpoint = root / 'datasets/cache/snapshots/test-revision/CLAP_weights_2023.pth'
+    checkpoint = root / f'datasets/cache/snapshots/{CALIBRATION_CHECKPOINT_REVISION}/CLAP_weights_2023.pth'
     checkpoint.parent.mkdir(parents=True)
     checkpoint.write_bytes(b'synthetic checkpoint, not loaded')
     row = {'track_id': 'fixture', 'title': '합성 입력', 'path': path.name,
            'sha256': audio_file_sha256(path), 'sample_rate': rate, 'channels': 2}
     return path, checkpoint, row
+
+
+@pytest.fixture(autouse=True)
+def calibrated_audio_identity(monkeypatch):
+    monkeypatch.setattr(
+        audio_embedding_module, 'CALIBRATION_CHECKPOINT_SHA256',
+        hashlib.sha256(b'synthetic checkpoint, not loaded').hexdigest(),
+    )
+    monkeypatch.setattr(audio_embedding_module, '_runtime_msclap_implementation_identity', lambda: {
+        'package_version': CALIBRATION_MSCLAP_PACKAGE_VERSION,
+        'source_file_count': CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+        'source_sha256': CALIBRATION_MSCLAP_SOURCE_SHA256,
+        'config_file': 'configs/config_2023.yml',
+        'config_sha256': CALIBRATION_MSCLAP_CONFIG_SHA256,
+    })
 
 
 @pytest.mark.parametrize('rate', [44100, 48000])
@@ -160,7 +186,7 @@ def test_lazy_loading_and_repeated_calls_keep_production_path(tmp_path, monkeypa
     report = tmp_path / 'datasets/run.json'
     report.parent.mkdir(exist_ok=True)
     args = SimpleNamespace(repeat=2, report=report)
-    cache = {'microsoft--msclap': {'revision': 'test-revision', 'files': {
+    cache = {'microsoft--msclap': {'revision': CALIBRATION_CHECKPOINT_REVISION, 'files': {
         'CLAP_weights_2023.pth': {'sha256': audio_file_sha256(checkpoint)}}}}
     result = tool.run_process(args, tmp_path, [row], cache)
     assert len(constructed) == 1 and constructed[0].calls == 2

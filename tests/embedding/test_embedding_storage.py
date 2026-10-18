@@ -3,7 +3,14 @@ from unittest.mock import Mock
 import pytest
 import torch
 
-from app.embedding.audio_embedding import AudioEmbeddingError, AudioEmbeddingResult
+from app.embedding.audio_embedding import (
+    AudioEmbeddingError, AudioEmbeddingResult,
+    CALIBRATION_CHECKPOINT_REVISION, CALIBRATION_CHECKPOINT_SHA256,
+)
+from app.embedding.text_embedding import (
+    CALIBRATION_MSCLAP_CONFIG_SHA256, CALIBRATION_MSCLAP_PACKAGE_VERSION,
+    CALIBRATION_MSCLAP_SOURCE_FILE_COUNT, CALIBRATION_MSCLAP_SOURCE_SHA256,
+)
 from app.embedding.storage import AudioEmbeddingStorage
 from app.repository.embedding_repository import prepare_embedding, validate_music_id
 
@@ -12,7 +19,16 @@ def make_result():
     return AudioEmbeddingResult(torch.ones(1, 4), {
         'source_sha256': 'a' * 64, 'shape': [1, 4], 'dimension': 4,
         'model': 'MSCLAP', 'model_version': '2023', 'preprocessing_version': 'test-v1',
-        'packages': {'torch': 'test'}, 'preprocessing': {
+        'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
+        'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
+        'msclap_implementation': {
+            'package_version': CALIBRATION_MSCLAP_PACKAGE_VERSION,
+            'source_file_count': CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+            'source_sha256': CALIBRATION_MSCLAP_SOURCE_SHA256,
+            'config_file': 'configs/config_2023.yml',
+            'config_sha256': CALIBRATION_MSCLAP_CONFIG_SHA256,
+        },
+        'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION, 'torch': 'test'}, 'preprocessing': {
             'analysis_duration_seconds': 56, 'chunk_duration_seconds': 7,
             'chunk_count': 8, 'chunk_overlap_seconds': 0,
             'chunk_normalization': 'l2', 'aggregation': 'mean',
