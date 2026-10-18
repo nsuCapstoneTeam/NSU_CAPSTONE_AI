@@ -9,6 +9,15 @@ class ClapModel:
             use_cuda=False
         )
 
+    @classmethod
+    def from_model_instance(cls, model):
+        """Wrap an explicitly initialized MSCLAP model without reloading it."""
+        if model is None:
+            raise ValueError("model must be initialized")
+        instance = cls.__new__(cls)
+        instance.model = model
+        return instance
+
     def encode_audio(self, audio_path: str):
         # MSCLAP은 파일 목록을 받으므로 단일 경로도 목록으로 감싼다.
         return self.model.get_audio_embeddings(
