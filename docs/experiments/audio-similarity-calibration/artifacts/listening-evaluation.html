@@ -137,7 +137,7 @@
         4: '잘 어울림', 5: '매우 잘 어울림'
       };
       const el = (id) => document.getElementById(id);
-      const state = { evaluators: null, evaluatorId: '', items: [], responses: new Map(), index: 0, storageOk: true };
+      const state = { evaluators: null, evaluatorId: '', items: [], responses: new Map(), index: 0, storageOk: true, playbackReady: false, playbackPairId: '', playbackObjectUrl: '', playbackToken: 0 };
 
       function parseCsv(source) {
         const text = source.replace(/^\uFEFF/, '');
@@ -215,13 +215,17 @@
         }
         const files = mapping.playback?.files;
         if (!Array.isArray(files) || files.length !== 40) throw new Error('frozen playback inventory mismatch');
+        if (mapping.playback.duration_seconds !== 56) throw new Error('frozen playback duration mismatch');
         const playbackByBlindId = new Map(files.map((file) => [file.blind_audio_id, file]));
         if (playbackByBlindId.size !== 40) throw new Error('duplicate playback identity');
         const referenced = new Set(mapping.pairs.map((pair) => pair.blind_audio_id));
         if (referenced.size !== 40 || [...referenced].some((id) => !playbackByBlindId.has(id))) throw new Error('required playback mapping missing');
         for (const pair of mapping.pairs) {
           const playback = playbackByBlindId.get(pair.blind_audio_id);
-          if (playback.path !== pair.playback_path || playback.sample_id !== pair.sample_id || playback.prepared_sha256 !== pair.prepared_sha256) throw new Error('playback identity mismatch');
+          if (playback.path !== pair.playback_path || playback.sample_id !== pair.sample_id || playback.prepared_sha256 !== pair.prepared_sha256 || !/^[a-f0-9]{64}$/.test(playback.sha256)) throw new Error('playback identity mismatch');
+        }
+        for (const items of Object.values(byEvaluator)) {
+          for (const item of items) item.playback_sha256 = playbackByBlindId.get(item.blind_audio_id)?.sha256;
         }
         return { byEvaluator, files: [...playbackByBlindId.values()] };
       }
@@ -282,6 +286,43 @@
         }
       }
       function currentResponse() { return state.responses.get(state.items[state.index]?.pair_id); }
+      async function verifyAndLoadPlayback(item, token) {
+        const audio = el('audio');
+        try {
+          if (!globalThis.crypto?.subtle) throw new Error('Web Crypto unavailable');
+          if (!item.playback_path.startsWith('data/calibration/audio/playback/') || item.playback_path.split('/').includes('..')) throw new Error('invalid playback path');
+          const response = await fetch(`/${item.playback_path}`, { cache: 'no-store' });
+          if (!response.ok) throw new Error('playback fetch failed');
+          const bytes = await response.arrayBuffer();
+          const digest = await crypto.subtle.digest('SHA-256', bytes);
+          const actualSha256 = [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('');
+          if (actualSha256 !== item.playback_sha256) throw new Error('playback hash mismatch');
+          const objectUrl = URL.createObjectURL(new Blob([bytes], { type: 'audio/wav' }));
+          if (token !== state.playbackToken) { URL.revokeObjectURL(objectUrl); return; }
+          state.playbackObjectUrl = objectUrl;
+          audio.src = objectUrl;
+          audio.controls = true;
+          audio.load();
+          state.playbackReady = true;
+          el('save-status').textContent = '재생 파일 무결성 확인 완료';
+          el('save-status').className = 'status small';
+          el('rating-buttons').querySelectorAll('button').forEach((button) => { button.disabled = false; });
+          el('unable-button').disabled = false;
+          el('next-button').disabled = !currentResponse() || !state.storageOk;
+        } catch (_) {
+          if (token !== state.playbackToken) return;
+          state.playbackReady = false;
+          audio.pause();
+          audio.removeAttribute('src');
+          audio.controls = false;
+          audio.load();
+          el('rating-buttons').querySelectorAll('button').forEach((button) => { button.disabled = true; });
+          el('unable-button').disabled = true;
+          el('next-button').disabled = true;
+          el('save-status').textContent = '재생 파일 무결성 확인에 실패했습니다. 이 항목은 재생하거나 평가할 수 없습니다.';
+          el('save-status').className = 'status small error';
+        }
+      }
       function formatTime(value) {
         if (!Number.isFinite(value) || value < 0) return '00:00';
         const seconds = Math.floor(value);
@@ -296,9 +337,18 @@
         el('event-text-ko').textContent = item.query_text_ko;
         el('event-text-en').textContent = item.query_text;
         const audio = el('audio');
-        audio.pause();
-        audio.src = `/${item.playback_path.replace(/^\/+/, '')}`;
-        audio.load();
+        const newPair = state.playbackPairId !== item.pair_id;
+        if (newPair) {
+          audio.pause();
+          audio.controls = false;
+          audio.removeAttribute('src');
+          audio.load();
+          if (state.playbackObjectUrl) URL.revokeObjectURL(state.playbackObjectUrl);
+          state.playbackObjectUrl = '';
+          state.playbackPairId = item.pair_id;
+          state.playbackReady = false;
+          state.playbackToken += 1;
+        }
         el('elapsed').textContent = '00:00';
         el('duration').textContent = '00:56';
         const buttonArea = el('rating-buttons');
@@ -308,9 +358,11 @@
           button.type = 'button';
           button.className = `rating${response?.rating === rating ? ' selected' : ''}`;
           button.textContent = String(rating);
+          button.disabled = !state.playbackReady;
           button.setAttribute('aria-label', `${rating}점 ${scaleLabels[rating]}`);
           button.setAttribute('aria-pressed', String(response?.rating === rating));
           button.addEventListener('click', () => {
+            if (!state.playbackReady) return;
             state.responses.set(item.pair_id, { rating, unable_to_judge: false });
             const saved = saveProgress(item.pair_id);
             render();
@@ -320,10 +372,16 @@
         }
         const unable = el('unable-button');
         unable.classList.toggle('selected', response?.unable_to_judge === true);
+        unable.disabled = !state.playbackReady;
         unable.setAttribute('aria-pressed', String(response?.unable_to_judge === true));
         el('previous-button').disabled = state.index === 0;
-        el('next-button').disabled = !response || !state.storageOk;
+        el('next-button').disabled = !response || !state.storageOk || !state.playbackReady;
         el('next-button').textContent = state.index === 95 ? '평가 완료' : '다음';
+        if (newPair) {
+          el('save-status').textContent = '재생 파일 무결성을 확인하는 중입니다.';
+          el('save-status').className = 'status small';
+          verifyAndLoadPlayback(item, state.playbackToken);
+        }
       }
       function showComplete() {
         if (state.responses.size !== 96 || state.items.some((item) => !state.responses.has(item.pair_id))) return false;
@@ -384,7 +442,7 @@
         render();
       });
       el('next-button').addEventListener('click', () => {
-        if (!currentResponse() || !state.storageOk) return;
+        if (!currentResponse() || !state.storageOk || !state.playbackReady) return;
         if (state.index === 95) {
           if (showComplete()) return;
           return;
@@ -394,6 +452,7 @@
         render();
       });
       el('unable-button').addEventListener('click', () => {
+        if (!state.playbackReady) return;
         const item = state.items[state.index];
         const wasSelected = currentResponse()?.unable_to_judge === true;
         if (wasSelected) state.responses.delete(item.pair_id);
@@ -404,7 +463,15 @@
       });
       el('audio').addEventListener('timeupdate', () => { el('elapsed').textContent = formatTime(el('audio').currentTime); });
       el('audio').addEventListener('loadedmetadata', () => { el('duration').textContent = formatTime(el('audio').duration); });
-      el('audio').addEventListener('error', () => { el('save-status').textContent = '재생 파일을 불러오지 못했습니다.'; });
+      el('audio').addEventListener('error', () => {
+        if (!state.playbackPairId) return;
+        state.playbackReady = false;
+        el('rating-buttons').querySelectorAll('button').forEach((button) => { button.disabled = true; });
+        el('unable-button').disabled = true;
+        el('next-button').disabled = true;
+        el('save-status').textContent = '재생 파일을 재생할 수 없습니다. 이 항목은 평가할 수 없습니다.';
+        el('save-status').className = 'status small error';
+      });
       el('export-button').addEventListener('click', exportCsv);
 
       loadData().then((evaluators) => {

@@ -8,6 +8,7 @@ import hashlib
 import json
 import math
 import statistics
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,7 @@ OUTPUTS = (
     "listening-calibration-scatter.png",
     "listening-calibration-rank-groups.png",
     "listening-calibration-cosine-bins.png",
+    "listening-evaluation-joined-evidence.csv",
 )
 
 
@@ -71,7 +73,7 @@ def describe(values: list[float]) -> dict[str, float | int | None]:
     }
 
 
-def read_ratings(mapping_pairs: list[dict[str, Any]]) -> dict[str, dict[str, int | None | bool]]:
+def read_ratings(mapping_pairs: list[dict[str, Any]]) -> dict[str, dict[str, int | None | bool | str]]:
     expected = {pair["pair_id"] for pair in mapping_pairs}
     require(len(expected) == 96, f"frozen mapping pair가 96개가 아닙니다: {len(expected)}")
     responses: dict[str, dict[str, int | None | bool]] = {pair_id: {} for pair_id in expected}
@@ -93,14 +95,19 @@ def read_ratings(mapping_pairs: list[dict[str, Any]]) -> dict[str, dict[str, int
             raw_unable = row["unable_to_judge"].strip().lower()
             require(raw_unable in {"true", "false"}, f"{path.name}:{line}: unable_to_judge 값 오류")
             unable = raw_unable == "true"
-            raw_rating = row["rating"].strip()
+            raw_rating = row["rating"]
             if unable:
                 require(raw_rating == "", f"{path.name}:{line}: 판단 불가와 rating이 함께 입력됨 ({pair_id})")
                 rating: int | None = None
             else:
                 require(raw_rating in {"1", "2", "3", "4", "5"}, f"{path.name}:{line}: rating은 1~5 또는 판단 불가여야 함 ({pair_id})")
-                rating = int(raw_rating)
-            responses[pair_id][evaluator] = {"rating": rating, "unable_to_judge": unable}
+                rating = int(raw_rating.strip())
+            responses[pair_id][evaluator] = {
+                "rating": rating,
+                "unable_to_judge": unable,
+                "raw_rating": raw_rating,
+                "raw_unable_to_judge": row["unable_to_judge"],
+            }
         require(seen == expected, f"{path.name}: mapping과 pair 집합이 다릅니다. missing={sorted(expected-seen)} extra={sorted(seen-expected)}")
     for pair_id in expected:
         require(set(responses[pair_id]) == set(EVALUATORS), f"{pair_id}: evaluator 배정이 3명과 다릅니다.")
@@ -108,7 +115,7 @@ def read_ratings(mapping_pairs: list[dict[str, Any]]) -> dict[str, dict[str, int
     return responses
 
 
-def validate_inputs() -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]], dict[str, dict[str, Any]], np.ndarray]:
+def validate_inputs() -> tuple[dict[str, Any], dict[str, Any], list[dict[str, Any]], dict[str, dict[str, Any]], np.ndarray, list[dict[str, str]]]:
     mapping_path = ARTIFACTS / "listening-evaluation-mapping.json"
     assignment_path = ARTIFACTS / "listening-evaluation-assignments.csv"
     cosine_path = ARTIFACTS / "calibration-v1-raw-cosine.json"
@@ -127,7 +134,7 @@ def validate_inputs() -> tuple[dict[str, Any], dict[str, Any], list[dict[str, An
     with assignment_path.open("r", encoding="utf-8-sig", newline="") as stream:
         assignment_reader = csv.DictReader(stream)
         assignment_rows = list(assignment_reader)
-    require(len(assignment_rows) == 288 and set(assignment_reader.fieldnames or []) >= {"evaluation_id", "evaluator_id", "query_id", "event_query_text", "sample_id", "playback_path"}, "frozen assignment row/schema 오류")
+    require(len(assignment_rows) == 288 and set(assignment_reader.fieldnames or []) >= {"evaluation_id", "evaluator_id", "presentation_order", "query_id", "event_query_text", "sample_id", "playback_path", "playback_completed", "evaluation_time_utc", "evaluation_environment_id"}, "frozen assignment row/schema 오류")
     require(len({row["evaluation_id"] for row in assignment_rows}) == 288 and {row["evaluation_id"] for row in assignment_rows} == set(expected_evaluations), "assignment와 mapping evaluation ID가 다릅니다.")
     for row in assignment_rows:
         pair, evaluator = expected_evaluations[row["evaluation_id"]]
@@ -200,7 +207,106 @@ def validate_inputs() -> tuple[dict[str, Any], dict[str, Any], list[dict[str, An
         require(pair["query_text"] == query_text, f"mapping query text가 canonical query와 다릅니다: {pair['pair_id']}")
     require(all(item["text"] == query_by_id[item["query_id"]]["msclap_model_input"]["text"] for item in evidence_queries), "Text evidence의 canonical query text 불일치")
     require(len({(p["query_id"], p["sample_id"]) for p in pairs}) == 96, "mapping 내 query-song pair 중복")
-    return mapping, cosine, pairs, query_by_id, matrix
+    playback_files = mapping["playback"]["files"]
+    require(len(playback_files) == 40 and mapping["playback"]["duration_seconds"] == 56, "frozen playback inventory/duration 오류")
+    require(len({item["blind_audio_id"] for item in playback_files}) == 40, "중복 playback identity")
+    for item in playback_files:
+        require(len(item.get("sha256", "")) == 64 and all(char in "0123456789abcdef" for char in item["sha256"]), f"playback SHA-256 형식 오류: {item['blind_audio_id']}")
+    return mapping, cosine, pairs, query_by_id, matrix, assignment_rows
+
+
+def reproducibility_provenance() -> dict[str, Any]:
+    status = subprocess.run(["git", "status", "--porcelain"], cwd=ROOT, check=True, capture_output=True, text=True).stdout
+    require(not status.strip(), "분석은 tracked/untracked 변경이 없는 clean worktree에서 실행해야 합니다.")
+    tracked_paths = [
+        Path(__file__).resolve(),
+        ARTIFACTS / "listening-evaluation-assignments.csv",
+        *(ARTIFACTS / f"listening-{evaluator}.csv" for evaluator in EVALUATORS),
+        ARTIFACTS / "listening-evaluation-mapping.json",
+        ARTIFACTS / "calibration-v1-raw-cosine.json",
+        ROOT / "docs/experiments/audio-similarity-calibration/event-queries.json",
+        ROOT / "docs/experiments/audio-similarity-calibration/manifest.json",
+        ROOT / "docs/experiments/audio-similarity-calibration/audio-embedding-evidence.json",
+        ROOT / "docs/experiments/audio-similarity-calibration/text-embedding-evidence.json",
+        ROOT / "docs/experiments/audio-similarity-calibration/artifacts/calibration-v1-audio-embeddings.npz",
+        ROOT / "docs/experiments/audio-similarity-calibration/artifacts/calibration-v1-text-embeddings.npz",
+    ]
+    for path in tracked_paths:
+        relative = path.relative_to(ROOT).as_posix()
+        subprocess.run(["git", "ls-files", "--error-unmatch", "--", relative], cwd=ROOT, check=True, capture_output=True, text=True)
+    commit_sha = subprocess.run(["git", "rev-parse", "HEAD"], cwd=ROOT, check=True, capture_output=True, text=True).stdout.strip()
+    require(len(commit_sha) == 40, "재현 commit SHA가 full SHA-1 형식이 아닙니다.")
+    return {
+        "analysis_code_and_input_commit_sha": commit_sha,
+        "worktree_clean": True,
+        "analysis_script_sha256": sha256(Path(__file__).resolve()),
+        "reproduction_command": "python -m scripts.analyze_listening_calibration --overwrite",
+    }
+
+
+def write_joined_evidence(
+    mapping: dict[str, Any],
+    pairs: list[dict[str, Any]],
+    assignment_rows: list[dict[str, str]],
+    responses: dict[str, dict[str, int | None | bool | str]],
+) -> dict[str, Any]:
+    pair_by_evaluation = {
+        evaluation_id: (pair, evaluator)
+        for pair in pairs
+        for evaluator, evaluation_id in zip(pair["evaluator_ids"], pair["evaluation_ids"])
+    }
+    playback_by_blind_id = {item["blind_audio_id"]: item for item in mapping["playback"]["files"]}
+    columns = [
+        "evaluator_id", "pair_id", "query_id", "sample_id", "evaluation_id",
+        "presentation_order", "blind_audio_id", "playback_path", "playback_sha256",
+        "playback_duration_seconds", "playback_range_start_seconds",
+        "playback_range_end_exclusive_seconds", "playback_completed",
+        "evaluation_time_utc", "evaluation_environment_id", "raw_rating", "unable_to_judge",
+    ]
+    output_path = ARTIFACTS / "listening-evaluation-joined-evidence.csv"
+    require(len(assignment_rows) == 288, "derived evidence assignment count must be 288")
+    with output_path.open("w", encoding="utf-8", newline="") as stream:
+        writer = csv.DictWriter(stream, fieldnames=columns)
+        writer.writeheader()
+        for assignment in assignment_rows:
+            evaluation_id = assignment["evaluation_id"]
+            pair, evaluator = pair_by_evaluation[evaluation_id]
+            require(assignment["evaluator_id"] == evaluator, f"derived evidence evaluator mismatch: {evaluation_id}")
+            playback = playback_by_blind_id[pair["blind_audio_id"]]
+            require(
+                playback["path"] == pair["playback_path"]
+                and playback["sample_id"] == pair["sample_id"]
+                and playback["prepared_sha256"] == pair["prepared_sha256"],
+                f"derived evidence playback identity mismatch: {pair['pair_id']}",
+            )
+            raw = responses[pair["pair_id"]][evaluator]
+            writer.writerow({
+                "evaluator_id": evaluator,
+                "pair_id": pair["pair_id"],
+                "query_id": pair["query_id"],
+                "sample_id": pair["sample_id"],
+                "evaluation_id": evaluation_id,
+                "presentation_order": assignment["presentation_order"],
+                "blind_audio_id": pair["blind_audio_id"],
+                "playback_path": pair["playback_path"],
+                "playback_sha256": playback["sha256"],
+                "playback_duration_seconds": mapping["playback"]["duration_seconds"],
+                "playback_range_start_seconds": 0,
+                "playback_range_end_exclusive_seconds": mapping["playback"]["duration_seconds"],
+                "playback_completed": assignment["playback_completed"].strip() or "not_captured",
+                "evaluation_time_utc": assignment["evaluation_time_utc"].strip() or "not_captured",
+                "evaluation_environment_id": assignment["evaluation_environment_id"].strip() or "not_captured",
+                "raw_rating": raw["raw_rating"],
+                "unable_to_judge": raw["raw_unable_to_judge"],
+            })
+    return {
+        "path": output_path.relative_to(ROOT).as_posix(),
+        "sha256": sha256(output_path),
+        "row_count": len(assignment_rows),
+        "rating_source": "listening-evaluator-01/02/03.csv; raw values preserved",
+        "derived_join": "pair_id + frozen evaluation_id/presentation assignment + frozen playback mapping",
+        "not_captured_fields": ["playback_completed", "evaluation_time_utc", "evaluation_environment_id"],
+    }
 
 
 def draw_chart(path: Path, title: str, x_label: str, y_label: str, points: list[tuple[float, float]], *, bars: bool = False, categories: list[str] | None = None, errors: list[float | None] | None = None) -> None:
@@ -274,8 +380,10 @@ def main() -> int:
         args = parser.parse_args()
         for filename in OUTPUTS:
             require(args.overwrite or not (ARTIFACTS / filename).exists(), f"출력 파일이 이미 존재합니다. --overwrite가 필요합니다: {filename}")
-        mapping, cosine, pairs, query_by_id, matrix = validate_inputs()
+        mapping, cosine, pairs, query_by_id, matrix, assignment_rows = validate_inputs()
         responses = read_ratings(pairs)
+        provenance = reproducibility_provenance()
+        joined_evidence = write_joined_evidence(mapping, pairs, assignment_rows, responses)
         pair_rows: list[dict[str, Any]] = []
         for pair in pairs:
             pair_id = pair["pair_id"]
@@ -374,11 +482,11 @@ def main() -> int:
             "monotonic_increasing_required": True,
         }
         summary = {
-            "schema_version": 1,
-            "analysis_version": "listening-calibration-summary-v1",
-            "execution_commit_sha": __import__("subprocess").check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
-            "analysis_script_sha256": sha256(Path(__file__).resolve()),
+            "schema_version": 2,
+            "analysis_version": "listening-calibration-summary-v2",
+            "analysis_provenance": provenance,
             "data_scope": {"pair_count": len(pair_rows), "assignment_count": 288, "evaluator_count": 3, "all_three_unable_pair_ids": [r["pair_id"] for r in pair_rows if r["valid_rating_count"] == 0], "analyzed_pair_count": len(analyzable), "calibration_only": True, "independent_validation_performed": False},
+            "joined_evidence": joined_evidence,
             "inputs": {"assignment_sha256": sha256(ARTIFACTS / "listening-evaluation-assignments.csv"), "evaluator_csv_sha256": {evaluator: sha256(ARTIFACTS / f"listening-{evaluator}.csv") for evaluator in EVALUATORS}, "mapping_sha256": sha256(ARTIFACTS / "listening-evaluation-mapping.json"), "raw_cosine_sha256": sha256(ARTIFACTS / "calibration-v1-raw-cosine.json"), "event_queries_sha256": sha256(ROOT / "docs/experiments/audio-similarity-calibration/event-queries.json"), "text_artifact_sha256": sha256(ROOT / mapping["inputs"]["text_artifact_path"]), "audio_artifact_sha256": sha256(ROOT / mapping["inputs"]["audio_artifact_path"]), "raw_cosine_execution_commit_sha": cosine["execution_commit_sha"]},
             "evaluator_statistics": evaluator_stats,
             "overall_pair_human_mean_rating": describe(overall_means),
