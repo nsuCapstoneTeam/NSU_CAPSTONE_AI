@@ -79,6 +79,7 @@
         <span class="position" id="position">1 / 96</span>
       </div>
       <progress id="progress" max="96" value="0" aria-label="평가 진행률"></progress>
+      <p class="status small error" id="identity-warning" hidden></p>
       <h2>행사 설명</h2>
       <div class="event">
         <div class="event-korean"><strong>한국어</strong><p id="event-text-ko"></p></div>
@@ -137,7 +138,7 @@
         4: '잘 어울림', 5: '매우 잘 어울림'
       };
       const el = (id) => document.getElementById(id);
-      const state = { evaluators: null, evaluatorId: '', items: [], responses: new Map(), index: 0, storageOk: true, playbackReady: false, playbackPairId: '', playbackObjectUrl: '', playbackToken: 0 };
+      const state = { evaluators: null, evaluatorId: '', items: [], responses: new Map(), index: 0, storageOk: true, playbackReady: false, playbackPairId: '', playbackObjectUrl: '', playbackToken: 0, experimentIdentity: '', responseIdentity: '' };
 
       function parseCsv(source) {
         const text = source.replace(/^\uFEFF/, '');
@@ -235,9 +236,15 @@
           fetch(assignmentUrl), fetch(mappingUrl), fetch(queryUrl)
         ]);
         if (![csvResponse, mappingResponse, queryResponse].every((response) => response.ok)) throw new Error('평가 자료를 불러오지 못했습니다. 로컬 서버 주소와 파일 상태를 확인해주세요.');
-        const csvText = await csvResponse.text();
-        let mapping = await mappingResponse.json();
-        const queryData = await queryResponse.json();
+        if (!globalThis.crypto?.subtle) throw new Error('평가 자료 identity를 확인할 수 없습니다. Web Crypto를 지원하는 로컬 서버에서 다시 열어주세요.');
+        const [csvBytes, mappingBytes, queryBytes] = await Promise.all([csvResponse.arrayBuffer(), mappingResponse.arrayBuffer(), queryResponse.arrayBuffer()]);
+        const csvText = new TextDecoder().decode(csvBytes);
+        let mapping = JSON.parse(new TextDecoder().decode(mappingBytes));
+        const queryData = JSON.parse(new TextDecoder().decode(queryBytes));
+        const mappingSha = await sha256Hex(mappingBytes);
+        const assignmentSha = await sha256Hex(csvBytes);
+        const querySha = await sha256Hex(queryBytes);
+        const experimentIdentity = await sha256Hex(new TextEncoder().encode(`listening-evaluation-v1\nmapping:${mappingSha}\nassignment:${assignmentSha}\nqueries:${querySha}`));
         const safe = validateAndBuild(parseCsv(csvText), mapping, queryData);
         const paths = new Set(safe.files.map((f) => `/${f.path.replace(/^\/+/, '')}`));
         const checks = await Promise.all([...paths].map(async (path) => {
@@ -246,22 +253,39 @@
         }));
         if (checks.length !== 40 || checks.some((ok) => !ok)) throw new Error('재생 파일 중 일부를 찾을 수 없습니다. 평가 자료 위치를 확인해주세요.');
         mapping = null;
-        return safe.byEvaluator;
+        return { byEvaluator: safe.byEvaluator, experimentIdentity };
       }
 
-      function storageKey(evaluatorId) { return `calibration-listening-${evaluatorId}`; }
+      async function sha256Hex(input) {
+        const digest = await crypto.subtle.digest('SHA-256', input);
+        return [...new Uint8Array(digest)].map((value) => value.toString(16).padStart(2, '0')).join('');
+      }
+      function storageKey(evaluatorId, identity = state.experimentIdentity) { return `calibration-listening-${evaluatorId}-${identity}`; }
+      function legacyStorageKey(evaluatorId) { return `calibration-listening-${evaluatorId}`; }
       function resetEvaluationData() {
         const confirmed = window.confirm('이 브라우저에 저장된 평가자 1~3의 진행 기록을 모두 삭제합니다.\n이미 실제 평가를 진행했다면 결과가 사라집니다.\n초기화하시겠습니까?');
         if (!confirmed) return;
-        for (const evaluatorId of evaluatorIds) localStorage.removeItem(storageKey(evaluatorId));
+        const allowedKeys = new Set(evaluatorIds.map(legacyStorageKey));
+        for (const evaluatorId of evaluatorIds) {
+          allowedKeys.add(storageKey(evaluatorId));
+          for (const key of Object.keys(localStorage)) {
+            if (key.startsWith(`calibration-listening-${evaluatorId}-`)) allowedKeys.add(key);
+          }
+        }
+        for (const key of allowedKeys) localStorage.removeItem(key);
         el('resume-status').textContent = '';
         el('reset-status').textContent = '평가 데이터가 초기화되었습니다.';
       }
       function readProgress(evaluatorId) {
         const raw = localStorage.getItem(storageKey(evaluatorId));
-        if (!raw) return { responses: new Map(), currentPairId: '' };
+        if (!raw) {
+          const hasOlderIdentity = Object.keys(localStorage).some((key) => key.startsWith(`calibration-listening-${evaluatorId}-`));
+          const legacy = localStorage.getItem(legacyStorageKey(evaluatorId));
+          return { responses: new Map(), currentPairId: '', incompatible: hasOlderIdentity || Boolean(legacy) };
+        }
         const saved = JSON.parse(raw);
-        if (saved.evaluator_id !== evaluatorId || !Array.isArray(saved.responses)) throw new Error('저장된 평가 기록을 읽을 수 없습니다.');
+        if (saved.evaluator_id !== evaluatorId || saved.experiment_identity !== state.experimentIdentity) return { responses: new Map(), currentPairId: '', incompatible: true };
+        if (!Array.isArray(saved.responses)) throw new Error('저장된 평가 기록을 읽을 수 없습니다.');
         const validPairs = new Set(state.evaluators[evaluatorId].map((item) => item.pair_id));
         const responses = new Map();
         for (const response of saved.responses) {
@@ -270,12 +294,13 @@
           if (!valid) throw new Error('저장된 평가 값이 올바르지 않습니다.');
           responses.set(response.pair_id, { rating: response.rating, unable_to_judge: response.unable_to_judge });
         }
-        return { responses, currentPairId: saved.current_pair_id || '' };
+        return { responses, currentPairId: saved.current_pair_id || '', incompatible: false };
       }
       function saveProgress(currentPairId) {
         try {
+          if (!state.experimentIdentity || state.responseIdentity !== state.experimentIdentity) throw new Error('evaluation identity mismatch');
           const responses = [...state.responses.entries()].map(([pair_id, result]) => ({ evaluator_id: state.evaluatorId, pair_id, rating: result.rating, unable_to_judge: result.unable_to_judge }));
-          localStorage.setItem(storageKey(state.evaluatorId), JSON.stringify({ evaluator_id: state.evaluatorId, current_pair_id: currentPairId, responses }));
+          localStorage.setItem(storageKey(state.evaluatorId), JSON.stringify({ evaluator_id: state.evaluatorId, experiment_identity: state.experimentIdentity, current_pair_id: currentPairId, responses }));
           state.storageOk = true;
           el('save-status').textContent = '이 브라우저에 자동 저장되었습니다.';
           return true;
@@ -394,7 +419,10 @@
         state.items = state.evaluators[evaluatorId];
         const progress = readProgress(evaluatorId);
         state.responses = progress.responses;
+        state.responseIdentity = state.experimentIdentity;
         state.storageOk = true;
+        el('identity-warning').hidden = !progress.incompatible;
+        el('identity-warning').textContent = progress.incompatible ? '평가 데이터 버전이 변경되어 이전 진행상황을 사용할 수 없습니다. 새 평가 기록으로 시작합니다.' : '';
         el('start').style.display = 'none';
         if (state.responses.size === 96) { showComplete(); return; }
         state.index = state.items.findIndex((item) => !state.responses.has(item.pair_id));
@@ -404,6 +432,12 @@
         render();
       }
       function exportCsv() {
+        if (!state.experimentIdentity || state.responseIdentity !== state.experimentIdentity) return;
+        const savedRaw = localStorage.getItem(storageKey(state.evaluatorId));
+        if (!savedRaw) return;
+        let saved;
+        try { saved = JSON.parse(savedRaw); } catch (_) { return; }
+        if (saved.evaluator_id !== state.evaluatorId || saved.experiment_identity !== state.experimentIdentity) return;
         if (state.responses.size !== 96 || state.items.some((item) => !state.responses.has(item.pair_id))) return;
         const quote = (value) => `"${String(value).replace(/"/g, '""')}"`;
         const lines = [['evaluator_id','pair_id','rating','unable_to_judge'].map(quote).join(',')];
@@ -425,7 +459,7 @@
         if (!evaluatorId || !state.evaluators) return;
         try {
           const saved = readProgress(evaluatorId);
-          el('resume-status').textContent = saved.responses.size ? `기존 평가 진행 기록이 있습니다. 완료 ${saved.responses.size} / 96` : '';
+          el('resume-status').textContent = saved.incompatible ? '평가 데이터 버전이 변경되어 이전 진행상황을 사용할 수 없습니다.' : saved.responses.size ? `기존 평가 진행 기록이 있습니다. 완료 ${saved.responses.size} / 96` : '';
         } catch (error) { el('resume-status').textContent = error.message; }
       });
       el('start-button').addEventListener('click', () => {
@@ -474,8 +508,9 @@
       });
       el('export-button').addEventListener('click', exportCsv);
 
-      loadData().then((evaluators) => {
-        state.evaluators = evaluators;
+      loadData().then(({ byEvaluator, experimentIdentity }) => {
+        state.evaluators = byEvaluator;
+        state.experimentIdentity = experimentIdentity;
         el('start-button').disabled = false;
         el('load-status').textContent = '평가 자료 확인 완료';
       }).catch((error) => {
