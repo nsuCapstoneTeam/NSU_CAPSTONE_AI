@@ -5,6 +5,7 @@ numpy==1.26.4
 torch==2.1.2+cpu
 torchaudio==2.1.2+cpu
 torchvision==0.16.2+cpu
+imageio-ffmpeg==0.6.0
 transformers==4.35.2
 # Phase 1 HTTP server and PostgreSQL connection.
 fastapi>=0.115,<1

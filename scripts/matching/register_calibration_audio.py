@@ -11,7 +11,9 @@ from pathlib import Path
 
 import soundfile as sf
 
-from scripts.datasets.highlight_dataset import DatasetError, decode, relative_path, sha256
+from scripts.datasets.highlight_dataset import (
+    DatasetError, audio_info, decode, relative_path, sha256,
+)
 from scripts.matching.validate_calibration import (
     CALIBRATION_DIR,
     _read_json,
@@ -26,6 +28,39 @@ DEFAULT_MANIFEST = CALIBRATION_DIR / 'manifest.json'
 DEFAULT_SOURCE_ROOT = 'data/calibration/audio/source/'
 ACQUISITION_METHODS = ('official_direct_download', 'other_confirmed_method')
 SOURCE_FILE_KINDS = ('full_track', 'preview', 'sample', 'unknown')
+_MP3_LAYER_III_MAX_FRAME_SAMPLES = 1152
+_MP3_METADATA_FRAME_TOLERANCE = 2 * _MP3_LAYER_III_MAX_FRAME_SAMPLES
+
+
+def validate_decoded_container_metadata(
+    frames, sample_rate, channels, info, context, catalog_duration=None
+):
+    """Check decoder metadata against container metadata without trusting MP3 estimates."""
+    if sample_rate != info.samplerate or channels != info.channels:
+        raise ValueError(
+            f'{context} decoder and container metadata disagree: '
+            f'decoded={(frames, sample_rate, channels)}, '
+            f'container={(info.frames, info.samplerate, info.channels)}'
+        )
+    frame_difference = abs(frames - info.frames)
+    if frames == info.frames:
+        return
+    # libsndfile's MP3 frame count is a duration estimate; MPEG Layer III emits
+    # at most 1152 PCM samples per MPEG-1 frame. Permit only a two-frame bound.
+    if info.format == 'MP3':
+        if frame_difference <= _MP3_METADATA_FRAME_TOLERANCE:
+            return
+        # VBR MP3 frame counts from libsndfile can be bitrate-based estimates.
+        # For larger estimates, accept only when decoded duration independently
+        # agrees with the already-vetted provider catalog duration (rounded sec).
+        if (isinstance(catalog_duration, (int, float))
+                and abs(frames / sample_rate - catalog_duration) <= 1.0):
+            return
+    raise ValueError(
+        f'{context} decoder and container metadata disagree: '
+        f'decoded={(frames, sample_rate, channels)}, '
+        f'container={(info.frames, info.samplerate, info.channels)}'
+    )
 
 
 def _validate_payload(manifest, manifest_path):
@@ -51,7 +86,9 @@ def _sample_for_id(manifest, sample_id):
     return matches[0]
 
 
-def inspect_source_audio(source_file, sample_id, repository_root=REPOSITORY_ROOT):
+def inspect_source_audio(
+    source_file, sample_id, repository_root=REPOSITORY_ROOT, catalog_duration=None
+):
     """Decode an in-repository source file and return its stable identity metadata."""
     root = Path(repository_root).resolve()
     if not isinstance(source_file, str) or not source_file.strip():
@@ -70,19 +107,16 @@ def inspect_source_audio(source_file, sample_id, repository_root=REPOSITORY_ROOT
     size_before = path.stat().st_size
     try:
         pcm, sample_rate = decode(path)
-        info = sf.info(str(path))
+        info = audio_info(path)
     except (DatasetError, OSError, RuntimeError, sf.LibsndfileError) as exc:
         raise ValueError(f'source audio decode/metadata inspection failed: {exc}') from exc
 
     frames, channels = pcm.shape
     if frames <= 0 or channels <= 0 or sample_rate <= 0:
         raise ValueError('decoded frame count, sample rate and channels must be positive')
-    if not (frames == info.frames and sample_rate == info.samplerate and channels == info.channels):
-        raise ValueError(
-            'decoder and container metadata disagree: '
-            f'decoded={(frames, sample_rate, channels)}, '
-            f'container={(info.frames, info.samplerate, info.channels)}'
-        )
+    validate_decoded_container_metadata(
+        frames, sample_rate, channels, info, 'source audio', catalog_duration
+    )
     digest_after = sha256(path)
     size_after = path.stat().st_size
     if digest_before != digest_after or size_before != size_after:
@@ -126,7 +160,10 @@ def register_source_audio(
     if sample.get('acquisition_method') not in ('not_acquired', 'pending'):
         raise ValueError(f'{sample_id}: source is already registered; refusing to replace it')
 
-    metadata = inspect_source_audio(source_file, sample_id, repository_root)
+    metadata = inspect_source_audio(
+        source_file, sample_id, repository_root,
+        catalog_duration=sample.get('source_catalog_duration'),
+    )
     if full_track_verified is True and metadata['decoded_duration'] < 60:
         raise ValueError(
             'full_track_verified cannot be true when decoded audio is shorter than 60 seconds'

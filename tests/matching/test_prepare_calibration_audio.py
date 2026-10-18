@@ -13,7 +13,20 @@ SAMPLE_ID = 'cal-incompetech-mandeville'
 
 
 def _manifest():
-    return json.loads(registration.DEFAULT_MANIFEST.read_text(encoding='utf-8'))
+    manifest = json.loads(registration.DEFAULT_MANIFEST.read_text(encoding='utf-8'))
+    for sample in manifest['samples']:
+        for field in (
+            'source_local_path', 'source_sha256', 'source_file_size', 'decoded_duration',
+            'decoded_frame_count', 'source_sample_rate', 'source_channels', 'source_codec',
+            'prepared_local_path', 'segment_start_frame', 'segment_end_frame_exclusive',
+            'prepared_sha256', 'prepared_duration',
+        ):
+            sample[field] = None
+        sample.update({
+            'acquisition_method': 'not_acquired', 'source_file_kind': 'unknown',
+            'full_track_verified': None, 'full_track_evidence': None,
+        })
+    return manifest
 
 
 def _write_source(

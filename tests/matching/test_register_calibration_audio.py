@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -12,7 +13,23 @@ MANIFEST_PATH = registration.DEFAULT_MANIFEST
 
 
 def _manifest():
-    return json.loads(MANIFEST_PATH.read_text(encoding='utf-8'))
+    manifest = json.loads(MANIFEST_PATH.read_text(encoding='utf-8'))
+    sample = next(
+        row for row in manifest['samples']
+        if row['sample_id'] == 'cal-incompetech-mandeville'
+    )
+    for field in (
+        'source_local_path', 'source_sha256', 'source_file_size', 'decoded_duration',
+        'decoded_frame_count', 'source_sample_rate', 'source_channels', 'source_codec',
+        'prepared_local_path', 'segment_start_frame', 'segment_end_frame_exclusive',
+        'prepared_sha256', 'prepared_duration',
+    ):
+        sample[field] = None
+    sample.update({
+        'acquisition_method': 'not_acquired', 'source_file_kind': 'unknown',
+        'full_track_verified': None, 'full_track_evidence': None,
+    })
+    return manifest
 
 
 def _write_audio(root, sample_id='cal-incompetech-mandeville', *, seconds=61, value=0.1):
@@ -197,6 +214,47 @@ def test_decoder_and_container_metadata_must_match(tmp_path, monkeypatch):
         assert 'metadata disagree' in str(error)
     else:
         raise AssertionError('decoder/container metadata mismatch must fail')
+
+
+def test_mp3_frame_count_estimate_allows_two_layer_iii_frames():
+    info = SimpleNamespace(frames=9_572_313, samplerate=44_100, channels=2, format='MP3')
+
+    registration.validate_decoded_container_metadata(
+        9_570_816, 44_100, 2, info, 'source audio'
+    )
+
+
+def test_mp3_frame_count_estimate_rejects_discrepancy_over_two_frames():
+    info = SimpleNamespace(frames=9_570_816 + 2305, samplerate=44_100, channels=2, format='MP3')
+
+    with pytest.raises(ValueError, match='metadata disagree'):
+        registration.validate_decoded_container_metadata(
+            9_570_816, 44_100, 2, info, 'source audio'
+        )
+
+
+def test_mp3_vbr_estimate_requires_decoded_duration_to_match_catalog():
+    decoded_frames = 9_570_816
+    info = SimpleNamespace(
+        frames=decoded_frames + 700_000, samplerate=44_100, channels=2, format='MP3'
+    )
+
+    registration.validate_decoded_container_metadata(
+        decoded_frames, 44_100, 2, info, 'source audio', catalog_duration=217
+    )
+    with pytest.raises(ValueError, match='metadata disagree'):
+        registration.validate_decoded_container_metadata(
+            decoded_frames, 44_100, 2, info, 'source audio', catalog_duration=240
+        )
+
+
+def test_pcm_wav_frame_count_mismatch_remains_exact():
+    info = SimpleNamespace(frames=61 * 8000 + 1, samplerate=8000, channels=2, format='WAV')
+
+    with pytest.raises(ValueError, match='metadata disagree'):
+        registration.validate_decoded_container_metadata(
+            61 * 8000, 8000, 2, info, 'source audio'
+        )
 
 
 def test_duplicate_source_sha_is_rejected(tmp_path):
