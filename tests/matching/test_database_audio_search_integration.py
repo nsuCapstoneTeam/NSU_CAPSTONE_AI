@@ -7,13 +7,22 @@ import pytest
 import torch
 
 from app.core.database import connect_database
-from app.embedding.audio_embedding import AudioEmbeddingResult
+from app.embedding.audio_embedding import (
+    AudioEmbeddingResult, CALIBRATION_CHECKPOINT_REVISION, CALIBRATION_CHECKPOINT_SHA256,
+)
 from app.matching.audio_search import audio_cosine_similarities
 from app.repository.embedding_repository import AudioEmbeddingRepository
+from app.embedding.text_embedding import (
+    CALIBRATION_MSCLAP_CONFIG_SHA256, CALIBRATION_MSCLAP_PACKAGE_VERSION,
+    CALIBRATION_MSCLAP_SOURCE_FILE_COUNT, CALIBRATION_MSCLAP_SOURCE_SHA256,
+)
 
 
 pytestmark = pytest.mark.skipif(os.environ.get('RUN_EMBEDDING_DB_TESTS') != '1',
                                 reason='Explicit database integration opt-in required')
+
+MISMATCH_CHECKPOINT_REVISION = '0' * 40
+assert MISMATCH_CHECKPOINT_REVISION != CALIBRATION_CHECKPOINT_REVISION
 
 
 @pytest.fixture
@@ -33,7 +42,16 @@ def make_result():
         return AudioEmbeddingResult(vector, {
             'source_sha256': file_hash, 'shape': list(vector.shape), 'dimension': vector.shape[1],
             'model': 'MSCLAP', 'model_version': '2023', 'preprocessing_version': version,
-            'packages': {'torch': 'test'}, 'preprocessing': {
+            'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
+            'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
+            'msclap_implementation': {
+                'package_version': CALIBRATION_MSCLAP_PACKAGE_VERSION,
+                'source_file_count': CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+                'source_sha256': CALIBRATION_MSCLAP_SOURCE_SHA256,
+                'config_file': 'configs/config_2023.yml',
+                'config_sha256': CALIBRATION_MSCLAP_CONFIG_SHA256,
+            },
+            'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION, 'torch': 'test'}, 'preprocessing': {
                 'analysis_duration_seconds': 56, 'chunk_duration_seconds': 7,
                 'chunk_count': 8, 'aggregation': 'mean', 'channel_policy': 'mono',
                 'profile_change': profile_change,
@@ -70,7 +88,7 @@ def test_incompatible_embedding_excluded_before_distance(connection, make_result
     if mismatch == 'package':
         candidate.metadata['packages']['torch'] = 'other'
     if mismatch == 'revision':
-        candidate.metadata['checkpoint_revision'] = 'other'
+        candidate.metadata['checkpoint_revision'] = MISMATCH_CHECKPOINT_REVISION
     AudioEmbeddingRepository().save(connection, 'test-' + uuid.uuid4().hex, candidate)
     assert AudioEmbeddingRepository().search(connection, query) == {'candidate_count': 0, 'results': []}
 

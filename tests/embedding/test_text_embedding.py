@@ -11,6 +11,7 @@ import torch
 
 from app.embedding import text_embedding
 from app.embedding.text_embedding import TextEmbeddingError, TextEmbeddingGenerator
+from app.repository import embedding_repository
 
 
 class FakeTokenizer:
@@ -115,7 +116,32 @@ def test_generates_one_valid_raw_embedding_with_calibration_metadata(configured_
     assert metadata["text_encoder"]["model_file_sha256"] == text_embedding.TEXT_ENCODER_MODEL_SHA256
     assert metadata["packages"]["tokenizers"] == "test-tokenizers"
     assert metadata["text_preprocessing"]["normalization"] == "none; raw MSCLAP Text Embedding"
+    assert metadata["text_preprocessing"]["token_count_including_model_end_marker_and_specials"] == 4
     assert "query_text" not in metadata
+
+
+def test_generated_text_result_passes_supported_search_identity_validation(configured_model, monkeypatch):
+    configured_model.model.args.d_proj = text_embedding.TEXT_EMBEDDING_DIMENSION
+    configured_model.output = torch.zeros((1, text_embedding.TEXT_EMBEDDING_DIMENSION))
+    configured_model.output[0, 0] = 1.0
+    monkeypatch.setattr(
+        embedding_repository,
+        "CALIBRATION_CHECKPOINT_SHA256",
+        text_embedding.CALIBRATION_CHECKPOINT_SHA256,
+    )
+    result = TextEmbeddingGenerator(configured_model).generate("A calm outdoor family event")
+    _, profile, _, _ = embedding_repository.prepare_text_embedding(result)
+    audio_profile = {
+        "preprocessing_version": embedding_repository.PREPROCESSING_VERSION,
+        "model": profile["model"],
+        "model_version": profile["model_version"],
+        "checkpoint_revision": profile["checkpoint_revision"],
+        "checkpoint_sha256": profile["checkpoint_sha256"],
+        "msclap_implementation": profile["msclap_implementation"],
+        "dimension": profile["dimension"],
+        "packages": profile["packages"],
+    }
+    assert embedding_repository.text_audio_profiles_compatible(profile, audio_profile)
 
 
 @pytest.mark.parametrize("query_text", [None, 7, [], {}])

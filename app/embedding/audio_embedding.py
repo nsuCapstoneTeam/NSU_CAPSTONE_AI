@@ -9,6 +9,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.embedding.text_embedding import (
+    CALIBRATION_CHECKPOINT_REVISION,
+    CALIBRATION_CHECKPOINT_SHA256,
+    _sha256_file,
+    _verify_msclap_implementation_identity,
+)
+
 
 PREPROCESSING_VERSION = (
     'msclap2023-audio-first56s-8x7s-nonoverlap-chunk-l2-mean-final-l2-v2'
@@ -21,6 +28,29 @@ MIN_AUDIO_DURATION_SECONDS = 60
 MAX_AUDIO_DURATION_SECONDS = 80
 _CHUNK_SAMPLE_COUNT = CHUNK_DURATION_SECONDS * TARGET_SAMPLE_RATE
 _generation_lock = threading.Lock()
+
+
+def _runtime_msclap_implementation_identity():
+    """Reuse the calibration-pinned MSCLAP implementation verifier without loading Text resources."""
+    return _verify_msclap_implementation_identity()
+
+
+def _load_calibration_pinned_msclap_model():
+    """Load the same locally pinned MSCLAP resources used by Text generation."""
+    from app.embedding.text_embedding import TextEmbeddingGenerator
+
+    text_generator = TextEmbeddingGenerator()
+    model = getattr(getattr(text_generator, '_model', None), 'model', None)
+    if model is None or not callable(getattr(model, 'get_audio_embeddings', None)):
+        raise ValueError('pinned_msclap_audio_encoder_unavailable')
+    checkpoint = Path(getattr(model, 'model_fp', ''))
+    parts = checkpoint.parts
+    revision = parts[parts.index('snapshots') + 1] if (
+        'snapshots' in parts and parts.index('snapshots') + 1 < len(parts)
+    ) else None
+    if revision != CALIBRATION_CHECKPOINT_REVISION:
+        raise ValueError('audio_checkpoint_revision_mismatch')
+    return model
 
 
 class AudioEmbeddingError(ValueError):
@@ -138,7 +168,31 @@ class AudioEmbeddingGenerator:
         if expected_dimension is not None and (type(expected_dimension) is not int or expected_dimension < 1):
             raise ValueError('expected_dimension must be a positive integer')
         self._model = model
+        self._model_identity = None
         self.dimension = expected_dimension
+
+    def _initialize_model_identity(self):
+        checkpoint = Path(getattr(self._model, 'model_fp', ''))
+        parts = checkpoint.parts
+        revision = parts[parts.index('snapshots') + 1] if (
+            'snapshots' in parts and parts.index('snapshots') + 1 < len(parts)
+        ) else None
+        if revision != CALIBRATION_CHECKPOINT_REVISION:
+            raise ValueError('audio_checkpoint_revision_mismatch')
+        checkpoint_sha256 = getattr(self._model, 'verified_checkpoint_sha256', None)
+        if not isinstance(checkpoint_sha256, str):
+            if not checkpoint.is_file():
+                raise ValueError('audio_checkpoint_file_unavailable')
+            checkpoint_sha256 = _sha256_file(checkpoint)
+        if checkpoint_sha256 != CALIBRATION_CHECKPOINT_SHA256:
+            raise ValueError('audio_checkpoint_sha256_mismatch')
+        implementation = _runtime_msclap_implementation_identity()
+        return {
+            'checkpoint_path': str(checkpoint.resolve()),
+            'checkpoint_revision': revision,
+            'checkpoint_sha256': checkpoint_sha256,
+            'msclap_implementation': implementation,
+        }
 
     def generate(self, audio_path, *, expected_sha256=None):
         """60~80초 파일의 처음 56초를 고정 8 Chunk로 변환해 하나의 벡터를 반환한다."""
@@ -168,15 +222,21 @@ class AudioEmbeddingGenerator:
 
             with _generation_lock:
                 if self._model is None:
-                    from msclap import CLAP
                     loading_state = random.getstate()
                     try:
                         with torch.random.fork_rng(devices=[]):
-                            self._model = CLAP(version='2023', use_cuda=False)
+                            self._model = _load_calibration_pinned_msclap_model()
                     except Exception as error:
-                        raise AudioEmbeddingError('audio_model_load_failed', path) from error
+                        reason = str(error) or 'audio_model_load_failed'
+                        raise AudioEmbeddingError(reason, path) from error
                     finally:
                         random.setstate(loading_state)
+
+                if self._model_identity is None:
+                    try:
+                        self._model_identity = self._initialize_model_identity()
+                    except Exception as error:
+                        raise AudioEmbeddingError(str(error) or 'audio_model_identity_unverified', path) from error
 
                 try:
                     with torch.inference_mode():
@@ -211,9 +271,7 @@ class AudioEmbeddingGenerator:
                 raise AudioEmbeddingError('audio_source_changed', path) from error
 
             self.dimension = vector.shape[1]
-            checkpoint = Path(getattr(self._model, 'model_fp', 'unavailable'))
-            parts = checkpoint.parts
-            revision = parts[parts.index('snapshots') + 1] if 'snapshots' in parts and parts.index('snapshots') + 1 < len(parts) else None
+            identity = self._model_identity
             preprocessing = {
                 'resample': True,
                 'target_sample_rate': TARGET_SAMPLE_RATE,
@@ -233,7 +291,10 @@ class AudioEmbeddingGenerator:
                 'source_sample_rate': source_sample_rate,
                 'source_channels': source_channels,
                 'model': 'MSCLAP', 'model_version': '2023',
-                'checkpoint_path': str(checkpoint), 'checkpoint_revision': revision,
+                'checkpoint_path': identity['checkpoint_path'],
+                'checkpoint_revision': identity['checkpoint_revision'],
+                'checkpoint_sha256': identity['checkpoint_sha256'],
+                'msclap_implementation': identity['msclap_implementation'],
                 'packages': {name: importlib.metadata.version(name) for name in ('msclap', 'torch', 'torchaudio')},
                 'device': 'cpu', 'shape': list(vector.shape), 'dimension': self.dimension,
                 'dtype': str(vector.dtype), 'norm': float(vector.norm()),

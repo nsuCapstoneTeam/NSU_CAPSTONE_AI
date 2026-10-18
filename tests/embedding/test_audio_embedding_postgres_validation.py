@@ -395,7 +395,7 @@ def test_primary_failure_stage_survives_rollback_verification(monkeypatch, failu
     connections = iter([probe, work, fresh])
     monkeypatch.setattr(tool, 'connect_validation', lambda expected: (next(connections), {'identity_verified': True}))
     monkeypatch.setattr(tool, 'apply_validated_migrations', lambda expected: [])
-    monkeypatch.setattr(tool, 'cache_identity', lambda path: {'microsoft--msclap': {'revision': 'synthetic', 'files': {'CLAP_weights_2023.pth': {'sha256': 'c'*64}}}})
+    monkeypatch.setattr(tool, 'cache_identity', lambda path: {'microsoft--msclap': {'revision': 'a' * 40, 'files': {'CLAP_weights_2023.pth': {'sha256': 'c'*64}}}})
     monkeypatch.setattr(tool, 'audio_file_sha256', lambda path: 'c'*64)
     def inspect_schema(connection):
         if failure_stage == 'schema_evidence':

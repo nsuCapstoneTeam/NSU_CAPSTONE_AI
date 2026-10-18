@@ -3,7 +3,14 @@ from unittest.mock import MagicMock, Mock
 import pytest
 import torch
 
-from app.embedding.audio_embedding import AudioEmbeddingError, AudioEmbeddingResult
+from app.embedding.audio_embedding import (
+    AudioEmbeddingError, AudioEmbeddingResult,
+    CALIBRATION_CHECKPOINT_REVISION, CALIBRATION_CHECKPOINT_SHA256,
+)
+from app.embedding.text_embedding import (
+    CALIBRATION_MSCLAP_CONFIG_SHA256, CALIBRATION_MSCLAP_PACKAGE_VERSION,
+    CALIBRATION_MSCLAP_SOURCE_FILE_COUNT, CALIBRATION_MSCLAP_SOURCE_SHA256,
+)
 from app.matching.database_audio_search import DatabaseAudioSearch
 from app.repository.embedding_repository import AudioEmbeddingRepository
 
@@ -51,7 +58,16 @@ def test_non_finite_database_score_is_rejected(value):
     query = AudioEmbeddingResult(torch.ones(1, 2), {
         'source_sha256': 'a' * 64, 'dimension': 2, 'shape': [1, 2],
         'model': 'MSCLAP', 'model_version': '2023', 'preprocessing_version': 'test',
-        'packages': {}, 'preprocessing': {},
+        'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
+        'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
+        'msclap_implementation': {
+            'package_version': CALIBRATION_MSCLAP_PACKAGE_VERSION,
+            'source_file_count': CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+            'source_sha256': CALIBRATION_MSCLAP_SOURCE_SHA256,
+            'config_file': 'configs/config_2023.yml',
+            'config_sha256': CALIBRATION_MSCLAP_CONFIG_SHA256,
+        },
+        'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION}, 'preprocessing': {},
     })
     connection = MagicMock()
     connection.cursor.return_value.__enter__.return_value.fetchall.return_value = [(1, 'music-1', value)]

@@ -2,7 +2,12 @@
 
 from app.core.database import connect_database
 from app.embedding.audio_embedding import AudioEmbeddingGenerator
-from app.repository.embedding_repository import AudioEmbeddingRepository, validate_music_id
+from app.embedding.text_embedding import TextEmbeddingGenerator
+from app.repository.embedding_repository import (
+    AudioEmbeddingRepository,
+    TextEmbeddingRepository,
+    validate_music_id,
+)
 
 
 class AudioEmbeddingStorage:
@@ -21,4 +26,19 @@ class AudioEmbeddingStorage:
         # 모델 로딩·디코딩은 오래 걸릴 수 있으므로 완료 후에만 DB 연결과 트랜잭션을 연다.
         with connect_database() as connection:
             saved = self.repository.save(connection, music_id, result)
+        return saved
+
+
+class TextEmbeddingStorage:
+    """Generate and persist a validated CLAP query without assuming an Event ID contract."""
+
+    def __init__(self, generator=None, repository=None):
+        self.generator = generator if generator is not None else TextEmbeddingGenerator()
+        self.repository = repository if repository is not None else TextEmbeddingRepository()
+
+    def store(self, query_text):
+        result = self.generator.generate(query_text)
+        # DB 트랜잭션은 모델 생성이 끝난 뒤에만 연다.
+        with connect_database() as connection:
+            saved = self.repository.save(connection, result)
         return saved
