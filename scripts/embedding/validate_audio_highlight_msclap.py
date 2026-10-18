@@ -24,6 +24,12 @@ from app.embedding.audio_embedding import (
     PREPROCESSING_VERSION, TARGET_SAMPLE_RATE, AudioEmbeddingError,
     AudioEmbeddingGenerator, audio_file_sha256, validate_chunk_embeddings,
 )
+from app.embedding.text_embedding import (
+    CALIBRATION_CHECKPOINT_REVISION, CALIBRATION_CHECKPOINT_SHA256,
+    TEXT_ENCODER_MODEL_FILE, TEXT_ENCODER_MODEL_ID, TEXT_ENCODER_MODEL_SHA256,
+    TEXT_ENCODER_REVISION, TEXT_ENCODER_TOKENIZER_FILE_SHA256,
+    _verify_msclap_implementation_identity,
+)
 from scripts.datasets.highlight_dataset import DatasetError, load_manifest
 
 SCHEMA_VERSION = 1
@@ -228,14 +234,37 @@ def cache_identity(cache):
     required = {'microsoft--msclap': ['CLAP_weights_2023.pth'],
                 'gpt2': ['config.json', 'model.safetensors', 'tokenizer.json',
                          'tokenizer_config.json', 'vocab.json', 'merges.txt']}
+    expected_hashes = {
+        'microsoft--msclap': {'CLAP_weights_2023.pth': CALIBRATION_CHECKPOINT_SHA256},
+        'gpt2': {**TEXT_ENCODER_TOKENIZER_FILE_SHA256, TEXT_ENCODER_MODEL_FILE: TEXT_ENCODER_MODEL_SHA256},
+    }
     for name, files in required.items():
         model = hub / ('models--' + name)
-        revision = (model / 'refs/main').read_text(encoding='utf-8').strip()
+        revision = CALIBRATION_CHECKPOINT_REVISION if name == 'microsoft--msclap' else TEXT_ENCODER_REVISION
         snapshot = model / 'snapshots' / revision
+        require(snapshot.is_dir(), f'{name}: pinned offline revision unavailable: {revision}')
+        file_identity = {}
+        for filename in files:
+            path = snapshot / filename
+            require(path.is_file(), f'{name}: pinned artifact missing: {filename}')
+            actual_sha256 = audio_file_sha256(path)
+            require(actual_sha256 == expected_hashes[name][filename],
+                    f'{name}: pinned artifact SHA-256 mismatch: {filename}')
+            file_identity[filename] = {'sha256': actual_sha256, 'bytes': path.stat().st_size}
         require(all((snapshot / f).is_file() for f in files), f'{name}: offline cache 누락')
-        result[name] = {'revision': revision, 'files': {
-            f: {'sha256': audio_file_sha256(snapshot / f), 'bytes': (snapshot / f).stat().st_size}
-            for f in files}}
+        result[name] = {'revision': revision, 'files': file_identity}
+    try:
+        implementation = _verify_msclap_implementation_identity()
+    except Exception as error:
+        raise ValidationError('MSCLAP package/source/config identity differs from calibration') from error
+    result['model_identity'] = {
+        'model': 'MSCLAP', 'model_version': '2023',
+        'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
+        'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
+        'text_encoder_model_id': TEXT_ENCODER_MODEL_ID,
+        'text_encoder_revision': TEXT_ENCODER_REVISION,
+        'msclap_implementation': implementation,
+    }
     return result
 
 
@@ -338,7 +367,11 @@ def main(argv=None):
                         'path': args.manifest.as_posix(), 'sha256': audio_file_sha256(args.manifest),
                         'inspection_report_sha256': audio_file_sha256(args.phase_a_report)},
                         rights_cleared=True, rights_scope='phase_a_local_msclap_technical_validation')
-        os.environ['HF_HOME'] = str(args.cache.resolve())
+        cache_root = args.cache.resolve()
+        os.environ['HF_HOME'] = str(cache_root)
+        os.environ['HF_HUB_CACHE'] = str(cache_root / 'hub')
+        os.environ['HUGGINGFACE_HUB_CACHE'] = str(cache_root / 'hub')
+        os.environ['TRANSFORMERS_CACHE'] = str(cache_root / 'hub')
         os.environ['HF_HUB_OFFLINE'] = '1'
         os.environ['TRANSFORMERS_OFFLINE'] = '1'
         cache = cache_identity(args.cache)

@@ -21,6 +21,11 @@ from app.embedding.text_embedding import (
     CALIBRATION_MSCLAP_PACKAGE_VERSION,
     CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
     CALIBRATION_MSCLAP_SOURCE_SHA256,
+    TEXT_ENCODER_MODEL_FILE,
+    TEXT_ENCODER_MODEL_ID,
+    TEXT_ENCODER_MODEL_SHA256,
+    TEXT_ENCODER_REVISION,
+    TEXT_ENCODER_TOKENIZER_FILE_SHA256,
 )
 from scripts.embedding import validate_audio_highlight_msclap as tool
 
@@ -147,9 +152,102 @@ def test_preflight_stops_all_inference_on_invalid_input(tmp_path, monkeypatch, k
         tool.preflight(manifest, tmp_path, report)
 
 
+def pinned_cache_fixture(root, monkeypatch, *, checkpoint_revision=None, text_revision=None):
+    cache = root / 'hub'
+    checkpoint_revision = checkpoint_revision or CALIBRATION_CHECKPOINT_REVISION
+    text_revision = text_revision or TEXT_ENCODER_REVISION
+    checkpoint_snapshot = cache / 'models--microsoft--msclap' / 'snapshots' / checkpoint_revision
+    checkpoint_snapshot.mkdir(parents=True)
+    checkpoint = checkpoint_snapshot / 'CLAP_weights_2023.pth'
+    checkpoint.write_bytes(b'calibration checkpoint fixture')
+    monkeypatch.setattr(tool, 'CALIBRATION_CHECKPOINT_SHA256', hashlib.sha256(checkpoint.read_bytes()).hexdigest())
+
+    text_snapshot = cache / 'models--gpt2' / 'snapshots' / text_revision
+    text_snapshot.mkdir(parents=True)
+    text_file_bytes = {
+        'config.json': b'config', 'model.safetensors': b'model', 'tokenizer.json': b'tokenizer',
+        'tokenizer_config.json': b'tokenizer-config', 'vocab.json': b'vocab', 'merges.txt': b'merges',
+    }
+    for filename, content in text_file_bytes.items():
+        (text_snapshot / filename).write_bytes(content)
+    monkeypatch.setattr(tool, 'TEXT_ENCODER_MODEL_SHA256', hashlib.sha256(text_file_bytes['model.safetensors']).hexdigest())
+    monkeypatch.setattr(tool, 'TEXT_ENCODER_TOKENIZER_FILE_SHA256', {
+        filename: hashlib.sha256(text_file_bytes[filename]).hexdigest()
+        for filename in TEXT_ENCODER_TOKENIZER_FILE_SHA256
+    })
+    identity = {
+        'package_version': CALIBRATION_MSCLAP_PACKAGE_VERSION,
+        'source_file_count': CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+        'source_sha256': CALIBRATION_MSCLAP_SOURCE_SHA256,
+        'config_file': 'configs/config_2023.yml', 'config_sha256': CALIBRATION_MSCLAP_CONFIG_SHA256,
+    }
+    monkeypatch.setattr(tool, '_verify_msclap_implementation_identity', lambda: identity)
+    return cache, checkpoint, text_snapshot
+
+
 def test_offline_cache_missing_is_not_downloaded(tmp_path):
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(tool.ValidationError, match='pinned offline revision unavailable'):
         tool.cache_identity(tmp_path)
+
+
+def test_cache_identity_accepts_calibration_pinned_resources(tmp_path, monkeypatch):
+    cache, _, _ = pinned_cache_fixture(tmp_path, monkeypatch)
+
+    identity = tool.cache_identity(cache.parent)
+
+    assert identity['microsoft--msclap']['revision'] == CALIBRATION_CHECKPOINT_REVISION
+    assert identity['microsoft--msclap']['files']['CLAP_weights_2023.pth']['sha256'] == tool.CALIBRATION_CHECKPOINT_SHA256
+    assert identity['gpt2']['revision'] == TEXT_ENCODER_REVISION
+    assert identity['model_identity']['text_encoder_model_id'] == TEXT_ENCODER_MODEL_ID
+    assert identity['model_identity']['msclap_implementation']['package_version'] == CALIBRATION_MSCLAP_PACKAGE_VERSION
+
+
+def test_cache_identity_ignores_refs_main_when_pinned_snapshots_exist(tmp_path, monkeypatch):
+    cache, _, _ = pinned_cache_fixture(tmp_path, monkeypatch)
+    for model_name in ('models--microsoft--msclap', 'models--gpt2'):
+        model = cache / model_name
+        (model / 'refs').mkdir()
+        (model / 'refs' / 'main').write_text('f' * 40, encoding='utf-8')
+        other = model / 'snapshots' / ('f' * 40)
+        other.mkdir(parents=True)
+        (other / 'unrelated').write_bytes(b'not the pinned artifact')
+
+    identity = tool.cache_identity(cache.parent)
+
+    assert identity['microsoft--msclap']['revision'] == CALIBRATION_CHECKPOINT_REVISION
+    assert identity['gpt2']['revision'] == TEXT_ENCODER_REVISION
+
+
+def test_cache_identity_does_not_fallback_to_other_checkpoint_snapshot(tmp_path, monkeypatch):
+    cache, _, _ = pinned_cache_fixture(tmp_path, monkeypatch, checkpoint_revision='f' * 40)
+
+    with pytest.raises(tool.ValidationError, match='pinned offline revision unavailable'):
+        tool.cache_identity(cache.parent)
+
+
+def test_cache_identity_rejects_checkpoint_hash_mismatch(tmp_path, monkeypatch):
+    cache, checkpoint, _ = pinned_cache_fixture(tmp_path, monkeypatch)
+    checkpoint.write_bytes(b'wrong checkpoint')
+
+    with pytest.raises(tool.ValidationError, match='pinned artifact SHA-256 mismatch'):
+        tool.cache_identity(cache.parent)
+
+
+def test_cache_identity_rejects_missing_pinned_text_encoder_revision(tmp_path, monkeypatch):
+    cache, _, _ = pinned_cache_fixture(tmp_path, monkeypatch, text_revision='f' * 40)
+
+    with pytest.raises(tool.ValidationError, match='pinned offline revision unavailable'):
+        tool.cache_identity(cache.parent)
+
+
+def test_validation_and_production_audio_use_same_checkpoint_revision(tmp_path, monkeypatch):
+    cache, _, _ = pinned_cache_fixture(tmp_path, monkeypatch)
+
+    identity = tool.cache_identity(cache.parent)
+
+    assert identity['model_identity']['checkpoint_revision'] == audio_embedding_module.CALIBRATION_CHECKPOINT_REVISION
+    assert identity['microsoft--msclap']['revision'] == CALIBRATION_CHECKPOINT_REVISION
+    assert identity['model_identity']['text_encoder_revision'] == TEXT_ENCODER_REVISION
 
 
 def test_report_never_overwrites_existing_evidence(tmp_path):
