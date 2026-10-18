@@ -17,6 +17,9 @@ GENERATION_VERSION = "msclap2023-text-query-v2-gpt2-607a30d783df"
 GENERATION_PROFILE = "ClapModel.encode_text/msclap-default-v1"
 CALIBRATION_CHECKPOINT_SHA256 = "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6"
 CALIBRATION_MSCLAP_PACKAGE_VERSION = "1.3.3"
+CALIBRATION_MSCLAP_SOURCE_FILE_COUNT = 13
+CALIBRATION_MSCLAP_SOURCE_SHA256 = "e867cdbb71f7bcee529afb92a096578faab46c69feb35d8192d4f220de56c181"
+CALIBRATION_MSCLAP_CONFIG_SHA256 = "41fbc893997f75fe144d93bf2ec44d5ca27fe61beb8870dd815a53c064cb030f"
 CALIBRATION_CHECKPOINT_REVISION = "c47d441165daa21986ead0850660917636a81775"
 TEXT_ENCODER_MODEL_ID = "gpt2"
 TEXT_ENCODER_REVISION = "607a30d783dfa663caf39e06633721c8d4cfcd7e"
@@ -55,6 +58,61 @@ def _sha256_file(path: Path) -> str:
         for block in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(block)
     return digest.hexdigest()
+
+
+def _verify_msclap_implementation_identity(package_root: Path | None = None) -> dict[str, Any]:
+    """Verify the exact calibration-recorded MSCLAP source/config set once at load."""
+    try:
+        package_version = importlib.metadata.version("msclap")
+        if package_version != CALIBRATION_MSCLAP_PACKAGE_VERSION:
+            raise TextEmbeddingError("installed MSCLAP package differs from the validated calibration version")
+        if package_root is None:
+            wrapper = importlib.import_module("msclap.CLAPWrapper")
+            wrapper_path = getattr(wrapper, "__file__", None)
+            if not isinstance(wrapper_path, str) or not wrapper_path:
+                raise TextEmbeddingError("MSCLAP package source path is unavailable")
+            package_root = Path(wrapper_path).resolve().parent
+        else:
+            package_root = Path(package_root).resolve()
+
+        if not package_root.is_dir():
+            raise TextEmbeddingError("MSCLAP package source directory is unavailable")
+        source_files = sorted(
+            path for path in package_root.rglob("*")
+            if path.is_file() and path.suffix.lower() in {".py", ".yml", ".yaml"}
+        )
+        if len(source_files) != CALIBRATION_MSCLAP_SOURCE_FILE_COUNT:
+            raise TextEmbeddingError("MSCLAP source/config file set differs from calibration")
+        digest = hashlib.sha256()
+        source_hashes = {}
+        for path in source_files:
+            relative = path.relative_to(package_root).as_posix()
+            file_sha256 = _sha256_file(path)
+            source_hashes[relative] = file_sha256
+            digest.update(relative.encode("utf-8"))
+            digest.update(b"\0")
+            digest.update(bytes.fromhex(file_sha256))
+            digest.update(b"\n")
+        config_relative = Path("configs") / f"config_{MODEL_VERSION}.yml"
+        config_sha256 = source_hashes.get(config_relative.as_posix())
+        if config_sha256 is None:
+            raise TextEmbeddingError("calibration-pinned MSCLAP configuration is missing")
+        if config_sha256 != CALIBRATION_MSCLAP_CONFIG_SHA256:
+            raise TextEmbeddingError("MSCLAP configuration differs from the validated calibration identity")
+        source_sha256 = digest.hexdigest()
+        if source_sha256 != CALIBRATION_MSCLAP_SOURCE_SHA256:
+            raise TextEmbeddingError("MSCLAP implementation source differs from the validated calibration identity")
+        return {
+            "package_version": package_version,
+            "source_file_count": len(source_files),
+            "source_sha256": source_sha256,
+            "config_file": config_relative.as_posix(),
+            "config_sha256": config_sha256,
+        }
+    except TextEmbeddingError:
+        raise
+    except Exception as exc:
+        raise TextEmbeddingError("MSCLAP source/config identity could not be verified") from exc
 
 
 def _huggingface_cache_paths() -> tuple[Path, Path]:
@@ -262,9 +320,15 @@ class TextEmbeddingGenerator:
     def __init__(self, model: Any | None = None, *, expected_dimension: int | None = None):
         if expected_dimension is not None:
             _positive_int(expected_dimension, "expected_dimension")
-        self._model = model if model is not None else self._load_pinned_model()
+        self._msclap_implementation_identity = _verify_msclap_implementation_identity()
+        self._model = (
+            model
+            if model is not None
+            else self._load_pinned_model(self._msclap_implementation_identity)
+        )
         self.dimension = expected_dimension
         self._checkpoint_path, self._checkpoint_sha256 = self._initialize_checkpoint_identity(self._model)
+        self._initialize_msclap_implementation_identity(self._model)
         self._text_encoder_identity = self._initialize_text_encoder_identity(self._model)
 
     @staticmethod
@@ -304,11 +368,24 @@ class TextEmbeddingGenerator:
         return identity.copy()
 
     @staticmethod
-    def _load_pinned_model():
+    def _initialize_msclap_implementation_identity(model: Any) -> dict[str, Any]:
+        inner = getattr(model, "model", None)
+        identity = getattr(inner, "msclap_implementation_identity", None)
+        if (
+            not isinstance(identity, dict)
+            or identity.get("package_version") != CALIBRATION_MSCLAP_PACKAGE_VERSION
+            or identity.get("source_file_count") != CALIBRATION_MSCLAP_SOURCE_FILE_COUNT
+            or identity.get("source_sha256") != CALIBRATION_MSCLAP_SOURCE_SHA256
+            or identity.get("config_file") != f"configs/config_{MODEL_VERSION}.yml"
+            or identity.get("config_sha256") != CALIBRATION_MSCLAP_CONFIG_SHA256
+        ):
+            raise TextEmbeddingError("MSCLAP implementation identity is missing or differs from calibration")
+        return identity.copy()
+
+    @staticmethod
+    def _load_pinned_model(implementation_identity: dict[str, Any]):
         model_snapshot, checkpoint_path, expected_files = _verified_text_encoder_snapshot()
         try:
-            if importlib.metadata.version("msclap") != CALIBRATION_MSCLAP_PACKAGE_VERSION:
-                raise TextEmbeddingError("installed MSCLAP package differs from the validated calibration version")
             from transformers import AutoModel, AutoTokenizer
             from msclap import CLAP
             from app.inference.clap_model import ClapModel
@@ -376,6 +453,7 @@ class TextEmbeddingGenerator:
                 tokenizer_loader=tokenizer_loader,
             )
             pinned_model.verified_checkpoint_sha256 = expected_files["checkpoint_sha256"]
+            pinned_model.msclap_implementation_identity = implementation_identity
             model = ClapModel.from_model_instance(pinned_model)
             _validate_loaded_text_resources(model, expected_files)
             return model
@@ -423,12 +501,14 @@ class TextEmbeddingGenerator:
             raise TextEmbeddingError("installed MSCLAP package differs from the validated calibration version")
 
         self.dimension = configured_dimension
+        implementation_identity = self._msclap_implementation_identity
         metadata = {
             "model": "MSCLAP",
             "model_version": MODEL_VERSION,
             "checkpoint_file": self._checkpoint_path.name,
             "checkpoint_revision": CALIBRATION_CHECKPOINT_REVISION,
             "checkpoint_sha256": self._checkpoint_sha256,
+            "msclap_implementation": implementation_identity,
             "text_encoder": self._text_encoder_identity,
             "packages": package_versions,
             "device": str(vector.device),

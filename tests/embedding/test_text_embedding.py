@@ -1,4 +1,7 @@
 from concurrent.futures import ThreadPoolExecutor
+import hashlib
+import importlib
+import importlib.metadata
 from pathlib import Path
 import inspect
 from types import SimpleNamespace
@@ -39,6 +42,13 @@ class FakeModel:
                 "tokenizer_runtime_sha256": "9d827e1d30539b6604dd86bd5b9a242400ae5f4c307c3c97c296205ae9508aa8",
                 "tokenizer_files_sha256": text_embedding.TEXT_ENCODER_TOKENIZER_FILE_SHA256.copy(),
             },
+            msclap_implementation_identity={
+                "package_version": text_embedding.CALIBRATION_MSCLAP_PACKAGE_VERSION,
+                "source_file_count": text_embedding.CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+                "source_sha256": text_embedding.CALIBRATION_MSCLAP_SOURCE_SHA256,
+                "config_file": "configs/config_2023.yml",
+                "config_sha256": text_embedding.CALIBRATION_MSCLAP_CONFIG_SHA256,
+            },
         )
         self.output = torch.tensor([[1.0, 2.0, 3.0]]) if output is None else output
         self.inputs = []
@@ -64,7 +74,22 @@ def configured_model(tmp_path, monkeypatch):
         "tokenizers": "test-tokenizers",
         "numpy": "test-numpy",
     }[package])
+    monkeypatch.setattr(
+        text_embedding,
+        "_verify_msclap_implementation_identity",
+        lambda: configured_msclap_identity(),
+    )
     return FakeModel(checkpoint)
+
+
+def configured_msclap_identity():
+    return {
+        "package_version": text_embedding.CALIBRATION_MSCLAP_PACKAGE_VERSION,
+        "source_file_count": text_embedding.CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+        "source_sha256": text_embedding.CALIBRATION_MSCLAP_SOURCE_SHA256,
+        "config_file": "configs/config_2023.yml",
+        "config_sha256": text_embedding.CALIBRATION_MSCLAP_CONFIG_SHA256,
+    }
 
 
 def test_generates_one_valid_raw_embedding_with_calibration_metadata(configured_model):
@@ -79,6 +104,8 @@ def test_generates_one_valid_raw_embedding_with_calibration_metadata(configured_
     assert metadata["model"] == "MSCLAP"
     assert metadata["model_version"] == "2023"
     assert metadata["checkpoint_sha256"] == text_embedding.CALIBRATION_CHECKPOINT_SHA256
+    assert metadata["msclap_implementation"]["source_sha256"] == text_embedding.CALIBRATION_MSCLAP_SOURCE_SHA256
+    assert metadata["msclap_implementation"]["config_sha256"] == text_embedding.CALIBRATION_MSCLAP_CONFIG_SHA256
     assert metadata["packages"]["msclap"] == "1.3.3"
     assert metadata["dimension"] == 3
     assert metadata["generation_version"] == text_embedding.GENERATION_VERSION
@@ -172,6 +199,19 @@ def test_checkpoint_hash_is_computed_once_at_generator_initialization(configured
     assert first.metadata["checkpoint_sha256"] == generator._checkpoint_sha256
 
 
+def test_msclap_source_identity_is_verified_once_at_initialization(configured_model, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        text_embedding,
+        "_verify_msclap_implementation_identity",
+        lambda: calls.append("verified") or configured_msclap_identity(),
+    )
+    generator = TextEmbeddingGenerator(configured_model)
+    generator.generate("first valid query")
+    generator.generate("second valid query")
+    assert calls == ["verified"]
+
+
 @pytest.mark.parametrize("field,value", [
     ("revision", "0" * 40),
     ("tokenizer_revision", "0" * 40),
@@ -256,3 +296,86 @@ def test_production_text_loader_does_not_patch_global_huggingface_classes():
     source = Path(text_embedding.__file__).read_text(encoding="utf-8")
     assert "patch.object" not in source
     assert "unittest.mock" not in source
+
+
+def _source_identity_for_test(package_root):
+    files = sorted(
+        path for path in package_root.rglob("*")
+        if path.is_file() and path.suffix.lower() in {".py", ".yml", ".yaml"}
+    )
+    digest = hashlib.sha256()
+    for path in files:
+        digest.update(path.relative_to(package_root).as_posix().encode("utf-8"))
+        digest.update(b"\0")
+        digest.update(bytes.fromhex(hashlib.sha256(path.read_bytes()).hexdigest()))
+        digest.update(b"\n")
+    return files, digest.hexdigest()
+
+
+def test_installed_msclap_source_identity_matches_calibration(monkeypatch):
+    wrapper = importlib.import_module("msclap.CLAPWrapper")
+    calls = []
+    original_hash = text_embedding._sha256_file
+
+    def counted_hash(path):
+        calls.append(path)
+        return original_hash(path)
+
+    monkeypatch.setattr(text_embedding, "_sha256_file", counted_hash)
+    identity = text_embedding._verify_msclap_implementation_identity(
+        Path(wrapper.__file__).resolve().parent
+    )
+    assert identity["package_version"] == "1.3.3"
+    assert identity["source_file_count"] == 13
+    assert identity["source_sha256"] == "e867cdbb71f7bcee529afb92a096578faab46c69feb35d8192d4f220de56c181"
+    assert identity["config_sha256"] == "41fbc893997f75fe144d93bf2ec44d5ca27fe61beb8870dd815a53c064cb030f"
+    assert len(calls) == 13
+
+
+def test_rejects_modified_msclap_source_even_when_package_version_matches(tmp_path, monkeypatch):
+    root = tmp_path / "msclap"
+    (root / "configs").mkdir(parents=True)
+    (root / "configs" / "config_2023.yml").write_text("validated-config", encoding="utf-8")
+    for index in range(12):
+        (root / f"module{index}.py").write_text(f"source-{index}", encoding="utf-8")
+    files, source_sha = _source_identity_for_test(root)
+    config_sha = hashlib.sha256((root / "configs" / "config_2023.yml").read_bytes()).hexdigest()
+    monkeypatch.setattr(text_embedding.importlib.metadata, "version", lambda _: "1.3.3")
+    monkeypatch.setattr(text_embedding, "CALIBRATION_MSCLAP_SOURCE_FILE_COUNT", len(files))
+    monkeypatch.setattr(text_embedding, "CALIBRATION_MSCLAP_SOURCE_SHA256", source_sha)
+    monkeypatch.setattr(text_embedding, "CALIBRATION_MSCLAP_CONFIG_SHA256", config_sha)
+    text_embedding._verify_msclap_implementation_identity(root)
+
+    (root / "module0.py").write_text("modified-source", encoding="utf-8")
+    with pytest.raises(TextEmbeddingError, match="implementation source differs"):
+        text_embedding._verify_msclap_implementation_identity(root)
+
+
+def test_rejects_missing_calibration_msclap_config_file(tmp_path, monkeypatch):
+    root = tmp_path / "msclap"
+    root.mkdir()
+    for index in range(13):
+        (root / f"module{index}.py").write_text(f"source-{index}", encoding="utf-8")
+    files, source_sha = _source_identity_for_test(root)
+    monkeypatch.setattr(text_embedding.importlib.metadata, "version", lambda _: "1.3.3")
+    monkeypatch.setattr(text_embedding, "CALIBRATION_MSCLAP_SOURCE_FILE_COUNT", len(files))
+    monkeypatch.setattr(text_embedding, "CALIBRATION_MSCLAP_SOURCE_SHA256", source_sha)
+    with pytest.raises(TextEmbeddingError, match="configuration is missing"):
+        text_embedding._verify_msclap_implementation_identity(root)
+
+
+def test_rejects_missing_msclap_source_file(tmp_path, monkeypatch):
+    root = tmp_path / "msclap"
+    (root / "configs").mkdir(parents=True)
+    (root / "configs" / "config_2023.yml").write_text("config", encoding="utf-8")
+    for index in range(11):
+        (root / f"module{index}.py").write_text(f"source-{index}", encoding="utf-8")
+    monkeypatch.setattr(text_embedding.importlib.metadata, "version", lambda _: "1.3.3")
+    with pytest.raises(TextEmbeddingError, match="source/config file set differs"):
+        text_embedding._verify_msclap_implementation_identity(root)
+
+
+def test_default_constructor_rejects_msclap_version_mismatch(monkeypatch):
+    monkeypatch.setattr(text_embedding.importlib.metadata, "version", lambda _: "1.2.0")
+    with pytest.raises(TextEmbeddingError, match="package differs"):
+        TextEmbeddingGenerator()
