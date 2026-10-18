@@ -1,3 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
+import inspect
 from types import SimpleNamespace
 
 import pytest
@@ -158,8 +161,6 @@ def test_checkpoint_hash_is_computed_once_at_generator_initialization(configured
         calls.append(Path(path))
         return original_hash(path)
 
-    from pathlib import Path
-
     monkeypatch.setattr(text_embedding, "_sha256_file", counted_hash)
     generator = TextEmbeddingGenerator(configured_model)
     assert len(calls) == 1
@@ -216,3 +217,42 @@ def test_pinned_huggingface_loader_rejects_different_revision(tmp_path):
         text_embedding._pinned_from_pretrained(
             Loader, "gpt2", tmp_path, revision="0" * 40
         )
+
+
+def test_clap_model_keeps_public_constructor_and_supports_model_instance_injection():
+    from app.inference.clap_model import ClapModel
+
+    assert list(inspect.signature(ClapModel.__init__).parameters) == ["self"]
+    sentinel = object()
+    assert ClapModel.from_model_instance(sentinel).model is sentinel
+
+
+def test_instance_scoped_loaders_do_not_share_state_between_threads(tmp_path):
+    class Loader:
+        def __init__(self, identity):
+            self.identity = identity
+            self.calls = []
+
+        def from_pretrained(self, repository_id, **kwargs):
+            self.calls.append((repository_id, kwargs))
+            return self.identity
+
+    first_loader = Loader("first")
+    second_loader = Loader("second")
+    first = text_embedding._PinnedHuggingFaceLoader(first_loader, tmp_path / "first")
+    second = text_embedding._PinnedHuggingFaceLoader(second_loader, tmp_path / "second")
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda loader: loader.from_pretrained("gpt2"), [first, second]))
+
+    assert results == ["first", "second"]
+    assert first_loader.calls[0][1]["cache_dir"] == str(tmp_path / "first")
+    assert second_loader.calls[0][1]["cache_dir"] == str(tmp_path / "second")
+    assert all(call[1]["revision"] == text_embedding.TEXT_ENCODER_REVISION for call in (
+        first_loader.calls[0], second_loader.calls[0]
+    ))
+
+
+def test_production_text_loader_does_not_patch_global_huggingface_classes():
+    source = Path(text_embedding.__file__).read_text(encoding="utf-8")
+    assert "patch.object" not in source
+    assert "unittest.mock" not in source

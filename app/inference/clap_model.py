@@ -3,13 +3,20 @@ from msclap import CLAP
 class ClapModel:
     """기존 PoC·분류용 래퍼이며 서비스 검색의 공통 전처리 생성기와 구분한다."""
 
-    def __init__(self, model_fp=None):
-        # model_fp is optional so existing audio/classification callers retain
-        # the package's default checkpoint resolution behavior.
-        options = {"version": "2023", "use_cuda": False}
-        if model_fp is not None:
-            options["model_fp"] = model_fp
-        self.model = CLAP(**options)
+    def __init__(self):
+        self.model = CLAP(
+            version="2023",
+            use_cuda=False
+        )
+
+    @classmethod
+    def from_model_instance(cls, model):
+        """Wrap an explicitly initialized MSCLAP model without reloading it."""
+        if model is None:
+            raise ValueError("model must be initialized")
+        instance = cls.__new__(cls)
+        instance.model = model
+        return instance
 
     def encode_audio(self, audio_path: str):
         # MSCLAP은 파일 목록을 받으므로 단일 경로도 목록으로 감싼다.

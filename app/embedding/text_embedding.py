@@ -132,6 +132,19 @@ def _pinned_from_pretrained(loader: Any, repository_id: str, cache_dir: Path, *a
         raise TextEmbeddingError("pinned GPT-2 resources could not be loaded from local cache") from exc
 
 
+class _PinnedHuggingFaceLoader:
+    """Instance-scoped HF loader carrying one cache root and pinned revision."""
+
+    def __init__(self, loader: Any, cache_dir: Path):
+        self._loader = loader
+        self._cache_dir = cache_dir
+
+    def from_pretrained(self, repository_id: str, *args: Any, **kwargs: Any):
+        return _pinned_from_pretrained(
+            self._loader, repository_id, self._cache_dir, *args, **kwargs
+        )
+
+
 def _validate_loaded_text_resources(model: Any, expected_files: dict[str, str]) -> dict[str, Any]:
     inner = getattr(model, "model", None)
     args = getattr(inner, "args", None)
@@ -294,34 +307,76 @@ class TextEmbeddingGenerator:
     def _load_pinned_model():
         model_snapshot, checkpoint_path, expected_files = _verified_text_encoder_snapshot()
         try:
+            if importlib.metadata.version("msclap") != CALIBRATION_MSCLAP_PACKAGE_VERSION:
+                raise TextEmbeddingError("installed MSCLAP package differs from the validated calibration version")
             from transformers import AutoModel, AutoTokenizer
-            model_loader_module = importlib.import_module("msclap.models.clap")
-            wrapper_module = importlib.import_module("msclap.CLAPWrapper")
+            from msclap import CLAP
             from app.inference.clap_model import ClapModel
 
-            class PinnedAutoModel:
-                @classmethod
-                def from_pretrained(cls, repository_id, *args, **kwargs):
-                    return _pinned_from_pretrained(
-                        AutoModel, repository_id, model_snapshot.parents[2], *args, **kwargs
+            model_loader = _PinnedHuggingFaceLoader(AutoModel, model_snapshot.parents[2])
+            tokenizer_loader = _PinnedHuggingFaceLoader(AutoTokenizer, model_snapshot.parents[2])
+
+            class PinnedMSCLAP(CLAP):
+                """Text-only MSCLAP initialization with instance-scoped HF loaders."""
+
+                def __init__(self, *, model_fp, model_loader, tokenizer_loader):
+                    self._text_model_loader = model_loader
+                    self._tokenizer_loader = tokenizer_loader
+                    super().__init__(model_fp=model_fp, version=MODEL_VERSION, use_cuda=False)
+
+                def load_clap(self):
+                    import math
+                    import torch
+
+                    core = importlib.import_module("msclap.models.clap")
+                    args = self.read_config_as_args(self.config_as_str, is_config_str=True)
+                    if "gpt" not in args.text_model:
+                        raise TextEmbeddingError("MSCLAP config no longer selects the pinned GPT-2 encoder")
+                    self.token_keys = ["input_ids", "attention_mask"]
+
+                    clap = core.CLAP.__new__(core.CLAP)
+                    torch.nn.Module.__init__(clap)
+                    clap.audio_encoder = core.AudioEncoder(
+                        args.audioenc_name,
+                        args.out_emb,
+                        args.d_proj,
+                        args.sampling_rate,
+                        args.window_size,
+                        args.hop_size,
+                        args.mel_bins,
+                        args.fmin,
+                        args.fmax,
+                        args.num_classes,
                     )
+                    base_model = self._text_model_loader.from_pretrained(args.text_model)
+                    tokenizer = self._tokenizer_loader.from_pretrained(args.text_model)
+                    tokenizer.add_special_tokens({"pad_token": "!"})
 
-            class PinnedAutoTokenizer:
-                @classmethod
-                def from_pretrained(cls, repository_id, *args, **kwargs):
-                    return _pinned_from_pretrained(
-                        AutoTokenizer, repository_id, model_snapshot.parents[2], *args, **kwargs
-                    )
+                    class PinnedTextEncoder(core.TextEncoder):
+                        def __init__(self):
+                            torch.nn.Module.__init__(self)
+                            self.text_model = args.text_model
+                            self.base = base_model
+                            self.projection = core.Projection(
+                                args.transformer_embed_dim, args.d_proj
+                            )
 
-            # msclap 1.3.3 does not expose revision/local_files_only in ClapModel's API.
-            # Pin its two internal HF loaders only for this Text generator construction.
-            from unittest.mock import patch
+                    clap.caption_encoder = PinnedTextEncoder()
+                    clap.logit_scale = torch.nn.Parameter(torch.ones([]) * math.log(1 / 0.07))
+                    state = torch.load(self.model_fp, map_location=torch.device("cpu"))["model"]
+                    clap.load_state_dict(state, strict=False)
+                    clap.eval()
+                    if self.use_cuda and torch.cuda.is_available():
+                        clap = clap.cuda()
+                    return clap, tokenizer, args
 
-            with patch.object(model_loader_module, "AutoModel", PinnedAutoModel), patch.object(
-                wrapper_module, "AutoTokenizer", PinnedAutoTokenizer
-            ):
-                model = ClapModel(model_fp=str(checkpoint_path))
-            model.model.verified_checkpoint_sha256 = expected_files["checkpoint_sha256"]
+            pinned_model = PinnedMSCLAP(
+                model_fp=str(checkpoint_path),
+                model_loader=model_loader,
+                tokenizer_loader=tokenizer_loader,
+            )
+            pinned_model.verified_checkpoint_sha256 = expected_files["checkpoint_sha256"]
+            model = ClapModel.from_model_instance(pinned_model)
             _validate_loaded_text_resources(model, expected_files)
             return model
         except TextEmbeddingError:
