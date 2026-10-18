@@ -8,6 +8,8 @@
 012는 raw cosine 순위와 후보 독립 고정 0~100 음악 유사도 변환을 정하고, AI가 최대 100곡을 반환한다. Spring은 AI가 정한 순서를 재정렬하지 않고 구조적 응답 조건을 확인한다. 012의 합의 상태와 미구현된 서비스 흐름은 구분한다.
 012가 005의 retrieval 50~100/Backend Top10, 008의 별도 AI Explanation API 호출, 009의 의미/BPM/Rhythm 평균 순위 범위를 대체했다. 006 신규 아티스트 전용 retrieval 제안은 철회됐다. 010은 유지되고, 011은 012 §4.3에 의해 기존 Superseded 상태를 유지한다. 013은 Proposed 상태의 별도 MP3/M4A 검증 협의이며 이번 문서의 기준으로 섞지 않는다.
 
+2026-10-18 calibration cohort 분석에서 raw cosine과 사람 평가 평균의 중간 정도 양의 관계(Pearson 0.502, Spearman 0.524)와 rank 기반 상대적 분별력이 관찰됐다. 이는 정확도나 사람 판단과의 일치율이 아니며, 높은 cosine 구간의 사람 평가가 단조 증가하지 않아 최종 display calibration은 미확정이다. 현재 비교용 후보 `clamp(100 * cosine / 0.4, 0, 100)`는 provisional일 뿐 최종 수식으로 선정되지 않았다. 자세한 수치와 한계는 [ADR-0008](../adr/ADR-0008-music-similarity-transformation-and-ranking.md) 및 [calibration 분석 evidence](../experiments/audio-similarity-calibration/artifacts/listening-evaluation-analysis.json)를 참조한다. 이번 calibration 자료와 독립 validation 자료는 구분하며, 독립 validation은 수행하지 않았다.
+
 ## 현행 처리 흐름
 
 ```text
@@ -22,6 +24,7 @@ Spring Eligibility
 - Spring은 Eligibility, 권한 및 ACTIVE revision 재검증, AI 응답의 구조적 검사, 곡/Artist 연결, 신뢰 정보 결합, 템플릿 설명, 저장과 응답을 담당한다.
 - Spring은 통과한 모든 ACTIVE 후보 쌍을 보낸다. 입력 최대치는 아직 숫자로 확정하지 않았으며 NSUAI-15의 성능·메모리·동시성 실측 후 정한다. 후보 상한 초과 시 503과 운영 경보를 사용하며 임의 절단이나 분할 호출을 하지 않는다.
 - AI는 처리 가능한 후보를 raw cosine 내림차순으로 정렬해 최대 100곡을 반환한다. 100곡은 반환 상한이며 입력 후보 최대치와 구분한다. Spring은 순서를 재정렬하지 않는다.
+- raw cosine은 ranking signal이다. 사용자 표시용 0~100 음악 유사도는 별도 표현 계층이며 ranking 기준을 대체하지 않는다. 표시 변환은 고정·단조 증가·candidate-independent여야 하고, 후보 집합 min/max·query별 normalization·softmax·rank 기반 상대점수는 사용하지 않는다. 최종 calibration status는 not finalized이며 현재 선형 후보는 provisional이다.
 - Spring은 rank/order 연속성, 중복, 후보 범위, 결과 개수, score 범위와 표시 score의 단조성을 검사한다. Spring 계약에는 raw cosine을 추가하지 않으므로 raw cosine 순위 자체는 AI 측 테스트가 검증한다.
 - 곡→아티스트 집계를 하지 않는다. Artist별 대표 곡 선정이나 집계 순위를 만들지 않는다.
 - 후보 간 비교 설명·항목 diff 문장은 폐기한다. 기준곡과 추천곡의 직접 청취는 별개이며 기능 승인 범위를 확대하지 않는다.

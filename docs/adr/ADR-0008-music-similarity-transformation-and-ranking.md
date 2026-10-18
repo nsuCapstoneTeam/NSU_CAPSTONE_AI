@@ -3,7 +3,7 @@
 ## Status
 
 - **Accepted (AI 기술 원칙에 대한 사용자 승인, 2026-10-07)**.
-- 최종 calibrated transformation·파라미터는 미확정이며, calibration 및 변환 버전 체계는 구현 전이다. 기존 cosine 정렬·임시 변환 구현과 구분한다.
+- 2026-10-18 calibration cohort의 청취 평가와 분석은 완료했지만 최종 calibrated transformation·파라미터는 미확정이다. 현재 선형 clamp는 비교용 임시 후보이며 calibration 결과로 확정된 식이 아니다. 전용 변환 버전 체계도 구현 전이다.
 - [ADR-0005](ADR-0005-audio-similarity-display-score.md)의 후속·확장이다. ADR-0005를 수정·삭제·Superseded 처리하지 않으며 당시 Decision/Status와 실험 근거를 보존한다.
 - 승인 범위는 D1~D5의 AI 기술 원칙이다. 서버 간 계약·서비스 정책·Frontend UX의 승인을 뜻하지 않는다.
 - 이번 작업은 문서 작성만 수행한다. 코드·테스트·DB·Embedding 데이터·Linear·NSU_CAPSTONE은 변경하지 않는다.
@@ -45,18 +45,20 @@ ADR-0005는 개발용 임시 변환 구간과 초기 실험 근거를 기록했�
 
 ### D3. 현행 linear clamp는 최종 calibration이 아니다
 
-- **Decision:** Audio↔Text 0~0.4, Audio↔Audio 0~1 및 현재 linear clamp 수식은 개발용 임시 기준으로 유지한다. 서비스의 최종 calibrated similarity 의미로 확정하지 않는다. ADR-0005와 당시 실험 자료는 historical decision/evidence로 보존한다.
+- **Decision:** Audio↔Text의 현재 임시 선형 후보 `clamp(100 * cosine / 0.4, 0, 100)`와 Audio↔Audio 0~1 구간은 개발용 표시 기준으로만 유지한다. 이 후보는 고정·단조 증가·candidate-independent이지만 최종 calibrated similarity 의미로 확정하지 않는다. 표시 점수는 ranking에 사용하지 않는다. ADR-0005와 당시 실험 자료는 historical decision/evidence로 보존한다.
 - **Rationale:** 현재 기준은 작은 표본의 탐색·포화 완화 목적이며 검증된 음악 유사성 척도나 적합 확률을 제공하지 않는다.
-- **Evidence:** [Existing ADR] R1의 개발용 Status와 최종 점수 미확정. [Current Implementation] R4의 임시 함수·R3의 provisional 출력. [Project Experiment] R8의 24곡 276쌍 중 215쌍이 cosine 0.4 이상인 결과와 소규모 평가 한계.
+- **Evidence:** [Existing ADR] R1의 개발용 Status와 최종 점수 미확정. [Current Implementation] R4의 임시 함수·R3의 provisional 출력. [Project Experiment] R8의 24곡 276쌍 중 215쌍이 cosine 0.4 이상이었던 Historical 결과와 한계, R11의 새 50곡·16 query calibration cohort 결과(Pearson 0.502, Spearman 0.524; rank 1–2 / 25–26 / 49–50의 사람 평균 2.854 / 2.375 / 1.448). 새 cohort에서 중간 정도의 양의 관계와 상대적 ranking 분별력은 관찰했으나, 높은 cosine 구간에서 사람 점수가 단조 증가하지 않았고 평가자 간 차이도 관찰됐다.
 - **Alternative / Trade-off:** 현재 상한을 그대로 최종값으로 채택하면 구현은 단순하지만 검증되지 않은 해석을 고정한다. 임시 기준 유지에는 최종값과 현재값을 구분해 안내하고 후속 검증을 수행하는 비용이 있다. 선형 변환 자체는 ranking 오류나 모델 판별력을 개선하지 않는다.
 
 ### D4. 최종 고정 transformation은 실험과 별도 검증으로 선정한다
 
 - **Decision:** 최종 transformation 선정에는 현재 적용되는 모델/Embedding 생성 조건, 음악 샘플, 실제 cosine 분포, 청취 평가를 근거로 사용한다. calibration용 자료와 검증용 자료를 분리하고 표본·평가자·자료 재사용의 한계를 기록한다. 청취 평가는 근거 중 하나이며 개발팀 평가만으로 임의 threshold를 확정하지 않는다. 선정한 transformation에는 별도 검증 근거가 필요하다.
 - **Rationale:** 이론적 cosine 전체 범위만으로 음악 유사성의 표시 의미를 정할 수 없다. 서로 다른 생성 조건·비교 유형의 실제 분포를 확인하고 탐색 자료에 대한 과적합을 줄인다. 여기서 calibration은 표시 척도와 평가 근거의 관계를 검증하는 것이며 확률 보정을 뜻하지 않는다.
-- **Evidence:** [Project Experiment] R8의 Audio↔Text/Audio↔Audio 분포 차이, 청취 평가 그룹의 범위 중첩, 평가자 1명·표본 재사용 한계. [Existing ADR] R10의 새 aggregation 분포·청취 평가 필요. [Engineering Decision] R0의 실험·독립 검증 원칙 승인.
+- **Evidence:** [Project Experiment] R8의 Audio↔Text/Audio↔Audio 분포 차이와 역사적 한계, R11의 새 calibration 결과. 96 pair × 3 evaluator에서 raw cosine과 3인 평균의 Pearson 0.502, Spearman 0.524였고 rank 상·중·하 평균은 순차적으로 2.854 / 2.375 / 1.448이었다. 그러나 고정 cosine 구간 사람 평균은 0.30–<0.40의 2.979에서 0.40–<0.50의 2.769, >=0.50의 2.667로 단조 증가하지 않았고, 평가자 간 판단 차이도 있었다. [Engineering Decision] R0의 실험·독립 검증 원칙 승인.
 - **Alternative / Trade-off:** 이론 구간만 사용하거나 기존 표본에 최적화하면 간단하지만 실제 출력·청취 의미와 어긋날 수 있다. 별도 표본·평가는 비용이 들며 평가자 편향과 반복되는 음악 쌍을 독립 관측으로 오인하는 문제를 관리해야 한다.
-- **미확정:** piecewise linear는 검토 가능한 방법일 뿐 채택하지 않는다. breakpoint·lower/upper·anchor score·최종 함수·최종 v1 parameter·Audio↔Audio와 Audio↔Text 변환 통합 여부는 실험 후 결정한다. 구체 threshold나 점수 예시를 Decision으로 두지 않는다.
+- **Calibration과 validation:** 이번 96 pair × 3 evaluator는 score mapping을 검토한 calibration cohort다. 독립 validation cohort는 별도이며 이번 범위에서 수행하지 않았다. 이번 결과만으로 일반화 성능이나 최종 0~100 표시 의미를 주장하지 않는다.
+- **임시 후보:** `clamp(100 * cosine / 0.4, 0, 100)`은 기존 선형 clamp를 비교하기 위한 provisional/temporary candidate로만 기록한다. 이번 calibration으로 최종 확정된 식이 아니다. piecewise linear는 이번 고정 구간 평균이 단조 증가하지 않아 anchor를 확정하지 않았고, 같은 cohort에 맞춘 추가 적합은 하지 않았다.
+- **미확정:** breakpoint·lower/upper·anchor score·최종 함수·최종 v1 parameter·Audio↔Audio와 Audio↔Text 변환 통합 여부는 별도 근거와 독립 validation을 확보한 뒤 재검토한다. 임시 후보를 final calibration으로 취급하지 않는다.
 
 ### D5. 생성 기준과 변환 기준을 구분하여 버전을 추적한다
 
@@ -109,5 +111,6 @@ Accepted 012는 결과 최대 100곡과 Spring 템플릿 설명 등 외부 흐�
 | R8 | [변환 탐색](../experiments/audio-search-phase2/README.md#음악텍스트-기준-탐색), [쌍별 분포](../experiments/audio-search-phase2/README.md#새-음악-표본-및-쌍별-측정), [청취 평가](../experiments/audio-search-phase2/README.md#청취-평가), [실험 조건](../experiments/audio-search-phase2/README.md#공통-실험-조건) | D2~D4: Historical 집계 요약에 남은 오프라인 표본 분석·분포 차이·215/276 포화 진단·평가/표본 재사용 한계. 현재 재계산/audit 가능한 raw evidence가 아님 |
 | R9 | [Linear 011](https://linear.app/nsu-capstone/document/011-ai-항목-점수의-전달-형식-43fcf42521b7), [Linear 012 §4.3](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba), [서버 협의 목록](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3) | D1·D2·D5 외부 수치·버전 reference, 011 Superseded·012 Accepted 상태. 이 외부 참조 갱신은 D1~D5 Decision을 변경하지 않음 |
 | R10 | [ADR-0007](ADR-0007-audio-highlight-embedding-strategy.md), [Roadmap](../AI_DEVELOPMENT_ROADMAP.md), [입력 검증 Guide](../guides/FMA_VALIDATION.md) | D4·Future Work: 새 생성 조건 분포·검증 필요, 과거 FMA와 새 적격 Dataset 구분 |
+| R11 | [청취 평가 분석 JSON](../experiments/audio-similarity-calibration/artifacts/listening-evaluation-analysis.json), [pair 결과 CSV](../experiments/audio-similarity-calibration/artifacts/listening-evaluation-results.csv), [상관 산점도](../experiments/audio-similarity-calibration/artifacts/listening-calibration-scatter.png), [rank 그룹 그래프](../experiments/audio-similarity-calibration/artifacts/listening-calibration-rank-groups.png), [cosine 구간 그래프](../experiments/audio-similarity-calibration/artifacts/listening-calibration-cosine-bins.png) | D3·D4: 50-song calibration cohort의 96 pair × 3 evaluator 분석, 상관·rank group·고정 cosine 구간 결과 및 한계. calibration evidence이며 독립 validation은 아님 |
 
 0~100 변환·candidate-independent transformation·청취 기반 calibration·piecewise linear 검토는 프로젝트의 engineering decision이다. MSCLAP 공식 점수 변환·calibration 방식이라고 인용하지 않는다.
