@@ -177,12 +177,11 @@ def test_reload_review_evidence_is_kept_separate_from_technical_failure(tmp_path
 def test_lazy_loading_and_repeated_calls_keep_production_path(tmp_path, monkeypatch):
     _, checkpoint, row = synthetic(tmp_path, 44100)
     constructed = []
-    def factory(*, version, use_cuda):
-        assert version == '2023' and use_cuda is False
+    def factory():
         model = Model(checkpoint)
         constructed.append(model)
         return model
-    monkeypatch.setitem(sys.modules, 'msclap', SimpleNamespace(CLAP=factory))
+    monkeypatch.setattr(audio_embedding_module, '_load_calibration_pinned_msclap_model', factory)
     report = tmp_path / 'datasets/run.json'
     report.parent.mkdir(exist_ok=True)
     args = SimpleNamespace(repeat=2, report=report)

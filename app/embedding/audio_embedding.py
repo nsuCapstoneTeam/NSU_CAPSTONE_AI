@@ -35,6 +35,24 @@ def _runtime_msclap_implementation_identity():
     return _verify_msclap_implementation_identity()
 
 
+def _load_calibration_pinned_msclap_model():
+    """Load the same locally pinned MSCLAP resources used by Text generation."""
+    from app.embedding.text_embedding import TextEmbeddingGenerator
+
+    text_generator = TextEmbeddingGenerator()
+    model = getattr(getattr(text_generator, '_model', None), 'model', None)
+    if model is None or not callable(getattr(model, 'get_audio_embeddings', None)):
+        raise ValueError('pinned_msclap_audio_encoder_unavailable')
+    checkpoint = Path(getattr(model, 'model_fp', ''))
+    parts = checkpoint.parts
+    revision = parts[parts.index('snapshots') + 1] if (
+        'snapshots' in parts and parts.index('snapshots') + 1 < len(parts)
+    ) else None
+    if revision != CALIBRATION_CHECKPOINT_REVISION:
+        raise ValueError('audio_checkpoint_revision_mismatch')
+    return model
+
+
 class AudioEmbeddingError(ValueError):
     """호출자가 실패 원인을 분류할 수 있도록 사유 코드와 원본 경로를 보존한다."""
 
@@ -204,13 +222,13 @@ class AudioEmbeddingGenerator:
 
             with _generation_lock:
                 if self._model is None:
-                    from msclap import CLAP
                     loading_state = random.getstate()
                     try:
                         with torch.random.fork_rng(devices=[]):
-                            self._model = CLAP(version='2023', use_cuda=False)
+                            self._model = _load_calibration_pinned_msclap_model()
                     except Exception as error:
-                        raise AudioEmbeddingError('audio_model_load_failed', path) from error
+                        reason = str(error) or 'audio_model_load_failed'
+                        raise AudioEmbeddingError(reason, path) from error
                     finally:
                         random.setstate(loading_state)
 

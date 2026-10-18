@@ -20,6 +20,7 @@ from app.embedding.audio_embedding import (
     validate_audio_embedding,
     validate_chunk_embeddings,
 )
+from app.embedding import audio_embedding as audio_embedding_module
 from app.embedding.text_embedding import (
     CALIBRATION_MSCLAP_CONFIG_SHA256,
     CALIBRATION_MSCLAP_PACKAGE_VERSION,
@@ -90,6 +91,51 @@ def audio_reading_model(*, vectors=None, mutate=None):
 
     model.get_audio_embeddings.side_effect = encode
     return model, observed
+
+
+def test_default_loader_uses_calibration_pinned_revision_before_audio_use(monkeypatch):
+    from types import SimpleNamespace
+
+    model = Mock(
+        model_fp=f'/cache/snapshots/{CALIBRATION_CHECKPOINT_REVISION}/CLAP_weights_2023.pth',
+        get_audio_embeddings=Mock(),
+    )
+    model.verified_checkpoint_sha256 = CALIBRATION_CHECKPOINT_SHA256
+    constructed = []
+
+    class PinnedTextGenerator:
+        def __init__(self):
+            constructed.append(True)
+            self._model = SimpleNamespace(model=model)
+
+    monkeypatch.setattr('app.embedding.text_embedding.TextEmbeddingGenerator', PinnedTextGenerator)
+    wrong_default_cache_model = Mock(model_fp='/cache/snapshots/unpinned/CLAP_weights_2023.pth')
+    monkeypatch.setitem(
+        __import__('sys').modules, 'msclap', SimpleNamespace(CLAP=lambda **kwargs: wrong_default_cache_model)
+    )
+
+    loaded = audio_embedding_module._load_calibration_pinned_msclap_model()
+
+    assert loaded is model
+    assert constructed == [True]
+    assert CALIBRATION_CHECKPOINT_REVISION in loaded.model_fp
+
+
+def test_default_loader_rejects_non_calibration_revision(monkeypatch):
+    from types import SimpleNamespace
+
+    model = Mock(
+        model_fp='/cache/snapshots/' + '0' * 40 + '/CLAP_weights_2023.pth',
+        get_audio_embeddings=Mock(),
+    )
+
+    class WrongRevisionTextGenerator:
+        def __init__(self):
+            self._model = SimpleNamespace(model=model)
+
+    monkeypatch.setattr('app.embedding.text_embedding.TextEmbeddingGenerator', WrongRevisionTextGenerator)
+    with pytest.raises(ValueError, match='audio_checkpoint_revision_mismatch'):
+        audio_embedding_module._load_calibration_pinned_msclap_model()
 
 
 @pytest.mark.parametrize(('duration', 'accepted'), [

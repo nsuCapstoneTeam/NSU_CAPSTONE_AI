@@ -21,6 +21,9 @@ from app.embedding.text_embedding import (
 pytestmark = pytest.mark.skipif(os.environ.get('RUN_EMBEDDING_DB_TESTS') != '1',
                                 reason='Explicit database integration opt-in required')
 
+MISMATCH_CHECKPOINT_REVISION = '0' * 40
+assert MISMATCH_CHECKPOINT_REVISION != CALIBRATION_CHECKPOINT_REVISION
+
 
 @pytest.fixture
 def connection():
@@ -85,7 +88,7 @@ def test_incompatible_embedding_excluded_before_distance(connection, make_result
     if mismatch == 'package':
         candidate.metadata['packages']['torch'] = 'other'
     if mismatch == 'revision':
-        candidate.metadata['checkpoint_revision'] = 'other'
+        candidate.metadata['checkpoint_revision'] = MISMATCH_CHECKPOINT_REVISION
     AudioEmbeddingRepository().save(connection, 'test-' + uuid.uuid4().hex, candidate)
     assert AudioEmbeddingRepository().search(connection, query) == {'candidate_count': 0, 'results': []}
 

@@ -257,17 +257,18 @@ def read_reload_result(path, returncode):
 
 def run_process(args, root, inputs, cache):
     # factory를 관측 wrapper로 감싸지만 production의 lazy load와 RNG 복원 경로를 유지한다.
-    from msclap import CLAP
+    from app.embedding import audio_embedding
     holder = {}
+    load_calibrated_model = audio_embedding._load_calibration_pinned_msclap_model
 
-    def factory(*a, **kw):
-        holder['observer'] = ObservingModel(CLAP(*a, **kw))
+    def factory():
+        holder['observer'] = ObservingModel(load_calibrated_model())
         holder['observer'].expected_pcm = holder['expected_pcm']
         return holder['observer']
 
     generator = AudioEmbeddingGenerator()
     runs, vectors, same_process = [], {}, []
-    with patch('msclap.CLAP', side_effect=factory):
+    with patch('app.embedding.audio_embedding._load_calibration_pinned_msclap_model', side_effect=factory):
         for input_row in inputs:
             for repetition in range(args.repeat):
                 if 'observer' not in holder:
