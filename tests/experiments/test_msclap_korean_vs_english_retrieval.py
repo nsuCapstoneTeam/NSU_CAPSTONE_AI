@@ -1,12 +1,54 @@
 import csv
 import json
 from pathlib import Path
+import subprocess
 import tempfile
+from types import SimpleNamespace
 
 import pytest
 import torch
 
 from scripts.experiments import msclap_korean_vs_english_retrieval as experiment
+
+
+def test_repository_head_uses_explicit_environment_override(monkeypatch):
+    expected = "explicit-revision"
+    monkeypatch.setenv("NSU_CAPSTONE_AI_HEAD", expected)
+    monkeypatch.setattr(experiment.subprocess, "run", lambda *_args, **_kwargs: pytest.fail("git should not run"))
+
+    assert experiment.resolve_repository_head() == expected
+
+
+def test_repository_head_uses_current_git_revision_when_unset(monkeypatch):
+    expected = "f" * 40
+    monkeypatch.delenv("NSU_CAPSTONE_AI_HEAD", raising=False)
+    calls = []
+
+    def fake_run(args, **kwargs):
+        calls.append((args, kwargs))
+        return SimpleNamespace(stdout=f"{expected}\n")
+
+    monkeypatch.setattr(experiment.subprocess, "run", fake_run)
+
+    assert experiment.resolve_repository_head() == expected
+    assert calls[0][0] == ["git", "rev-parse", "HEAD"]
+    assert calls[0][1]["cwd"] == Path(experiment.__file__).resolve().parents[2]
+
+
+def test_repository_head_fails_clearly_when_git_lookup_fails(monkeypatch):
+    monkeypatch.delenv("NSU_CAPSTONE_AI_HEAD", raising=False)
+
+    def fail_git(*_args, **_kwargs):
+        raise subprocess.CalledProcessError(128, "git")
+
+    monkeypatch.setattr(
+        experiment.subprocess,
+        "run",
+        fail_git,
+    )
+
+    with pytest.raises(experiment.ExperimentError, match="Unable to resolve repository HEAD"):
+        experiment.resolve_repository_head()
 
 
 class FakeTokenizer:

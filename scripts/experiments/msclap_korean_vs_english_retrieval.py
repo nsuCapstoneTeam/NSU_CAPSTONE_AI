@@ -18,6 +18,7 @@ import json
 import os
 import random
 import statistics
+import subprocess
 import time
 import platform
 import sys
@@ -44,6 +45,30 @@ EVALUATION_PREPROCESSING = "msclap-2023-native-7s-window-on-10s-audiocaps-wav-v1
 
 class ExperimentError(RuntimeError):
     """Raised when frozen dataset or runtime identity cannot be verified."""
+
+
+def resolve_repository_head() -> str:
+    """Resolve the checkout revision for run provenance."""
+    override = os.environ.get("NSU_CAPSTONE_AI_HEAD")
+    if override:
+        return override
+
+    repository_root = Path(__file__).resolve().parents[2]
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=repository_root,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError) as exc:
+        raise ExperimentError("Unable to resolve repository HEAD with git rev-parse HEAD") from exc
+
+    head = result.stdout.strip()
+    if not head:
+        raise ExperimentError("git rev-parse HEAD returned an empty revision")
+    return head
 
 
 class _MemoryStatusEx(ctypes.Structure):
@@ -589,7 +614,7 @@ def run_embeddings(cohort_path: Path, audio_root: Path, output_dir: Path) -> dic
         "schema_version": "msclap-ko-en-retrieval-run-evidence-v1",
         "status": "completed",
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
-        "repository_head": os.environ.get("NSU_CAPSTONE_AI_HEAD", "11860d9aa8d43c43cee253df05a311384d829965"),
+        "repository_head": resolve_repository_head(),
         "cohort_path": str(cohort_path),
         "cohort_sha256": cohort_sha,
         "dataset": cohort["dataset"],
