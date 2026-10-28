@@ -1,358 +1,239 @@
 # NSU_CAPSTONE_AI Agent Guidelines
 
-이 문서는 NSU_CAPSTONE_AI 저장소에서 Codex 등 AI 개발 Agent가 작업할 때 따라야 하는 공통 규칙이다.
+이 문서는 `NSU_CAPSTONE_AI` 저장소 전용 규칙이다.
 
-Agent는 기억이나 이전 대화만을 기준으로 작업하지 않는다.
-항상 현재 저장소, Linear, 관련 프로젝트 문서와 실제 구현 상태를 먼저 확인한 뒤 작업한다.
+일반적인 코딩 원칙, 최소 변경 원칙, 단순성, 구현 전 사고 및 검증 가능한 목표 설정은 상위 `~/.codex/AGENTS.md`를 따른다.
 
-# 권한 및 승인 요청 원칙
+이 문서에는 NSU_CAPSTONE_AI 프로젝트에서만 필요한 authority, Linear, ADR/SSOT, Main/Worker, Git worktree 및 승인 흐름을 정의한다.
 
-다음 읽기 전용 작업은 별도의 사용자 승인을 요청하지 않고 바로 수행한다.
+---
 
-- NSU_CAPSTONE_AI repository 파일 읽기 및 검색
-- 관련 코드, tests, docs 확인
-- AGENTS.md 확인
-- git status / diff / log 등 읽기 전용 Git 조회
-- Linear NSU_AI Issue 조회
-- Linear `서버간 공통 협의 사항` 조회
-- Linear 용어집 및 Requirements 조회
-- NSU_CAPSTONE 관련 문서 및 코드의 read-only 조회
+# 1. 응답 및 Commit 언어
 
-단, 실제 실행 환경이 시스템 권한 승인을 요구하는 경우 해당 권한 요청은 따른다.
-
-다음 변경 작업은 읽기 권한과 구분한다.
-
-- Linear 수정
-- NSU_CAPSTONE 수정
-- DB INSERT / UPDATE / DELETE
-- 데이터 삭제
-- migration
-- git commit / push / PR / merge
-- destructive operation
-
-이러한 작업은 AGENTS.md의 작업 범위 및 사용자 승인 절차를 따른다.
-
-# 1. 응답 언어
-
-사용자에게 제공하는 다음 내용은 반드시 한국어로 작성한다.
+사용자에게 제공하는 다음 내용은 한국어로 작성한다.
 
 - 현재 상태 조사 결과
 - 작업 계획
 - 변경 예정 내용
 - 중간 보고
 - 검증 결과
+- 리뷰 결과
 - 최종 보고
-- 문제점 및 미결정 사항
+- 미결정 사항
 
-다음 기술 식별자는 원문을 유지할 수 있다.
+코드, 명령어, 파일명, 경로, 함수/클래스/변수명, API field, library/model 이름은 원문을 유지할 수 있다.
 
-- 코드
-- 명령어
-- 파일명
-- 경로
-- 클래스명
-- 함수명
-- 변수명
-- SQL
-- API field
-- Git branch / commit
-- library / framework / model 이름
+Commit message는 다음 형식을 사용한다.
 
-중요한 기술 용어가 처음 등장하면 필요한 경우 다음을 한국어로 설명한다.
-
-1. 무엇인지
-2. 어떤 역할을 하는지
-3. 이 프로젝트에서 왜 필요한지
-
-전체 보고서를 영어 또는 중국어로 작성하지 않는다.
-
-
-# 2. 프로젝트 구조
-
-NSU_CAPSTONE_AI의 기본 책임은 다음과 같다.
-
-## `app/`
-
-서비스의 실제 처리 로직을 작성한다.
-
-서비스에서 재사용되는 기능은 가능한 한 `app/`에 구현한다.
+```text
+종류(선택적 범위): 한국어 설명
+```
 
 예:
 
-- Audio Embedding 생성
-- similarity 계산
+```text
+feat(embedding): Audio Highlight 입력 검증 구현
+fix(search): 검색 결과 validation 오류 수정
+docs: Audio Embedding 정책 정합화
+test: Calibration fixture 독립성 보강
+chore: 테스트 실행 환경 정리
+```
+
+---
+
+# 2. Repository 구조
+
+## `app/`
+
+서비스에서 실제로 재사용되는 AI 처리 로직을 둔다.
+
+예:
+
+- Audio/Text Embedding
+- similarity
 - vector search
 - AI preprocessing
-- AI domain validation
-
+- AI-side validation
 
 ## `scripts/`
 
-개발자가 기능을 실행하거나 검증하기 위한 CLI 도구를 작성한다.
+개발·검증용 CLI를 둔다.
 
-`scripts/`는 가능한 한 다음 역할에 집중한다.
+주요 역할:
 
-- CLI argument 처리
-- 입력값 처리
+- argument 처리
+- 입력 처리
 - `app/` 기능 호출
-- 결과 출력
-- report 생성
+- 결과/report 출력
 - exit code 처리
 
 서비스 핵심 알고리즘을 `scripts/`에 중복 구현하지 않는다.
 
-
 ## `tests/`
 
-자동 테스트를 작성한다.
-
-변경된 기능에 적절한 범위의 테스트를 수행한다.
-
+자동 테스트 및 검증 코드를 둔다.
 
 ## `docs/`
 
-다음을 기록한다.
+다음을 관리한다.
 
-- 사용 방법
-- 설계 결정
 - ADR
 - Guide
+- API/interface 문서
 - 실험 결과
 - 검증 evidence
 - 개발 Roadmap
 
-
-## AI 개발 Roadmap
-
-AI 개발 순서와 현재 단계는 다음 문서를 우선 확인한다.
+AI 개발 순서와 현재 단계는 다음을 우선 참고한다.
 
 `docs/AI_DEVELOPMENT_ROADMAP.md`
 
-단, Roadmap만 보고 작업하지 않는다.
+단, Roadmap만으로 판단하지 않고 관련 ADR, Guide, API 문서, 실제 코드와 tests를 함께 확인한다.
 
-관련 ADR, Guide, experiment 문서, 실제 코드와 tests를 함께 확인한다.
+---
 
+# 3. Authority / SSOT
 
-# 3. 작업 시작 전 필수 확인
-
-모든 작업은 현재 상태 조사부터 시작한다.
-
-기억, 이전 대화, 과거 checkout 또는 과거 보고서만을 기준으로 작업하지 않는다.
-
-최소 다음을 확인한다.
-
-## Repository
-
-- 현재 branch
-- local HEAD
-- remote 상태가 필요한 작업이면 remote HEAD
-- working tree
-- staged / unstaged / untracked 변경
-- 관련 코드
-- 관련 tests
-- 관련 docs
-
-
-## NSU_CAPSTONE_AI 문서
-
-현재 작업과 관련된 다음 문서를 확인한다.
-
-- ADR
-- Roadmap
-- Guide
-- experiment
-- README
-- API/interface 문서
-- 관련 기타 authoritative document
-
-
-# 4. Linear 필수 확인
-
-작업을 시작하기 전에 현재 작업과 관련된 Linear의 최신 상태를 반드시 확인한다.
-
-최소 다음을 확인한다.
-
-- 관련 NSU_AI Issue
-- `서버간 공통 협의 사항`
-- Linear 용어집
-- 관련 Requirements
-- 현재 결정 상태
-- 미결정 사항
-- 현재 작업에 영향을 주는 서버 간 계약
-
-Linear에 접근할 수 있으면 관련 NSU_AI Issue, `서버간 공통 협의 사항`, 용어집 및 Requirements의 최신 상태를 확인한다. 과거에 확인한 내용을 기억으로 재사용하지 않는다.
-
-Linear에 접근할 수 없는 경우 상태를 추측하거나 최신이라고 가정하지 않는다. 미확인 사실을 보고하고, repository의 현재 SSOT, ADR, Guide 및 Roadmap만 근거로 사용한다.
-
-서버 간 계약, 서비스 정책, ownership 또는 요구사항 변경처럼 Linear authority에 의존하는 작업은 확인이 가능해질 때까지 중단하거나 보류한다. 테스트 보강, 오탈자 수정, 명확한 로컬 리팩터링처럼 Linear 결정에 의존하지 않는 작업은 repository 범위에서 진행할 수 있으며 Linear 미확인 사실을 보고한다.
-
-관련 Linear Issue가 없더라도 자동으로 오류 처리하지 말고 작업의 성격과 authority 의존성에 따라 판단한다.
-
-
-# 5. Linear / NSU_CAPSTONE 수정 금지
-
-NSU_CAPSTONE_AI 작업에서 다음은 READ-ONLY reference로 취급한다.
-
-- Linear
-- NSU_CAPSTONE
-
-AI 저장소 작업을 이유로 다음을 수정하지 않는다.
-
-- Linear Issue
-- Linear Issue status
-- Linear comment
-- Linear approval record
-- Linear Requirements
-- Linear `서버간 공통 협의 사항`
-- Linear 용어집
-- NSU_CAPSTONE 코드
-- NSU_CAPSTONE 문서
-
-사용자가 해당 시스템의 수정을 명시적으로 별도 요청한 경우에만 그 요청 범위 안에서 처리한다.
-
-Linear 또는 NSU_CAPSTONE에서 오류나 충돌을 발견해도 AI 저장소 작업 중 임의로 수정하지 않는다.
-
-
-# 6. Authority와 문서 책임
-
-정보가 여러 곳에 존재할 경우 문서의 책임 범위를 구분한다.
-
+정보 종류별 authority는 다음과 같다.
 
 ## 서비스 전체 요구사항 / 공통 용어
 
-기준:
-
 - Linear Requirements
 - Linear 용어집
 
-
 ## 서버 간 책임 / 계약 / 공통 정책
-
-기준:
 
 - Linear `서버간 공통 협의 사항`
 
-
-## 프로젝트 공통 구현 및 문서
-
-참조:
-
-- NSU_CAPSTONE
-
-
 ## 중요한 AI 기술 결정
 
-기준:
-
-- NSU_CAPSTONE_AI ADR
-
+- `NSU_CAPSTONE_AI/docs/adr/`
 
 ## 현재 AI 구현 / 사용 / 검증 방법
 
-기준:
-
-- NSU_CAPSTONE_AI Guide
-
+- 실제 코드
+- tests
+- `docs/guides/`
 
 ## 실험 및 검증 evidence
 
-기준:
-
-- NSU_CAPSTONE_AI experiments
-
+- `docs/experiments/`
 
 ## AI 개발 순서
 
-기준:
-
 - `docs/AI_DEVELOPMENT_ROADMAP.md`
 
+SSOT는 반드시 `SSOT.md`라는 단일 파일을 의미하지 않는다.
 
-# 7. AI Repository의 책임 범위
+각 정보의 현재 authoritative source를 확인한다.
 
-NSU_CAPSTONE_AI가 독립적으로 관리할 수 있는 주요 영역은 다음과 같다.
+---
+
+# 4. Linear / NSU_CAPSTONE 확인
+
+Main Agent는 작업을 시작하기 전에 관련 최신 정보를 확인한다.
+
+가능한 경우 최소 다음을 확인한다.
+
+- 관련 NSU_AI Issue
+- Linear `서버간 공통 협의 사항`
+- 관련 Requirements
+- 용어집
+- 현재 결정 상태
+- 미결정 사항
+- 서버 간 계약
+
+Linear와 `NSU_CAPSTONE`은 기본적으로 READ-ONLY reference다.
+
+사용자가 해당 시스템의 수정을 명시적으로 요청하지 않는 한 다음을 수정하지 않는다.
+
+- Linear Issue
+- Issue status
+- comment
+- Requirements
+- 서버간 공통 협의 사항
+- 용어집
+- `NSU_CAPSTONE` 코드
+- `NSU_CAPSTONE` 문서
+
+접근할 수 없는 Linear 정보를 최신이라고 추측하지 않는다.
+
+---
+
+# 5. 현재 검색 입력 책임
+
+현재 검색 입력 흐름은 다음을 따른다.
+
+```text
+Spring predefined mapping
+→ canonical English input
+→ AI validation
+→ MSCLAP Text Embedding
+→ similarity / search / ranking
+```
+
+현재 검색 입력에서 AI는 다음을 수행하지 않는다.
+
+- OPUS-MT 번역
+- M2M100 번역
+- Qwen/LLM 기반 자연어 해석
+- Spring canonical input의 의미 재해석
+
+자유 자연어 검색이 다시 필요해질 경우 별도 서버 협의와 ADR을 통해 결정한다.
+
+추천 이유 설명용 LLM 가능성과 검색 입력 변환 책임은 별개의 문제로 취급한다.
+
+---
+
+# 6. AI Repository 책임 범위
+
+AI 저장소가 독립적으로 관리할 수 있는 영역:
 
 - MSCLAP
-- Audio Embedding
+- Audio/Text Embedding
 - Embedding generation strategy
 - Audio Highlight AI processing
 - chunking
-- L2 normalization
+- normalization
 - Mean Pooling
-- AI preprocessing
+- AI-side validation
 - pgvector 기반 AI 검색
-- AI similarity 계산
-- 한국어 → 영어 AI 입력 처리
-- AI-side similarity result semantics
-- model version
-- checkpoint
+- similarity 계산
+- model/checkpoint
 - preprocessing version
-- generation version / profile
+- generation version/profile
 - AI 구현 및 검증을 위한 기술적 결정
 
-
-# 8. AI Repository에서 독립적으로 결정하지 않는 영역
-
-다음 영역은 AI 저장소에서 서비스 전체 정책으로 새로 결정하지 않는다.
+AI 저장소가 서비스 전체 정책으로 독립 결정하지 않는 영역:
 
 - Spring Hard Filter 내부 정책
-- Spring 내부 business rule
+- Spring business rule
 - Frontend UI 동작
-- Artist matching 버튼 등 사용자 서비스 동작
 - 서비스 전체 추천 정책
-- 서버 간 책임 분담
+- 서버 간 ownership
+- Backend lifecycle/state
 - 서비스 전체 score 조합
-- Backend lifecycle / state 정책
+- 미합의 API 계약
 
-AI 구현에 필요한 API boundary 또는 interface 문서는 유지할 수 있다.
+---
 
-그러나 서버 간 계약이나 서비스 전체 정책을 AI 저장소에서 중복 결정하지 않는다.
+# 7. Authority 충돌 처리
 
+Linear, ADR, Guide, 실제 코드, tests 사이에 충돌이 있으면 먼저 다음을 확인한다.
 
-# 9. 충돌 처리
-
-Linear, NSU_CAPSTONE, ADR, Guide, 실제 구현 사이에서 충돌을 발견하면 임의로 하나를 선택해서 수정하지 않는다.
-
-먼저 다음을 확인한다.
-
-1. 어떤 내용이 충돌하는가
-2. 각각 어느 source에 있는가
+1. 무엇이 충돌하는가
+2. 각 내용이 어느 source에 있는가
 3. 각 source의 현재 상태는 무엇인가
-4. 어느 source가 해당 결정에 대한 authority를 가지는가
+4. 해당 결정의 authority는 어디인가
 5. 현재 작업에 어떤 영향을 주는가
 
-현재 accepted policy를 확정할 수 없으면 임의로 결정하지 않는다.
+현재 accepted policy를 확정할 수 없으면 사용자에게 보고하고 해당 정책 변경을 보류한다.
 
-사용자에게 충돌을 보고하고 STOP한다.
+---
 
+# 8. Embedding 공통 기준
 
-# 10. 구현 기본 원칙
-
-다음 원칙을 따른다.
-
-1. 실제 파일과 현재 구현 상태를 확인한 후 작업한다.
-2. 요청 범위에 필요한 변경만 수행한다.
-3. 서비스에서 재사용할 로직은 `app/`에 작성한다.
-4. `scripts/`는 입력 처리, `app/` 호출, 결과 출력과 종료 코드 처리를 담당한다.
-5. 실패 판단과 예외는 해당 책임을 가진 모듈에서 정의한다.
-6. CLI는 실패 사유를 이해하기 쉽게 출력한다.
-7. CLI 실패 시 0이 아닌 exit code를 반환한다.
-8. 비밀번호, token, DB 접속 정보 등 민감한 값을 출력하지 않는다.
-9. 저장과 검색은 동일한 공통 Embedding generator를 사용한다.
-10. Backend와 미정인 계약을 임의로 확정하지 않는다.
-11. 임시 가정이 필요한 경우 문서에 명확히 표시한다.
-12. 기존 작업 내용과 데이터를 임의로 삭제하거나 덮어쓰지 않는다.
-13. 파일 이동 시 import, 상대 경로, 실행 명령 및 관련 문서를 함께 확인한다.
-14. 한국어 주석은 코드 자체를 반복하기보다 구현 이유를 설명한다.
-15. 기존 public interface를 변경할 필요가 없다면 유지한다.
-16. 실험용 로직 때문에 production 결과가 달라지지 않도록 한다.
-
-
-# 11. Embedding 관련 공통 원칙
-
-Audio Embedding 저장과 검색은 동일한 공통 Embedding 생성기를 사용한다.
-
-서로 다른 preprocessing 또는 generation 정책으로 생성된 Embedding을 실수로 비교하지 않도록 한다.
+Audio Embedding 저장과 검색은 동일한 공통 Embedding generator를 사용한다.
 
 Embedding 관련 작업에서는 필요한 경우 다음을 확인한다.
 
@@ -366,64 +247,45 @@ Embedding 관련 작업에서는 필요한 경우 다음을 확인한다.
 - normalization
 - input integrity
 
-vector dimension 등 모델에서 관측된 값을 근거 없이 프로젝트의 영구 상수로 새로 정의하지 않는다.
+서로 다른 preprocessing 또는 generation profile의 Embedding을 실수로 비교하지 않는다.
 
+---
 
-# 12. 데이터 보호
+# 9. Data / Evidence
 
-기존 데이터는 명시적인 승인 없이 삭제하거나 덮어쓰지 않는다.
-
-특히 다음 작업은 별도 승인이 필요하다.
+다음 destructive data 작업은 사용자 승인 없이 수행하지 않는다.
 
 - DB row 삭제
 - Embedding 전체 삭제
-- 기존 dev/test Embedding 삭제
-- 대량 재생성
+- dev/test Embedding 전체 삭제
+- 대량 vector 재생성
 - migration
 - destructive schema change
 - 기존 experiment evidence 삭제
 
-실험은 가능한 한 다음과 같은 격리 방법을 사용한다.
-
-- dedicated test environment
-- isolated test DB
-- transaction / rollback
-- test-specific data
-
-실제 방법은 현재 프로젝트 구조를 조사한 뒤 결정한다.
-
-
-# 13. Evidence 원칙
-
-실험 또는 검증을 수행한 경우 결과를 재검토할 수 있도록 적절한 evidence를 남긴다.
-
-필요에 따라 다음을 기록한다.
+실험 결과는 필요에 따라 다음을 기록한다.
 
 - repository commit
 - 실행 환경
-- package versions
-- model / checkpoint
-- input identity / SHA
-- generation version/profile
-- 측정 결과
-- PASS / FAIL 근거
+- package/model/checkpoint
+- input identity
+- generation profile
+- 핵심 측정 결과
+- PASS/FAIL 근거
 - limitations
 - unresolved items
 
-전체 대용량 vector, model cache, 원본 Audio 등은 필요성을 검토하지 않고 Git에 추가하지 않는다.
+대용량 vector, model cache, 원본 Audio 및 중간 artifact는 필요성을 확인하지 않고 Git에 추가하지 않는다.
 
-machine-readable evidence가 필요한 실험은 JSON 등 적절한 형식을 사용한다.
+완료된 실험의 핵심 결과는 가능한 경우 Markdown에 요약한다.
 
-Markdown에는 사람이 이해해야 하는 조건, 결과, 결론 및 한계를 기록한다.
+---
 
-실험 결과가 향후 다른 목적의 evidence를 대체하지 않는다면 그 한계를 명확히 기록한다.
+# 10. ADR 규칙
 
+ADR은 중요한 기술 결정과 그 이유를 기록한다.
 
-# 14. ADR 원칙
-
-ADR은 중요한 기술적 결정과 그 이유를 기록한다.
-
-ADR에는 필요한 경우 다음이 포함된다.
+필요한 경우 다음을 포함한다.
 
 - Context
 - Decision
@@ -434,280 +296,438 @@ ADR에는 필요한 경우 다음이 포함된다.
 - Limitations
 - Future Work
 
-ADR을 단순 사용법 문서로 사용하지 않는다.
+확정된 ADR Decision을 구현 중 임의로 변경하지 않는다.
 
-이미 확정된 ADR Decision을 구현 작업 중 임의로 변경하지 않는다.
+변경 필요성이 있으면 사용자에게 변경 이유와 영향 범위를 먼저 보고한다.
 
-Decision 변경이 필요해 보이면 먼저 변경 필요성과 근거를 사용자에게 보고한다.
+---
 
+# 11. 작업 시작 전 Main 조사
 
-# 15. SSOT 원칙
+Main Agent는 새 작업을 받으면 구현 전에 최소 다음을 확인한다.
 
-SSOT는 반드시 파일명이 `SSOT.md`인 문서를 의미하지 않는다.
+## Git
 
-각 정보의 현재 authoritative source를 확인한다.
+- current branch
+- local HEAD
+- working tree
+- staged / unstaged / untracked
+- 필요 시 remote HEAD
 
-ADR의 내용을 다른 문서에 기계적으로 전부 복제하지 않는다.
+## Repository
 
-문서별 책임에 필요한 내용만 유지한다.
+- 관련 코드
+- tests
+- ADR
+- Guide
+- API/interface
+- Roadmap
+- experiment 문서
 
+## External authority
 
-# 16. 작업 계획과 승인 절차
+- 관련 Linear Issue
+- 서버간 공통 협의 사항
+- Requirements
+- 용어집
+- 필요 시 `NSU_CAPSTONE` read-only reference
 
-중요한 코드 변경, ADR 변경, DB 작업, 데이터 변경, 실험 또는 구조 변경은 다음 순서를 따른다.
+이 조사는 별도의 사용자 승인 없이 수행한다.
 
-현재 상태 확인
-→ Linear / NSU_CAPSTONE reference 확인
-→ NSU_CAPSTONE_AI 관련 문서 확인
-→ 실제 코드와 tests 확인
-→ 충돌 여부 확인
-→ 변경안 및 작업 예정 내용 작성
-→ 사용자에게 보고
-→ STOP
-→ 사용자 승인
-→ 실제 작업
-→ 검증
-→ 완료 보고
+---
 
-사용자가 조사와 계획만 요청한 경우 승인 전 작업을 시작하지 않는다.
+# 12. 변경안 및 작업 예정 내용
 
-변경 전 보고에는 가능한 한 다음을 포함한다.
+실제 구현 전에 Main Agent는 반드시 다음 제목으로 계획을 작성한다.
+
+```text
+변경안 및 작업 예정 내용
+```
+
+최소 포함:
 
 - 무엇을 변경하는가
 - 왜 필요한가
-- 어떤 authority / evidence에 근거하는가
-- 영향 범위
+- 어떤 authority/evidence에 근거하는가
 - 예상 변경 파일
 - 파일별 변경 이유
+- 테스트 계획
 - 위험 요소
 - 미결정 사항
+- Worker branch/worktree 이름
 
+이 단계에서는 구현하지 않는다.
 
-# 17. ADR / authoritative document 변경 전 규칙
+사용자의 명시적 승인 후 Worker 작업을 시작한다.
 
-ADR 또는 authoritative document를 변경해야 한다고 판단해도 바로 수정하지 않는다.
+---
 
-먼저 다음을 보고한다.
+# 13. Main / Worker Workflow
 
-- 왜 수정이 필요한가
-- 어떤 authority에 근거하는가
-- 어떤 파일을 수정할 예정인가
-- 파일별 변경 이유
-- 기존 Decision과 충돌하는가
-- 다른 문서에 미치는 영향
+## Main worktree
 
-사용자 승인 후 변경한다.
+기본 Main worktree:
 
+```text
+D:\WorkSpace\NSU_CAPSTONE_AI
+```
 
-# 18. 테스트 및 실제 검증
+branch:
 
-변경 내용에 적절한 자동 테스트와 실제 실행 검증을 수행한다.
+```text
+main
+```
 
-검증 수준을 명확히 구분한다.
+Main은 다음 역할만 담당한다.
+
+- 요구사항 분석
+- Linear/GitHub/ADR/SSOT 조사
+- 구현 계획 작성
+- Worker orchestration
+- Worker 결과 독립 리뷰
+- PR/merge 이후 cleanup
+
+Main은 `main`에서 기능 구현 코드를 직접 수정하지 않는다.
+
+---
+
+## Worker worktree
+
+사용자가 구현 계획을 승인하면 Main Agent가 작업별 feature branch와 worktree를 생성한다.
+
+형식:
+
+```text
+Branch:
+feat/<issue-or-task>-<short-name>
+
+Worktree:
+D:\WorkSpace\NSU_CAPSTONE_AI-<issue-or-task>
+```
 
 예:
 
-- unit test
-- mock test
-- integration test
-- real model inference
-- DB integration validation
-- manual evaluation
+```text
+feat/nsuai-27-matching-api
 
-mock test를 통과했다고 실제 모델 검증을 완료했다고 표현하지 않는다.
+D:\WorkSpace\NSU_CAPSTONE_AI-nsuai-27
+```
 
-코드가 실행될 것으로 예상된다는 이유만으로 실행 검증 완료라고 기록하지 않는다.
+worktree는 최신 `main` 기준으로 생성한다.
 
-실행하지 않은 검증은 반드시 미실행 상태로 보고한다.
+예:
 
-테스트 실패를 무시하고 완료 처리하지 않는다.
+```bash
+git fetch origin
+git worktree add ../NSU_CAPSTONE_AI-nsuai-27 \
+  -b feat/nsuai-27-matching-api main
+```
 
+서로 관계없는 작업을 하나의 Worker worktree에 섞지 않는다.
 
-# 19. CLI 원칙
+---
 
-CLI는 개발자가 문제 원인을 이해할 수 있도록 한다.
+# 14. Worker Agent 역할
 
-CLI에서 실패할 경우:
+Worker Agent는 전용 worktree에서만 실제 구현을 수행한다.
 
-- 실패 원인을 명확히 출력한다.
-- 민감한 정보는 출력하지 않는다.
-- non-zero exit code를 반환한다.
+Worker 책임:
 
-CLI가 서비스 로직을 다시 구현하지 않도록 한다.
+- 코드 구현
+- tests 작성/수정
+- 관련 문서 정합화
+- 실제 검증
+- local commit
 
-가능한 구조:
+Worker는 Main에서 승인받은 작업 범위를 벗어나지 않는다.
 
-CLI
-→ argument validation
-→ app 기능 호출
-→ 결과/report 출력
-→ exit code
+작업 중 새로운 authority 충돌, 서버 계약 변경 또는 destructive change가 필요해지면 Main에게 보고한다.
 
+Worker는 독자적으로 다음을 수행하지 않는다.
 
-# 20. 문서와 코드 동기화
+- main 수정
+- push
+- PR 생성
+- merge
+- unrelated 작업
 
-코드 변경으로 다음이 영향을 받는 경우 관련 문서도 확인한다.
+---
+
+# 15. Worker Local Commit
+
+사용자가 구현 계획을 승인한 범위에서는 Worker가 local commit까지 수행할 수 있다.
+
+Commit 전에:
+
+- 이번 작업 관련 파일만 stage
+- staged diff 확인
+- 테스트 결과 확인
+- secret 포함 여부 확인
+
+을 수행한다.
+
+무분별한:
+
+```text
+git add .
+git add -A
+```
+
+사용을 피하고 작업 범위에 맞게 stage한다.
+
+push는 수행하지 않는다.
+
+---
+
+# 16. Worker 완료 보고
+
+Worker는 구현 완료 후 Main에게 최소 다음을 전달한다.
+
+## 변경 내용
+
+- 변경 파일
+- 파일별 역할
+
+## 주요 구현
+
+- 실제 처리 흐름
+- 주요 기술 결정
+
+## Test
 
 - 실행 명령
-- 파일 경로
-- public interface
-- generation policy
-- validation procedure
-- Roadmap status
-- Guide
+- passed
+- skipped
+- failed
+- 실행하지 않은 검증
 
-그러나 변경과 관계없는 문서를 불필요하게 수정하지 않는다.
+## Git
 
+- branch
+- local commit hash
+- working tree 상태
 
-# 21. Git 작업 규칙
+## Remaining
 
-다음 작업은 사용자가 별도로 요청하거나 승인한 경우에만 수행한다.
+- known issue
+- 미완료
+- 미결정
+- 후속 작업
 
-- git add
-- commit
+---
+
+# 17. Main 독립 리뷰
+
+Worker가 local commit을 완료하면 Main Agent가 독립 리뷰한다.
+
+기본 비교:
+
+```bash
+git diff main...<feature-branch>
+```
+
+필요하면:
+
+```bash
+git log main..<feature-branch>
+git show <commit>
+```
+
+를 사용한다.
+
+최소 검토 항목:
+
+- 승인된 요구사항 충족
+- Linear 계약 일치
+- ADR/SSOT 일치
+- API/interface 호환성
+- unintended scope expansion
+- 오류 처리
+- regression risk
+- 테스트 충분성
+- 문서 정합성
+- secret 포함 여부
+- unrelated file 포함 여부
+
+Main은 Worker 코드를 직접 수정하지 않는다.
+
+문제가 있으면 Worker에게 review feedback을 전달한다.
+
+```text
+Main Review
+→ Worker 수정
+→ Worker 테스트/local commit
+→ Main 재리뷰
+```
+
+문제가 없어질 때까지 반복한다.
+
+---
+
+# 18. Human Approval Gate
+
+Main 리뷰가 완료되면 사용자에게 다음을 보고한다.
+
+- 구현 요약
+- commit 목록
+- 테스트 결과
+- 리뷰 결과
+- known limitation
+- push/PR 준비 여부
+
+사용자의 명시적 승인 전에는 다음을 수행하지 않는다.
+
 - push
 - PR 생성
 - merge
 
-작업 중 기존 사용자 변경을 발견하면 임의로 되돌리거나 commit에 포함하지 않는다.
+---
 
-이번 작업과 관련된 파일만 stage한다.
+# 19. Push / PR
 
-commit 전 다음을 확인한다.
-
-- staged files
-- `git diff --cached`
-- 테스트 결과
-- 의도하지 않은 파일 포함 여부
-- secret 포함 여부
-
-merge는 별도 승인 없이 수행하지 않는다.
-
-
-# 22. 작업 진행 방식
-
-실제 작업을 승인받은 경우 다음 방식으로 진행한다.
-
-1. 현재 상태를 다시 확인한다.
-2. 승인받은 범위를 확인한다.
-3. 단계별로 구현한다.
-4. 각 단계가 필요한 이유를 설명한다.
-5. 적절한 테스트를 수행한다.
-6. 필요한 실제 실행 검증을 수행한다.
-7. 결과를 evidence와 문서에 반영한다.
-8. 범위를 벗어난 문제는 별도 항목으로 보고한다.
-
-작업 중 예상하지 못한 authority 충돌 또는 destructive change 필요성이 발견되면 작업을 확대하지 말고 STOP하고 보고한다.
-
-
-# 23. 완료 보고
-
-작업 완료 후 최소 다음을 보고한다.
-
-## 현재 상태
-
-- branch
-- HEAD
-- working tree
-
-
-## 변경 파일
-
-변경한 파일과 각각의 역할을 설명한다.
-
-
-## 처리 흐름
-
-입력부터 출력까지 실제 처리 흐름을 설명한다.
+사용자 승인 후 feature branch를 push한다.
 
 예:
 
-Input
-→ Validation
-→ Preprocessing
-→ Core Logic
-→ Storage/Search
-→ Output
+```bash
+git push -u origin feat/nsuai-27-matching-api
+```
 
+PR:
 
-## 주요 구현 결정
+```text
+base: main
+head: feature branch
+```
 
-어떤 방식을 선택했으며 왜 선택했는지 설명한다.
+PR 본문에는 최소 다음을 포함한다.
 
+- Summary
+- 변경 이유
+- 주요 구현
+- 테스트 결과
+- ADR/문서 영향
+- known limitation
+- Out of scope
 
-## 실행 방법
+PR/CI 리뷰에서 문제가 발견되면 Worker가 수정하고 Main이 다시 리뷰한다.
 
-실제 실행 가능한 명령어를 제공한다.
+---
 
+# 20. Merge
 
-## 검증 결과
+Merge는 사용자 승인 후 수행한다.
 
-실제로 수행한 테스트와 검증 결과를 보고한다.
+branch protection이나 CI를 임의로 우회하지 않는다.
 
-실행하지 않은 검증은 실행하지 않았다고 명시한다.
+force push / force merge는 별도 승인 없이는 사용하지 않는다.
 
+---
 
-## 영향 범위
+# 21. Merge 후 Cleanup
 
-기존 기능, 데이터, API, DB 등에 어떤 영향이 있는지 설명한다.
+PR merge 후 Main worktree에서:
 
+```bash
+git switch main
+git pull origin main
+git status
+```
 
-## 미완료 / 미결정 사항
+를 실행해 다음 상태를 확인한다.
 
-아직 완료되지 않은 항목과 결정되지 않은 항목을 구분한다.
+```text
+main == origin/main
+working tree clean
+```
 
+확인 후 완료된 worktree를 제거한다.
 
-## 다음 단계
+예:
 
-`docs/AI_DEVELOPMENT_ROADMAP.md`와 현재 작업 결과를 기준으로 다음 단계를 설명한다.
+```bash
+git worktree remove ../NSU_CAPSTONE_AI-nsuai-27
+git branch -d feat/nsuai-27-matching-api
+git worktree prune
+```
 
+필요 없는 stash, 임시 파일, 완료된 작업 branch도 확인 후 정리한다.
 
-# 24. 금지 사항
+---
 
-다음을 하지 않는다.
+# 22. 여러 Worker
 
-- 확인하지 않은 내용을 완료됐다고 보고
-- 기억만으로 현재 구현을 단정
-- Backend와 미정인 계약을 임의로 확정
-- Linear 정책을 AI repository에서 다시 정의
-- 기존 데이터를 승인 없이 삭제
-- production 로직과 실험 로직을 이유 없이 중복 구현
-- secret 출력
-- unrelated refactoring
-- unrelated dependency upgrade
-- 요청하지 않은 migration
-- 요청하지 않은 API 변경
-- 사용자 변경을 임의로 revert
-- 테스트 실패를 숨기고 완료 처리
-- 사용자 승인 없이 merge
+독립적인 작업은 여러 Worker로 나눌 수 있다.
 
+```text
+Main
+├─ Worker A
+├─ Worker B
+└─ Worker C
+```
 
-# 25. 기본 원칙 요약
+조건:
 
-항상 다음 순서를 기억한다.
+- 서로 같은 파일을 동시에 수정하지 않는다.
+- 의존성이 강한 작업은 순차 처리한다.
+- 각 Worker는 별도 branch/worktree를 사용한다.
+- Main이 최종 integration을 검토한다.
+- 작은 단일 작업에는 불필요하게 Worker를 늘리지 않는다.
 
-Current State
-→ Authority
-→ Scope
-→ Plan
-→ User Approval
-→ Implementation
-→ Validation
-→ Evidence
-→ Final Report
+---
 
-정확성을 위해 필요한 경우 작업을 멈추고 확인한다.
+# 23. 역할 요약
 
-모르는 계약을 추측해서 구현하는 것보다
-미결정 사항으로 명확히 남기는 것을 우선한다.
+```text
+Human
+= Approval Gate
 
-## Main / Worker Git Workflow
+Main Agent
+= Planner
++ Orchestrator
++ Independent Reviewer
 
-- `D:\WorkSpace\NSU_CAPSTONE_AI`의 `main` 작업 공간은 설계, Linear/ADR/SSOT 확인, 리뷰 용도로만 사용한다.
-- `main` 작업 공간에서 기능 구현 코드를 직접 수정하지 않는다.
-- 새로운 구현 작업을 시작할 때 Main Agent가 작업별 feature branch와 Git worktree를 생성한다.
-- 작업 디렉터리는 `D:\WorkSpace\NSU_CAPSTONE_AI-<task>` 형식을 사용한다.
-- Worker Agent는 해당 worktree에서만 구현, 테스트, commit을 수행한다.
-- Main Agent는 `git diff main...<feature-branch>`를 사용해 Worker 결과를 리뷰한다.
-- 수정이 필요하면 Main에서 직접 고치지 않고 Worker에 피드백한다.
-- PR merge 후 Main Agent가 해당 worktree와 로컬 feature branch를 정리한다.
+Worker Agent
+= Implementer
++ Tester
++ Local Committer
+
+GitHub PR / CI
+= Integration Gate
+```
+
+최종 workflow:
+
+```text
+사용자 요청
+↓
+Main 조사
+↓
+변경안 및 작업 예정 내용
+↓
+사용자 승인
+↓
+Main이 Worker branch/worktree 생성
+↓
+Worker 구현/테스트/local commit
+↓
+Main 독립 리뷰
+↓
+필요 시 Worker 수정
+↓
+Main 재리뷰
+↓
+사용자 승인
+↓
+Push / PR
+↓
+CI / Review
+↓
+사용자 승인
+↓
+Merge
+↓
+Main 최신화
+↓
+Worker worktree/branch 정리
+```
