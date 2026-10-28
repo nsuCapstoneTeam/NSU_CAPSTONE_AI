@@ -75,8 +75,3 @@ data/
 *.bin
 models/
 checkpoints/
-
-# =========================
-# Local Agent Instructions
-# =========================
-AGENTS.md
