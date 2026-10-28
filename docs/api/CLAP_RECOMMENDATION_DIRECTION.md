@@ -8,7 +8,7 @@
 012는 raw cosine 순위와 후보 독립 고정 0~100 음악 유사도 변환을 정하고, AI가 최대 100곡을 반환한다. Spring은 AI가 정한 순서를 재정렬하지 않고 구조적 응답 조건을 확인한다. 012의 합의 상태와 미구현된 서비스 흐름은 구분한다.
 012가 005의 retrieval 50~100/Backend Top10, 008의 별도 AI Explanation API 호출, 009의 의미/BPM/Rhythm 평균 순위 범위를 대체했다. 006 신규 아티스트 전용 retrieval 제안은 철회됐다. 010은 유지되고, 011은 012 §4.3에 의해 기존 Superseded 상태를 유지한다. 013은 Proposed 상태의 별도 MP3/M4A 검증 협의이며 이번 문서의 기준으로 섞지 않는다.
 
-2026-10-18 calibration cohort 분석에서 raw cosine과 사람 평가 평균의 중간 정도 양의 관계(Pearson 0.502, Spearman 0.524)와 rank 기반 상대적 분별력이 관찰됐다. 이는 정확도나 사람 판단과의 일치율이 아니며, 높은 cosine 구간의 사람 평가가 단조 증가하지 않아 최종 display calibration은 미확정이다. 현재 비교용 후보 `clamp(100 * cosine / 0.4, 0, 100)`는 provisional일 뿐 최종 수식으로 선정되지 않았다. 자세한 수치와 한계는 [ADR-0008](../adr/ADR-0008-music-similarity-transformation-and-ranking.md) 및 [calibration 분석 evidence](../experiments/audio-similarity-calibration/artifacts/listening-evaluation-analysis.json)를 참조한다. 이번 calibration 자료와 독립 validation 자료는 구분하며, 독립 validation은 수행하지 않았다.
+2026-10-18 calibration cohort 분석에서 raw cosine과 사람 평가 평균의 중간 정도 양의 관계(Pearson 0.502, Spearman 0.524)와 rank 기반 상대적 분별력이 관찰됐다. 이는 정확도나 사람 판단과의 일치율이 아니며, 높은 cosine 구간의 사람 평가가 단조 증가하지 않아 최종 display calibration은 미확정이다. 현재 비교용 후보 `clamp(100 * cosine / 0.4, 0, 100)`는 provisional일 뿐 최종 수식으로 선정되지 않았다. 자세한 수치와 한계는 [ADR-0008](../adr/ADR-0008-music-similarity-transformation-and-ranking.md) 및 [calibration 실험 요약](../experiments/audio-similarity-calibration/README.md)을 참조한다. 이번 calibration 자료와 독립 validation 자료는 구분하며, 독립 validation은 수행하지 않았다.
 
 ## 현행 처리 흐름
 
@@ -49,15 +49,16 @@ Spring Eligibility
 
 ## 현재 구현과 남은 계약
 
-현재 공통 AudioEmbeddingGenerator는 ADR-0007의 60~80초 validation과 처음 56초의 고정 8 Chunk 집계를 적용한다. 파일/DB 검색 CLI, 임시 표시 점수, Health API도 구현되어 있다.
+현재 AI 공통 AudioEmbeddingGenerator는 ADR-0007에 기록한 저장소 범위의 56~60초 validation과 처음 56초의 고정 8 Chunk 집계를 적용한다. 이는 Spring 업로드/API validation 계약까지 갱신되었음을 뜻하지 않는다. 파일/DB 검색 CLI, 임시 표시 점수, Health API도 구현되어 있다.
 전체 통과 ACTIVE 후보 쌍 입력을 받는 HTTP 흐름, 최대 100곡 반환, 화면·매칭 버튼은 아직 구현 전이다. 전체 후보 입력은 전체 결과 반환을 뜻하지 않는다.
 현재 CLI Top5·DB `top_k` 상한·과거 측정값은 로컬 검증 범위이며 새 서비스 목표의 반환 정책으로 취급하지 않는다.
 
-요청의 음악/Text 표현, endpoint·DTO, 측정으로 정할 입력 최대치·자원 한도·동시성·timeout, 누락/실패 표현, version field의 세부 schema, 설명 대상은 별도 인터페이스 설계·검증이 남아 있다.
-외부 결과는 단일 `resultVersion`으로 식별하고 AI 내부에서는 model/checkpoint, Embedding generation/preprocessing, transformation/calibration, 상세 분석, 요청 해석 버전을 분리 추적한다. 이는 설계 합의이며 구체 내부 metadata 구현 완료를 뜻하지 않는다.
+canonical input의 endpoint·DTO, mapping version 식별, 입력 최대치·자원 한도·동시성·timeout, 누락/실패 표현, 결과 version field의 세부 schema, 설명 대상은 별도 인터페이스 설계·검증이 남아 있다.
+외부 결과는 단일 `resultVersion`으로 식별하고 AI 내부에서는 model/checkpoint, Embedding generation/preprocessing, transformation/calibration 및 상세 분석 버전을 분리 추적한다. Spring mapping version은 별도 계약 항목이며 구체 metadata 구현 완료를 뜻하지 않는다.
 
 ## 변경 이력
 
 - 2026-10-05: AI 측 CLAP 중심 변경 방향을 제안했다. 당시 반환 개수·팀 합의는 미정이었다.
 - 2026-10-10: Linear 서버 협의 012 Accepted에 따라 최대 100곡 결과 반환, raw cosine 순위, Spring의 순서 유지·검증, 요청 원문 해석, Spring 템플릿 설명, 후보 독립 고정 점수, 버전 분리 및 BPM/Rhythm 비순위 상세 범위를 반영했다. 구현 전 상태와 입력 후보 상한의 실측 미결정을 유지한다.
+- 2026-10-28: 후속 검색 입력 결정에 따라 Spring predefined mapping과 canonical English input 방향을 반영했다. AI 업무 API 및 mapping은 구현 전이며, 기존 012의 나머지 책임은 변경하지 않는다.
 - 당시 논거·청취/피드백 제안은 [과거 회의 자료](../협업-가이드/CLAP_RECOMMENDATION_MEETING_PROPOSAL.md)에 보존한다.

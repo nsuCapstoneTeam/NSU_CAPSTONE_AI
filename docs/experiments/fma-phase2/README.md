@@ -1,5 +1,9 @@
 # Phase 2 — FMA Historical PoC
 
+이 실험의 한국어/영어 검색 비교는 입력 언어 정책의 **소규모 예비 실험(Historical Pilot)**입니다.
+후속 대규모 paired 검증은 [AudioCaps Multilingual 한국어/영어 MSCLAP retrieval 실험](../text-input-method-result.md)을
+참고하세요. FMA 결과는 삭제하거나 후속 결과로 대체하지 않습니다.
+
 실험일: 2026-10-02 KST. 관련 작업: NSUAI-1, NSUAI-2.
 측정은 로컬 Docker에서 수행했다. 이 문서는 당시 방법·핵심 결과·의사결정 근거를 보존한다.
 2026-10-09 Cleanup에서 원본 Audio·ZIP·상세 CSV/JSON·Embedding·청취 UI를 삭제했다.
@@ -75,12 +79,17 @@ MSCLAP 1.3.3의 전처리는 max_length padding을 사용하지만 truncation을
 
 ## 결정과 후속 검증
 
-사용자 결정: **한국어로 요청을 받고 영어로 변환한 뒤 MSCLAP에 입력**한다.
-[ADR 0004](../../adr/ADR-0004-korean-input-english-msclap.md)에 반영했다.
+당시 결정: **한국어로 요청을 받고 영어로 변환한 뒤 MSCLAP에 입력**하는 방향을
+[ADR-0004](../../adr/ADR-0004-korean-input-english-msclap.md)에 기록했다. 후속
+[ADR-0009](../../adr/ADR-0009-spring-canonical-search-input-mapping.md)는 현행 서비스 입력 처리를
+Spring predefined mapping으로 결정했으며 번역 모델/API는 현재 검색 경로에서 사용하지 않는다.
+이 FMA 결과는 당시 결정의 소규모 초기 근거(Historical Pilot)다. 영어 입력 경로를 뒷받침하는
+후속 대규모 paired 결과는 AudioCaps 실험에 별도 기록되어 있으며, FMA 집계는 이를 대체하지 않는다.
 
 영어 설명은 사람이 작성·수정했다. 따라서 자동 번역 품질, 새로운 음악·요청에 대한
 추천 성능, 서비스 전체 적합성 또는 최종 0–100 수식이 검증됐다고 볼 수 없다.
-후속 작업은 번역 모델/API 선택, 의미·부정 조건 보존, 77토큰 제한 처리 및 실패 처리다.
+당시 제안된 번역 모델/API 선택 과제는 후속 결정으로 대체됐다. 자유 자연어 검색 요구가 생기면
+별도 협의와 ADR을 통해 입력 처리 방식을 재검토한다.
 당시 정규화 조정에는 validation split을 사용하고 test 결과에 수식을 맞추지 않도록 했다.
 
 FMA Historical 집계는 과거 의사결정 설명용이며 향후 calibration input으로 사용하지 않습니다. 향후 calibration은 ADR-0007 generation policy에 따라 새로 생성한 Embedding·새 similarity distribution·새 evaluation evidence를 기반으로 수행하고, 해당 evidence는 별도로 생성·보존합니다.

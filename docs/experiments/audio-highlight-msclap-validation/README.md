@@ -10,7 +10,7 @@
 
 ## 실행 환경과 offline cache
 
-Docker client 29.8.1은 있으나 Docker Desktop Linux engine pipe에 연결할 수 없어 로컬 Windows CPU에서 실행했다. `tmp/review-venv`는 이번 실행에서 사용 가능한 기존 환경이며 장기적인 공식 검증 환경으로 채택하지 않는다.
+Docker client 29.8.1은 있으나 Docker Desktop Linux engine pipe에 연결할 수 없어 로컬 Windows CPU에서 실행했다. 당시 실행에는 임시 review 환경을 사용했다. 그 환경은 보존하지 않으며 아래 실행 예시는 프로젝트 `.venv`를 사용한다.
 
 - Python 3.11.16; Windows 10.0.26200; CPU 6 threads / interop 6 threads, CUDA 사용 안 함.
 - msclap 1.3.3; torch/torchaudio 2.1.2+cpu; numpy 1.26.4; soundfile 0.14.0; transformers 4.35.2; libsndfile 1.2.2.
@@ -87,7 +87,7 @@ Phase A의 rights_cleared=true는 로컬 기술 검증용 Dataset 출처·라이
 이번 실제 실행 명령(도구가 offline 환경을 명시적으로 설정한다):
 
 ```powershell
-& ./tmp/review-venv/Scripts/python.exe -X utf8 -B -m scripts.embedding.validate_audio_highlight_msclap --manifest docs/experiments/audio-highlight-phase-a/manifest.json --repeat 2 --report datasets/audio-highlight-msclap-validation/results/run-02.json
+& ./.venv/Scripts/python.exe -X utf8 -B -m scripts.embedding.validate_audio_highlight_msclap --manifest docs/experiments/audio-highlight-phase-a/manifest.json --repeat 2 --report datasets/audio-highlight-msclap-validation/results/run-02.json
 ```
 
 이미 결과가 있으므로 재실행에는 새 report 이름을 사용한다. 기존 JSON/vector를 덮어쓰지 않는다. report는 Git 제외 `datasets/` 아래에만 저장한다. CLI는 전체 6곡의 source/Highlight SHA와 길이/형식/권리 상태를 model load 전에 검사하고, 하나라도 실패하면 추론을 시작하지 않는다. 모델은 offline cache가 없거나 로드에 실패하면 네트워크 다운로드로 우회하지 않는다. 성공 `0`, 검사 실패/재현성 검토 필요 `1`, 잘못된 인자/기존 출력 `2`다.
@@ -95,8 +95,10 @@ Phase A의 rights_cleared=true는 로컬 기술 검증용 Dataset 출처·라이
 최종 실제 추론 전에 새 도구 synthetic/mock 테스트 17개 및 기존 production generator 테스트 23개, 총 40개가 통과했다. 최초 도구 테스트의 CLI encoding 실패를 수정하여 재검증한 뒤 실제 추론을 실행했다.
 
 ```powershell
-& ./tmp/review-venv/Scripts/python.exe -X utf8 -B -m pytest tests/embedding/test_audio_highlight_msclap_validation.py tests/embedding/test_audio_embedding.py --basetemp=tmp/msclap-tool-tests-run3 -q -p no:cacheprovider
+& ./.venv/Scripts/python.exe -X utf8 -B -m pytest tests/embedding/test_audio_highlight_msclap_validation.py tests/embedding/test_audio_embedding.py -q -p no:cacheprovider
 ```
+
+테스트 fixture는 pytest 기본 OS 임시 경로를 사용한다. 성공한 `tmp_path` fixture는 보존하지 않고, 실패한 fixture만 한 번의 실행분 보존하도록 저장소 루트의 `pytest.ini`에서 설정한다.
 
 ## 남은 사항
 

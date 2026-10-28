@@ -2,7 +2,7 @@
 
 ## 상태와 기준
 
-현행 책임은 [Accepted Linear 서버 협의 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba) §6.2를 따른다. 별도 AI Explanation API 호출 범위는 012가 대체했다. Spring이 AI의 구조화된 상세 정보·행사 요청 해석 결과·실제로 통과한 필수 조건으로 템플릿 추천 이유를 만든다. LLM은 필수가 아니다.
+현행 책임은 [Accepted Linear 서버 협의 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba) §6.2와 검색 입력에 관한 후속 결정 범위를 따른다. 별도 AI Explanation API 호출 범위는 012가 대체했다. Spring이 AI의 구조화된 곡 상세 정보, Spring이 확정한 canonical 요청 의미 및 실제로 통과한 필수 조건으로 템플릿 추천 이유를 만든다. 검색 입력 변환용 LLM은 사용하지 않으며, 추천 이유 생성에서 미래 LLM을 사용할지는 별도 결정이다.
 
 검색 응답은 raw cosine 순위로 최대 100곡을 반환하고 Spring은 순서를 다시 정렬하지 않는다. 별도 AI 설명 호출은 하지 않는다. 이 문서는 Spring template에서 사용할 근거와 아직 정하지 않은 세부 필드의 설계 참고이며 확정 DTO/Schema가 아니다.
 
@@ -10,11 +10,11 @@
 
 ## 곡별 설명 흐름과 제안 정보
 
-1. AI가 raw cosine 순으로 최대 100곡과 구조화된 상세 정보·행사 요청 해석 결과를 반환한다.
-2. Spring이 AI의 상세 정보·해석 결과 및 실제 통과한 필수 조건으로 곡별 템플릿 추천 이유를 구성한다.
+1. AI가 raw cosine 순으로 최대 100곡과 구조화된 곡 상세 정보를 반환한다.
+2. Spring이 곡 상세 정보, Spring canonical 요청 의미 및 실제 통과한 필수 조건으로 곡별 템플릿 추천 이유를 구성한다.
 3. Spring은 추천 결과 순서를 유지하고 추천 결과와 함께 설명을 저장·응답한다.
 
-세부 설명 schema·저장 field는 API 구현에서 정합화한다. 외부 결과는 단일 `resultVersion`으로 식별하고, AI 내부 생성/전처리·변환·분석·요청 해석 버전은 별도 추적한다.
+세부 설명 schema·저장 field는 API 구현에서 정합화한다. 외부 결과는 단일 `resultVersion`으로 식별하고 AI 내부 생성/전처리·변환·분석 버전 및 Spring mapping version은 역할에 따라 별도 추적한다.
 
 | 제안 정보 | 목적 |
 | --- | --- |

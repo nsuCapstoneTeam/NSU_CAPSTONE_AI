@@ -20,10 +20,10 @@
   [ADR 0006](adr/ADR-0006-asynchronous-audio-processing.md)을 따른다.
   현재 생성·저장·검색 함수는 동기 실행이며 업무 HTTP API는 후속 구현이다.
 - AI에서 연동 계약을 먼저 작성하고 백엔드 검토 후 확정한다.
-- 사용자 음악 요청은 한국어로 받고, 의미를 유지한 영어 설명으로 변환한 뒤
-  MSCLAP Text Embedding을 생성한다. 입력 정책은
-  [ADR 0004](adr/ADR-0004-korean-input-english-msclap.md)를 따른다.
-  번역 방식 및 자동 번역 경로의 검증은 후속 구현 작업이다.
+- 서비스 검색 입력은 Spring이 predefined mapping으로 canonical English input을 생성하고 AI에 전달한다.
+  영어 MSCLAP 입력 근거는 [ADR-0004](adr/ADR-0004-korean-input-english-msclap.md), 검색 입력 책임 결정은
+  [ADR-0009](adr/ADR-0009-spring-canonical-search-input-mapping.md)를 따른다.
+  Mapping과 AI 업무 API는 구현 전이며 AI는 검색 입력 번역/LLM 해석을 수행하지 않는다.
 
 ### Similarity
 - Similarity 계산은 `NSU_CAPSTONE_AI` Python AI/Matching Server 내부 책임으로 한다.
@@ -59,7 +59,7 @@
 - [Accepted 009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd)는 평균 순위 범위에서 Superseded다. BPM/Rhythm은 추출·요청 비교 상세 정보로 유지되며 음악 순위 점수가 아니다. 공연 형태 Hard Filter는 유지한다.
 - [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)는 005의 retrieval 50~100/Backend Top10과 008의 별도 AI Explanation API 범위도 대체한다. 005의 ACTIVE 후보 쌍·revision 비교·Trust/Risk 분리 원칙은 유지한다. 010은 유지한다. 011은 Superseded 상태를 유지하고, 013은 Proposed 별도 협의로 남는다.
 - Spring은 AI의 구조화된 근거로 템플릿 추천 이유를 생성한다. 별도 AI Explanation API 및 필수 LLM은 현행 흐름이 아니다.
-- 입력 해석은 Event 원문 설명·행사 종류·희망 Genre를 AI가 처리한다. 세부 DTO·처리 가능한 입력 최대치·resource/timeout 수치는 구현·실측 과제로 남는다.
+- 검색 입력의 의미와 canonical mapping은 Spring 책임이다. AI 업무 요청은 canonical English input을 받는 방향이며 정확한 DTO·입력 최대치·resource/timeout은 계약 및 실측 과제로 남는다. AI는 원문 Event Description에서 음악 의미를 재추출하지 않는다.
 
 ---
 
@@ -218,7 +218,8 @@ Phase 3 전체 완료를 의미하지 않습니다.
 - [ ] ACTIVE (music_id, audioRevision) 후보 쌍 필터와 검색 결과 revision 반환
 - [ ] 백엔드 연동 계약 확정: 음악 ID·파일 전달·버전·오류·타임아웃
 - [ ] 음악 수정·삭제 처리와 오래된 요청의 덮어쓰기·재등록 방지
-- [ ] Text 임베딩 생성·저장 연동: 한국어→영어 변환 방식은 미정
+- [ ] Spring predefined mapping 및 canonical English input 생성 구현
+- [ ] canonical input 업무 DTO/API를 확정·구현하고 Text Embedding에 연결
 - [ ] 동기 업무 HTTP API 구현: 등록·검색·수정·삭제
 - [ ] 실패 기록·재시도·중복 요청·시간 초과 후 재요청 정책
 - [ ] 실제 백엔드 음악 ID를 사용한 등록→검색→수정→삭제 통합 검증
@@ -364,7 +365,7 @@ Spring Eligibility·모든 통과 ACTIVE 후보 쌍 및 Event 원문
 012에서 별도 AI Explanation API 호출은 현행 흐름에서 제외했다. `NSUAI-10`/`NSUAI-11`은 Canceled 상태를 유지한다.
 
 목표:
-- Spring이 AI 구조화 상세 정보·요청 해석 및 실제 통과 조건으로 템플릿 추천 이유를 만든다.
+- Spring이 AI 구조화 상세 정보, Spring이 확정한 canonical 요청 의미 및 실제 통과 조건으로 템플릿 추천 이유를 만든다.
 - 실제 근거만 사용하고 AI/Spring에서 순위를 다시 계산하지 않는다.
 - 구체 evidence field/schema를 API 계약에서 구현 시 정합화한다.
 - 후보 간 비교 문장이나 아티스트 집계 점수를 생성하지 않는다. LLM은 필수가 아니다.
@@ -506,7 +507,7 @@ React
 - 전체 통과 ACTIVE 후보 쌍 입력 → AI 유사도 정렬·최대 100곡 반환 → Spring 순서 유지·곡 표시 → 별도 사용자 Artist 매칭 검증
 - 곡별 `rank`와 응답 순서, 후보 독립 0~100 음악 유사도 반환; raw cosine은 AI 내부 정렬 기준이며 Spring 계약 필드에 포함하지 않음
 - BPM/Rhythm 등 구조화된 상세 정보 반환; 순위 점수로 사용하지 않음
-- AI의 구조화된 근거·행사 요청 해석·통과 조건을 사용한 Spring 템플릿 추천 이유 구성
+- AI의 구조화된 곡 정보, Spring이 확정한 canonical 요청 의미 및 통과 조건을 사용한 Spring 템플릿 추천 이유 구성
 - Sample 등록/수정/삭제 후 Embedding 상태
 - 실제 Audio/Text 데이터 기반 Matching 결과
 

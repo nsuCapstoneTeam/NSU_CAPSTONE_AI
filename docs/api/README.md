@@ -1,6 +1,6 @@
 # Python AI 서버 API
 
-> 2026-10-10 현재 추천 정책은 Linear 서버 협의 012 Accepted를 따른다. AI는 raw cosine 순으로 최대 100곡을 반환하고 Spring은 순서를 유지한다. Spring이 AI의 구조화된 근거로 템플릿 추천 이유를 만든다. 정책 합의 상태와 미구현 업무 API는 구분한다. 상세 내용은 [AI 작업 기준](CLAP_RECOMMENDATION_DIRECTION.md)을 따른다.
+> 검색 입력 처리 방향은 Spring predefined mapping으로 canonical English input을 구성해 AI에 전달하는 것이다. AI 업무 API는 구현 전이며, 012의 다른 검색/랭킹 정책은 유지한다. Spring이 추천 이유 템플릿을 구성한다. 상세 내용은 [AI 작업 기준](CLAP_RECOMMENDATION_DIRECTION.md)을 따른다.
 
 
 FastAPI 서버와 health API는 구현되어 있다.
@@ -27,14 +27,14 @@ v1·v2를 함께 보관하고 Backend v2 ACTIVE 커밋 확인 후 v1을 정리�
 ## 책임 경계
 
 Spring Eligibility 이후 모든 통과 ACTIVE 후보 쌍을 AI에 전달한다. AI는 raw cosine 순으로 최대 100곡을 반환하고 Spring은 그 순서를 재정렬하지 않는다.
-Spring은 rank/order 연속성, 중복, 후보 범위, 결과 개수와 표시 점수 조건을 검사하고, AI의 구조화된 근거와 실제 통과 조건으로 템플릿 추천 이유를 구성한다. 별도 AI Explanation API는 현행 흐름이 아니며 LLM은 필수가 아니다.
+Spring은 rank/order 연속성, 중복, 후보 범위, 결과 개수와 표시 점수 조건을 검사하고, AI의 구조화된 곡 정보와 실제 통과 조건 및 Spring canonical input을 바탕으로 템플릿 추천 이유를 구성한다. AI는 검색 입력 의미를 다시 해석하지 않는다. 별도 AI Explanation API는 현행 흐름이 아니며 추천 설명의 미래 LLM 사용 여부는 별도 결정이다.
 화면은 상위 10곡부터 최대 100곡까지 표시한다. 입력 후보 최대치는 NSUAI-15에서 실측 후 정한다. 아티스트별 집계·후보 비교 설명은 하지 않는다.
 
 별도 AI 설명 호출을 두지 않는다. 추천 이유 생성은 Spring 책임이며 [설명 상세 설계 참고](RECOMMENDATION_EXPLANATION_CONTRACT.md)에 아직 확정되지 않은 근거 schema와 field를 정리한다.
 업무 API 구현은 완료되지 않았다. LLM은 필수 요건이 아니다.
 
-Spring Boot는 음악 ID·아티스트 소유 관계·인증/인가·서비스 화면 연결을 담당한다.
-Python AI 서버는 전처리·임베딩·pgvector 저장·유사도 검색을 담당한다.
+Spring Boot는 음악 ID·아티스트 소유 관계·인증/인가·서비스 화면 연결과 검색 입력 predefined mapping/canonicalization을 담당한다.
+Python AI 서버는 전달된 canonical text의 검증·전처리·임베딩·pgvector 저장·유사도 검색을 담당하며 번역/LLM 의미 해석은 하지 않는다. canonical input 업무 endpoint는 구현 전이다.
 
 ## 합의할 항목
 

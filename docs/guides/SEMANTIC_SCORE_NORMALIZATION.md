@@ -60,18 +60,18 @@ A는 세 후보 중 제한된 극단 점수에 몰리는 개수가 가장 적어
 현재 의미 적합도는 모델 유사도를 표시하는 지표이며 최종 종합 매칭 점수가 아닙니다.
 같은 test 자료로 기준을 탐색했으므로 이를 독립 검증 자료로 재사용할 수 없습니다.
 최종 기준은 새 설명·새 음악과 별도 평가로 검증해야 합니다.
-자동 한국어→영어 번역 경로는 아직 검증되지 않았습니다.
+과거 실험에서는 한국어→영어 변환 후보를 검토했지만, 서비스 검색 입력은 [ADR-0009](../adr/ADR-0009-spring-canonical-search-input-mapping.md)에 따라 Spring predefined mapping을 사용합니다. Mapping 및 canonical input 업무 API는 아직 구현 전이며 이 문서의 점수 변환 기준과 별개입니다.
 
 [Historical 변환 탐색](../experiments/audio-search-phase2/README.md#음악텍스트-기준-탐색)과
 [음악 간 측정·평가](../experiments/audio-search-phase2/README.md)에 핵심 근거를 보존했습니다. 상세 산출물은 삭제했습니다.
 FMA 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거 Embedding은 Cleanup에서 의도적으로 제거했습니다. 현재 checkout에는 핵심 실험 조건·집계 결과·결론·한계의 Historical Markdown 요약만 남아 있어 개별 데이터 수준의 재계산/audit이나 완전 재현을 지원하지 않습니다. 이는 현재 checkout의 보존 범위이며 과거 Git history 자체를 삭제했다는 의미는 아닙니다.
 음악 파일 검색 CLI의 음악↔음악 변환과 Audio 임베딩 저장·DB 검색 CLI는 구현되어 있습니다.
-업무 HTTP API·Text 저장·번역·곡별 설명은 후속 작업입니다.
+업무 HTTP API·canonical Text 입력 저장/연결·곡별 설명은 후속 작업입니다. 검색 입력의 번역/LLM 해석은 서비스 경로에 사용하지 않습니다.
 여기 수식과 FMA 분포는 기존 단일 crop 개발용 기준입니다. ADR-0007 새 검증은 다른 Dataset의
 Phase A에서 준비한 별도 60초 적격 입력을 사용하며 [Roadmap](../AI_DEVELOPMENT_ROADMAP.md)과 [입력 안내](FMA_VALIDATION.md)를 따릅니다.
 서버 간 현재 순위·표시 점수 정책은 [Accepted Linear 협의 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)를 따릅니다. 009는 의미/BPM/Rhythm 평균 순위에 관해서는 Superseded이며, BPM/Rhythm의 상세 측정·요청 비교와 공연 형태 Hard Filter 등 유지 범위만 historical reference로 남습니다.
 임시 CLI 수식을 서버의 최종 변환 수식으로 승격하지 않습니다.
-외부 수치·순위 및 결과 버전은 Accepted 012 §4.3을 따릅니다. raw cosine이 순위를 정하고 Spring은 AI 순서를 재정렬하지 않습니다. 후보 독립 고정 0~100 변환은 표시용이며 확률/적합성 점수가 아닙니다. 외부 단일 `resultVersion`은 AI 내부의 model/checkpoint, generation/preprocessing, transformation/calibration, 상세 분석 및 요청 해석 세부 버전과 분리합니다. 구체 변환은 NSUAI-12 실험 후 결정합니다. 상세 상태는 [AI 작업 기준의 상태와 출처](../api/CLAP_RECOMMENDATION_DIRECTION.md#상태와-출처)를 참조합니다.
+외부 수치·순위 및 결과 버전은 Accepted 012 §4.3을 따릅니다. raw cosine이 순위를 정하고 Spring은 AI 순서를 재정렬하지 않습니다. 후보 독립 고정 0~100 변환은 표시용이며 확률/적합성 점수가 아닙니다. 외부 단일 `resultVersion`은 AI 내부의 model/checkpoint, generation/preprocessing, transformation/calibration 및 상세 분석 정보와 분리합니다. 검색 입력의 canonical mapping은 Spring 책임이며 mapping version 등 구체 계약은 후속 API 설계에서 정합니다. 구체 표시 변환은 NSUAI-12 실험 후 결정합니다. 상세 상태는 [AI 작업 기준의 상태와 출처](../api/CLAP_RECOMMENDATION_DIRECTION.md#상태와-출처)를 참조합니다.
 현재 CLI 수식·실측 결과와 향후 인터페이스 구현·검증은 별도로 관리합니다.
 
 ## 향후 transformation 설계 원칙
