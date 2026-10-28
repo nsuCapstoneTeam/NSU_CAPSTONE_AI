@@ -24,8 +24,8 @@ ANALYSIS_DURATION_SECONDS = 56
 CHUNK_DURATION_SECONDS = 7
 CHUNK_COUNT = 8
 TARGET_SAMPLE_RATE = 44_100
-MIN_AUDIO_DURATION_SECONDS = 60
-MAX_AUDIO_DURATION_SECONDS = 80
+MIN_AUDIO_DURATION_SECONDS = 56
+MAX_AUDIO_DURATION_SECONDS = 60
 _CHUNK_SAMPLE_COUNT = CHUNK_DURATION_SECONDS * TARGET_SAMPLE_RATE
 _generation_lock = threading.Lock()
 
@@ -200,7 +200,7 @@ class AudioEmbeddingGenerator:
         }
 
     def generate(self, audio_path, *, expected_sha256=None):
-        """60~80초 파일의 처음 56초를 고정 8 Chunk로 변환해 하나의 벡터를 반환한다."""
+        """56~60초 파일의 처음 56초를 고정 8 Chunk로 변환해 하나의 벡터를 반환한다."""
         path = Path(audio_path).resolve()
         if not path.is_file():
             raise AudioEmbeddingError('audio_file_missing', path)

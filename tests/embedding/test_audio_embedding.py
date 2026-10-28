@@ -140,11 +140,10 @@ def test_default_loader_rejects_non_calibration_revision(monkeypatch):
 
 
 @pytest.mark.parametrize(('duration', 'accepted'), [
-    (60 * SAMPLE_RATE - 1, False),
+    (56 * SAMPLE_RATE - 1, False),
+    (56 * SAMPLE_RATE, True),
     (60 * SAMPLE_RATE, True),
-    (70 * SAMPLE_RATE, True),
-    (80 * SAMPLE_RATE, True),
-    (80 * SAMPLE_RATE + 1, False),
+    (60 * SAMPLE_RATE + 1, False),
 ])
 def test_decoded_frame_duration_boundaries(tmp_path, monkeypatch, duration, accepted):
     import torchaudio
@@ -176,7 +175,7 @@ def test_decoded_frame_duration_boundaries(tmp_path, monkeypatch, duration, acce
         assert [entry[1] for entry in saved] == [index * 7 * SAMPLE_RATE for index in range(CHUNK_COUNT)]
         assert saved[-1][2] == 56 * SAMPLE_RATE - 1
     else:
-        expected = 'audio_duration_below_minimum' if duration < 60 * SAMPLE_RATE else 'audio_duration_above_maximum'
+        expected = 'audio_duration_below_minimum' if duration < 56 * SAMPLE_RATE else 'audio_duration_above_maximum'
         with pytest.raises(AudioEmbeddingError, match=expected):
             generator.generate(path)
         assert saved == []
@@ -185,7 +184,7 @@ def test_decoded_frame_duration_boundaries(tmp_path, monkeypatch, duration, acce
 
 @pytest.mark.parametrize('sample_rate', [8_000, 22_050, 44_100, 48_000])
 @pytest.mark.parametrize(('seconds', 'frame_offset', 'accepted'), [
-    (60, -1, False), (60, 0, True), (80, -1, True), (80, 0, True), (80, 1, False),
+    (56, -1, False), (56, 0, True), (60, -1, True), (60, 0, True), (60, 1, False),
 ])
 def test_duration_frame_boundaries_are_exact_for_supported_rates(
     sample_rate, seconds, frame_offset, accepted,
@@ -194,13 +193,13 @@ def test_duration_frame_boundaries_are_exact_for_supported_rates(
     if accepted:
         _validate_duration_frames(frame_count, sample_rate)
     else:
-        expected = 'audio_duration_below_minimum' if seconds == 60 else 'audio_duration_above_maximum'
+        expected = 'audio_duration_below_minimum' if seconds == 56 else 'audio_duration_above_maximum'
         with pytest.raises(ValueError, match=expected):
             _validate_duration_frames(frame_count, sample_rate)
 
 
 def test_exact_chunk_count_boundaries_and_non_overlap(tmp_path):
-    path = write_audio(tmp_path / 'sixty.wav', 60)
+    path = write_audio(tmp_path / 'minimum.wav', 56)
     model, observed = audio_reading_model()
     result = AudioEmbeddingGenerator(model).generate(path)
 
@@ -266,7 +265,7 @@ def test_invalid_source_files_fail_before_model_inference(tmp_path, kind):
 
 def test_first_56_seconds_only_and_same_input_are_reproducible(tmp_path):
     first = write_audio(tmp_path / 'first.wav', 60, tail_value=20_000)
-    second = write_audio(tmp_path / 'second.wav', 80, tail_value=-20_000)
+    second = write_audio(tmp_path / 'second.wav', 60, tail_value=-20_000)
     model1, _ = audio_reading_model()
     model2, _ = audio_reading_model()
     first_result = AudioEmbeddingGenerator(model1).generate(first)

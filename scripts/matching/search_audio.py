@@ -53,16 +53,16 @@ def load_candidates(manifest_path, query_path):
 
 def _audio_error_detail(error):
     if error.reason in ('audio_duration_below_minimum', 'audio_duration_above_maximum'):
-        return f'{error.reason} (decoded duration must be 60-80 seconds inclusive)'
+        return f'{error.reason} (decoded duration must be 56-60 seconds inclusive)'
     return error.reason
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--audio', type=Path, required=True,
-                        help='query audio; decoded duration must be 60-80 seconds inclusive')
+                        help='query audio; decoded duration must be 56-60 seconds inclusive')
     parser.add_argument('--manifest', type=Path, required=True,
-                        help='JSON tracks with integer track_id and audio_path; every candidate must decode to 60-80 seconds inclusive; relative paths use current directory')
+                        help='JSON tracks with integer track_id and audio_path; every candidate must decode to 56-60 seconds inclusive; relative paths use current directory')
     parser.add_argument('--output', type=Path, required=True, help='New JSON file, never overwritten')
     parser.add_argument('--top-k', type=int, default=5)
     args = parser.parse_args()
