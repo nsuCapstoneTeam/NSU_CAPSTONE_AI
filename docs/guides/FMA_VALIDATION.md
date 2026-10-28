@@ -1,6 +1,9 @@
 # FMA Historical PoC 안내
 
-FMA는 과거 모델·언어·점수 변환 탐색에 사용한 Historical PoC입니다.
+FMA는 과거 모델·언어·점수 변환 탐색에 사용한 Historical PoC입니다. 특히 FMA16의
+한국어/영어 입력 비교는 입력 언어 정책의 소규모 예비 실험(Historical Pilot)이며,
+대규모 후속 검증은 [AudioCaps Multilingual paired retrieval 실험](../experiments/text-input-method-result.md)에
+별도로 기록했습니다.
 2026-10-09 Cleanup에서 원본 30초 Audio·ZIP·metadata·manifest·상세 CSV/JSON·Embedding·청취 UI·로컬 평가 도구를 삭제했습니다.
 완전 재현은 지원하지 않으며 핵심 방법·조건·수치·한계와 ADR의 판단 근거만 보존합니다.
 
@@ -9,8 +12,9 @@ FMA 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거
 ## 보존한 실험 근거
 
 - [FMA 표본·모델·전처리 조건](../experiments/fma-phase2/README.md#목적과-조건)
-- [한국어/영어 검색 결과](../experiments/fma-phase2/README.md#수정본-검색-결과)
-- [청취 평가와 영어 입력 결정](../experiments/fma-phase2/README.md#사용자-청취-평가)
+- [Historical FMA Pilot 한국어/영어 검색 결과](../experiments/fma-phase2/README.md#수정본-검색-결과)
+- [Historical FMA Pilot 청취 평가](../experiments/fma-phase2/README.md#사용자-청취-평가)
+- [대규모 AudioCaps 한국어/영어 비교](../experiments/text-input-method-result.md)
 - [96개 점수 변환 탐색](../experiments/audio-search-phase2/README.md#음악텍스트-기준-탐색)
 - [276쌍 분포·포화 진단](../experiments/audio-search-phase2/README.md#새-음악-표본-및-쌍별-측정)
 - [24개 Audio 청취 평가](../experiments/audio-search-phase2/README.md#청취-평가)

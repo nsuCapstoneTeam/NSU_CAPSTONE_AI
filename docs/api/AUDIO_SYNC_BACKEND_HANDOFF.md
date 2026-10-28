@@ -102,7 +102,7 @@ ID 집합과 revision 집합을 각각 비교하면 잘못된 쌍이 포함될 �
 
 기존 CLI Top5는 Audio 연동 확인용이다. Accepted 012에 따라 Spring은 통과한 모든 ACTIVE 후보 쌍을 AI에 전달하고, AI는 raw cosine 순위로 최대 100곡을 반환한다. 입력 후보 최대치는 NSUAI-15에서 성능·메모리·동시성 실측 후 결정하며 결과 반환 상한 100곡과 구분한다. Spring은 응답 순서를 재정렬하지 않는다.
 AI의 raw cosine 순위는 AI 측에서 검증한다. Spring은 rank/order 연속성, 중복, 후보 범위, 결과 개수, 0~100 점수 유효성 및 표시 점수의 단조성을 확인하며 raw cosine은 Spring 계약에 포함하지 않는다.
-AI 결과의 music_id·audioRevision·rank·resultVersion 및 상세 정보는 계약 구현 시 확정할 field/schema다. 외부 `resultVersion`은 하나이며 AI 내부 model/checkpoint, Embedding generation/preprocessing, transformation/calibration, 상세 분석 및 요청 해석의 세부 버전과 구분한다.
+AI 결과의 music_id·audioRevision·rank·resultVersion 및 상세 정보는 계약 구현 시 확정할 field/schema다. 외부 `resultVersion`은 하나이며 AI 내부 model/checkpoint, Embedding generation/preprocessing, transformation/calibration 및 상세 분석 정보와 구분한다. 검색 입력 의미와 predefined mapping은 Spring 책임이며 정확한 DTO와 mapping version 처리는 후속 계약에서 정한다.
 005의 retrieval 50~100/Backend Top10, 009의 의미/BPM/Rhythm 평균 음악 순위, 008의 별도 AI Explanation API 호출은 Accepted 012의 범위로 대체됐다. BPM/Rhythm 측정과 요청 비교는 순위에 반영하지 않는 상세 정보다.
 점수는 후보 독립 고정 0~100 음악 유사도이며 확률·적합 가능성이 아니다. 구체 변환/calibration은 NSUAI-12에서 정한다. 장애/timeout은 Accepted 010을 따른다.
 **Reliability는 최종 추천 순위에 반영하지 않는다.** Risk Signal과 함께 별도 결과 정보로 표시한다.
@@ -119,7 +119,7 @@ AI 결과의 music_id·audioRevision·rank·resultVersion 및 상세 정보는 �
 | --- | --- |
 | PUT /internal/v1/audio-embeddings/{music_id} | 파일·source_version·source_sha256 전달, revision별 생성·저장 |
 | GET /internal/v1/audio-embeddings/{music_id}?source_version=2 | 특정 revision 처리 상태 확인 |
-| POST /internal/v1/audio-search | 요청 원문과 모든 ACTIVE 후보 쌍 전달, raw cosine 정렬한 최대 100곡 및 구조화된 상세 정보 반환; 입력 최대치·세부 DTO 미정 |
+| POST /internal/v1/audio-search | Spring이 구성한 canonical English input과 모든 ACTIVE 후보 쌍 전달, raw cosine 정렬한 최대 100곡 및 구조화된 상세 정보 반환; 입력 최대치·세부 DTO 미정 |
 | DELETE /internal/v1/audio-embeddings/{music_id}?source_version=3 | 음악 자체 삭제와 삭제 기록 유지 |
 | 활성 전환 확인·이전 revision 정리 | 신규 계약 필요. 위 음악 삭제 API를 재사용하지 않음 |
 
@@ -140,7 +140,7 @@ AI 결과의 music_id·audioRevision·rank·resultVersion 및 상세 정보는 �
 기존 `0001_audio_embeddings.sql` 체크섬은 유지하고 추가 마이그레이션으로 변경한다.
 기존 CLI 데이터의 초기 revision 부여와 CLI의 검증 우회 방지도 함께 설계한다.
 현재 구현은 음악 ID당 벡터 하나의 최초 저장/동일 결과 재사용이며 위 기능은 미구현이다.
-Text 저장·번역과 업무 HTTP API 구현은 후속 작업이다. BPM/Rhythm은 측정값과 요청 비교 상세 정보로 다루며 0~100 순위 점수가 아니다. Accepted 012에 따라 Spring이 AI의 구조화된 근거와 통과 조건으로 템플릿 추천 이유를 만들며 별도 AI Explanation API는 현행 흐름이 아니다. LLM은 필수가 아니다. 상세 설명 제안은 [설명 계약 문서](RECOMMENDATION_EXPLANATION_CONTRACT.md)를 참조한다.
+Text Embedding 생성·저장 기반(NSUAI-41·42)은 구현됐지만 Spring predefined mapping, canonical input 업무 API 연동은 후속 작업이다. Spring은 UI/요청 값을 검증하고 사전 정의 mapping으로 canonical 의미를 만든다. AI는 전달된 canonical text를 Text Embedding에 사용하며 OPUS-MT/M2M100/Qwen/LLM으로 번역하거나 의미를 재해석하지 않는다. BPM/Rhythm은 측정값과 요청 비교 상세 정보로 다루며 0~100 순위 점수가 아니다. Spring의 추천 이유 템플릿과 미래 LLM 가능성은 별도 범위이며 [설명 계약 문서](RECOMMENDATION_EXPLANATION_CONTRACT.md)를 참조한다.
 
 2026-10-04 Linear NSUAI-25·26·27, NSU-63과 연결 GitHub AI #18·19·20, Backend #68에 이 기준을 반영했다.
 기존 단일 벡터 교체안은 더 이상 현재 구현 목표로 사용하지 않는다.

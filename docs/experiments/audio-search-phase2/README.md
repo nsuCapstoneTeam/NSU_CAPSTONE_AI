@@ -13,7 +13,7 @@ FMA 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거
 - 당시 모델 기본 단일 7초 crop/pad, resample=True. 현재 첫 56초·8-Chunk 집계와 다른 조건입니다.
 - Audio↔Text는 공식 test split/표본 seed 42 및 추론 `42 + track_id`, Audio↔Audio는 공식 validation split/표본 seed 43 및 추론 `43 + track_id`입니다.
 - 순위는 정규화 내적의 raw cosine으로 계산합니다. MSCLAP 배율 출력·softmax·확률과 구분합니다.
-- 언어 비교·16/80곡 선정과 영어 입력 결정은 [FMA 실험](../fma-phase2/README.md)에 보존합니다.
+- 언어 비교의 초기 소규모 Pilot·16/80곡 선정은 [FMA 실험](../fma-phase2/README.md)에 보존합니다. 후속 대규모 paired 언어 비교는 [실험 요약](../text-input-method-result.md)을 참고하세요.
 
 ## 음악↔텍스트 기준 탐색
 

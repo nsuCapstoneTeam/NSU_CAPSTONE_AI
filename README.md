@@ -1,6 +1,6 @@
 # NSU_CAPSTONE_AI
 
-> 2026-10-07의 전체 결과 반환 흐름은 당시 제안 이력입니다. 현재 추천 정책은 [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)에 따릅니다. Spring은 전체 통과 ACTIVE 후보 쌍을 전달하고 AI는 최대 100곡을 반환합니다. 입력 후보 상한은 NSUAI-15 실측 후 결정합니다. 상세 기준은 [현재 AI 작업 기준](docs/api/CLAP_RECOMMENDATION_DIRECTION.md)을 참고하세요.
+> 결정된 입력 방향은 Spring이 사용자 선택값을 predefined mapping으로 canonical English input으로 만들고 AI에 전달하는 것입니다. AI 업무 API는 아직 구현되지 않았습니다. 자세한 구현 상태는 [현재 AI 작업 기준](docs/api/CLAP_RECOMMENDATION_DIRECTION.md)을 참고하세요.
 
 
 아티스트–행사 매칭 플랫폼의 Python AI 서버입니다. Microsoft MSCLAP 기반 음악·텍스트와
@@ -106,6 +106,8 @@ Phase A manifest는 검색 후보 manifest와 형식이 다르므로 직접 전�
 
 ## 실험 결과와 결정 근거
 
+### FMA16 — 소규모 예비 실험 (Historical Pilot)
+
 2026-10-02 KST, MSCLAP 2023 / CPU / seed 42 / FMA 공식 test split 기준입니다.
 Python 3.11, msclap 1.3.3, torch·torchaudio 2.1.2+cpu, transformers 4.35.2를 사용했습니다.
 
@@ -129,7 +131,8 @@ Python 3.11, msclap 1.3.3, torch·torchaudio 2.1.2+cpu, transformers 4.35.2를 �
 
 한국어 16개 설명은 모두 동일한 세 곡을 상위 후보로 골랐습니다.
 영어의 1위 후보는 14/16개 설명에서 잘 맞음으로 평가됐습니다.
-이 초기 결과를 근거로 영어 모델 입력을 선택했습니다.
+당시 이 소규모 Pilot은 영어 모델 입력을 선택한 초기 근거였습니다. 후속 대규모 AudioCaps
+paired 실험은 별도 데이터와 목적의 추가 근거이며, 아래에 따로 정리합니다.
 
 **원곡 검색 지표와 실제 적합성 판단은 다릅니다.** 다른 곡도 설명에 맞을 수 있습니다.
 단일 평가자·작은 표본이고 한국어 청취 평가는 대부분 미작성입니다.
@@ -138,6 +141,28 @@ Python 3.11, msclap 1.3.3, torch·torchaudio 2.1.2+cpu, transformers 4.35.2를 �
 
 - [Historical 실험 조건·검색 결과·청취 평가](docs/experiments/fma-phase2/README.md)
 - [입력 언어 정책 ADR](docs/adr/ADR-0004-korean-input-english-msclap.md)
+
+### 대규모 한국어/영어 입력 비교
+
+AudioCaps Multilingual test split에서 같은 오디오를 대상으로 영어 원문과 한국어
+`kor_Hang_AYA` 번역 caption을 비교했습니다. 최종 924개 오디오·3,033개 paired query에서
+현재 MSCLAP 2023 구성은 영어 caption의 target retrieval이 현저히 높았습니다.
+
+| 지표 | 영어 | 한국어 AYA |
+| --- | ---: | ---: |
+| Recall@1 | 11.34% | 0.13% |
+| Recall@5 | 38.28% | 0.46% |
+| Recall@10 | 55.52% | 1.09% |
+| MRR | 0.2439 | 0.0081 |
+| Median Rank | 8 | 444 |
+| 한국어 77-token 초과 | — | 1,734/4,785 (36.2%) |
+
+이는 현재 MSCLAP 2023 구성에서 영어 입력 경로를 검토·유지할 강한 실험적 근거입니다. 서비스 입력은
+[ADR-0009](docs/adr/ADR-0009-spring-canonical-search-input-mapping.md)에 따라 Spring predefined mapping을 사용하며 이 실험은 mapping 자체를 평가하지 않았습니다.
+한국어는 AYA 생성 번역이고 AudioCaps는 일반 audio caption retrieval 데이터이므로,
+언어 자체의 영향과 번역 품질을 분리하지 못하며 행사→음악 추천이나 production 품질을
+직접 검증하지 않습니다. 상세 조건·paired 통계·제외 기준은 [검색 입력 처리 실험 요약](docs/experiments/text-input-method-result.md)을
+참고하세요.
 
 ## 설치·서버 실행
 

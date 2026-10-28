@@ -49,15 +49,16 @@ Spring Eligibility
 
 ## 현재 구현과 남은 계약
 
-현재 공통 AudioEmbeddingGenerator는 ADR-0007의 60~80초 validation과 처음 56초의 고정 8 Chunk 집계를 적용한다. 파일/DB 검색 CLI, 임시 표시 점수, Health API도 구현되어 있다.
+현재 AI 공통 AudioEmbeddingGenerator는 ADR-0007에 기록한 저장소 범위의 56~60초 validation과 처음 56초의 고정 8 Chunk 집계를 적용한다. 이는 Spring 업로드/API validation 계약까지 갱신되었음을 뜻하지 않는다. 파일/DB 검색 CLI, 임시 표시 점수, Health API도 구현되어 있다.
 전체 통과 ACTIVE 후보 쌍 입력을 받는 HTTP 흐름, 최대 100곡 반환, 화면·매칭 버튼은 아직 구현 전이다. 전체 후보 입력은 전체 결과 반환을 뜻하지 않는다.
 현재 CLI Top5·DB `top_k` 상한·과거 측정값은 로컬 검증 범위이며 새 서비스 목표의 반환 정책으로 취급하지 않는다.
 
-요청의 음악/Text 표현, endpoint·DTO, 측정으로 정할 입력 최대치·자원 한도·동시성·timeout, 누락/실패 표현, version field의 세부 schema, 설명 대상은 별도 인터페이스 설계·검증이 남아 있다.
-외부 결과는 단일 `resultVersion`으로 식별하고 AI 내부에서는 model/checkpoint, Embedding generation/preprocessing, transformation/calibration, 상세 분석, 요청 해석 버전을 분리 추적한다. 이는 설계 합의이며 구체 내부 metadata 구현 완료를 뜻하지 않는다.
+canonical input의 endpoint·DTO, mapping version 식별, 입력 최대치·자원 한도·동시성·timeout, 누락/실패 표현, 결과 version field의 세부 schema, 설명 대상은 별도 인터페이스 설계·검증이 남아 있다.
+외부 결과는 단일 `resultVersion`으로 식별하고 AI 내부에서는 model/checkpoint, Embedding generation/preprocessing, transformation/calibration 및 상세 분석 버전을 분리 추적한다. Spring mapping version은 별도 계약 항목이며 구체 metadata 구현 완료를 뜻하지 않는다.
 
 ## 변경 이력
 
 - 2026-10-05: AI 측 CLAP 중심 변경 방향을 제안했다. 당시 반환 개수·팀 합의는 미정이었다.
 - 2026-10-10: Linear 서버 협의 012 Accepted에 따라 최대 100곡 결과 반환, raw cosine 순위, Spring의 순서 유지·검증, 요청 원문 해석, Spring 템플릿 설명, 후보 독립 고정 점수, 버전 분리 및 BPM/Rhythm 비순위 상세 범위를 반영했다. 구현 전 상태와 입력 후보 상한의 실측 미결정을 유지한다.
+- 2026-10-28: 후속 검색 입력 결정에 따라 Spring predefined mapping과 canonical English input 방향을 반영했다. AI 업무 API 및 mapping은 구현 전이며, 기존 012의 나머지 책임은 변경하지 않는다.
 - 당시 논거·청취/피드백 제안은 [과거 회의 자료](../협업-가이드/CLAP_RECOMMENDATION_MEETING_PROPOSAL.md)에 보존한다.
