@@ -51,6 +51,27 @@ def test_repository_head_fails_clearly_when_git_lookup_fails(monkeypatch):
         experiment.resolve_repository_head()
 
 
+@pytest.mark.parametrize(
+    "checkpoint_path",
+    [
+        Path("/cache/models--microsoft--msclap/snapshots/revision/CLAP_weights_2023.pth"),
+        Path("/cache/models--microsoft--msclap/blobs/checkpoint-hash"),
+    ],
+)
+def test_model_evidence_uses_pinned_revision_not_resolved_checkpoint_path(checkpoint_path, monkeypatch):
+    monkeypatch.setattr(experiment, "_version", lambda _name: "1.3.3")
+    generator = SimpleNamespace(
+        _checkpoint_path=checkpoint_path,
+        _checkpoint_sha256="a" * 64,
+        _msclap_implementation_identity={"source_sha256": "b" * 64},
+        _text_encoder_identity={"revision": "c" * 40},
+    )
+
+    evidence = experiment._model_evidence(generator)
+
+    assert evidence["checkpoint_revision"] == experiment.CALIBRATION_CHECKPOINT_REVISION
+
+
 class FakeTokenizer:
     def encode_plus(self, *, text, **_kwargs):
         count = 80 if "OVERFLOW" in text else len(text.split()) + 1

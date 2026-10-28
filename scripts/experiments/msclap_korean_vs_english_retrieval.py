@@ -28,6 +28,8 @@ from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from app.embedding.text_embedding import CALIBRATION_CHECKPOINT_REVISION
+
 
 DATASET_ID = "piyushsinghpasi/audiocaps-multilingual"
 DATASET_REVISION = "6d74f0a52927fb4c776fb344de0b01db851b07d9"
@@ -423,6 +425,17 @@ def _version(name: str) -> str:
     return importlib.metadata.version(name)
 
 
+def _model_evidence(generator: Any) -> dict[str, Any]:
+    return {
+        "name": "MSCLAP", "version": "2023", "package": _version("msclap"),
+        "checkpoint_revision": CALIBRATION_CHECKPOINT_REVISION,
+        "checkpoint_sha256": generator._checkpoint_sha256,
+        "implementation_identity": generator._msclap_implementation_identity,
+        "text_encoder_identity": generator._text_encoder_identity,
+        "dimension": 1024,
+    }
+
+
 def run_embeddings(cohort_path: Path, audio_root: Path, output_dir: Path) -> dict[str, Any]:
     import torch
 
@@ -619,14 +632,7 @@ def run_embeddings(cohort_path: Path, audio_root: Path, output_dir: Path) -> dic
         "cohort_sha256": cohort_sha,
         "dataset": cohort["dataset"],
         "cohort_counts": cohort["counts"],
-        "model": {
-            "name": "MSCLAP", "version": "2023", "package": _version("msclap"),
-            "checkpoint_revision": generator._checkpoint_path.parts[generator._checkpoint_path.parts.index("snapshots") + 1],
-            "checkpoint_sha256": generator._checkpoint_sha256,
-            "implementation_identity": generator._msclap_implementation_identity,
-            "text_encoder_identity": generator._text_encoder_identity,
-            "dimension": 1024,
-        },
+        "model": _model_evidence(generator),
         "runtime": {
             "python": platform.python_version(), "os": platform.platform(), "cpu": platform.processor(),
             "torch_threads": torch.get_num_threads(), "torch": _version("torch"), "torchaudio": _version("torchaudio"),
