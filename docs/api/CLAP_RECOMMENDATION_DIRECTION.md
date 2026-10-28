@@ -8,7 +8,7 @@
 012는 raw cosine 순위와 후보 독립 고정 0~100 음악 유사도 변환을 정하고, AI가 최대 100곡을 반환한다. Spring은 AI가 정한 순서를 재정렬하지 않고 구조적 응답 조건을 확인한다. 012의 합의 상태와 미구현된 서비스 흐름은 구분한다.
 012가 005의 retrieval 50~100/Backend Top10, 008의 별도 AI Explanation API 호출, 009의 의미/BPM/Rhythm 평균 순위 범위를 대체했다. 006 신규 아티스트 전용 retrieval 제안은 철회됐다. 010은 유지되고, 011은 012 §4.3에 의해 기존 Superseded 상태를 유지한다. 013은 Proposed 상태의 별도 MP3/M4A 검증 협의이며 이번 문서의 기준으로 섞지 않는다.
 
-2026-10-18 calibration cohort 분석에서 raw cosine과 사람 평가 평균의 중간 정도 양의 관계(Pearson 0.502, Spearman 0.524)와 rank 기반 상대적 분별력이 관찰됐다. 이는 정확도나 사람 판단과의 일치율이 아니며, 높은 cosine 구간의 사람 평가가 단조 증가하지 않아 최종 display calibration은 미확정이다. 현재 비교용 후보 `clamp(100 * cosine / 0.4, 0, 100)`는 provisional일 뿐 최종 수식으로 선정되지 않았다. 자세한 수치와 한계는 [ADR-0008](../adr/ADR-0008-music-similarity-transformation-and-ranking.md) 및 [calibration 분석 evidence](../experiments/audio-similarity-calibration/artifacts/listening-evaluation-analysis.json)를 참조한다. 이번 calibration 자료와 독립 validation 자료는 구분하며, 독립 validation은 수행하지 않았다.
+2026-10-18 calibration cohort 분석에서 raw cosine과 사람 평가 평균의 중간 정도 양의 관계(Pearson 0.502, Spearman 0.524)와 rank 기반 상대적 분별력이 관찰됐다. 이는 정확도나 사람 판단과의 일치율이 아니며, 높은 cosine 구간의 사람 평가가 단조 증가하지 않아 최종 display calibration은 미확정이다. 현재 비교용 후보 `clamp(100 * cosine / 0.4, 0, 100)`는 provisional일 뿐 최종 수식으로 선정되지 않았다. 자세한 수치와 한계는 [ADR-0008](../adr/ADR-0008-music-similarity-transformation-and-ranking.md) 및 [calibration 실험 요약](../experiments/audio-similarity-calibration/README.md)을 참조한다. 이번 calibration 자료와 독립 validation 자료는 구분하며, 독립 validation은 수행하지 않았다.
 
 ## 현행 처리 흐름
 

@@ -74,6 +74,8 @@ ACTIVE v1 16개 기준 전체 cosine pair는 50곡 × 16 query = 800개다. quer
 
 가능하면 3명의 evaluator가 독립적으로 평가한다. 한 명만 참여하면 exploratory 한계로 기록한다. 두 명인 경우 불일치 사례를 제3자 없이 임의 다수결 처리하지 않는다. Evaluator ID는 공개 문서에서 pseudonym 처리한다. “가능하면 3명”은 고정 cardinality가 아니므로 실제 evaluator 수와 pair별 배정을 평가 시작 전에 기록하고, 해당 수를 기준으로 rating workload를 계산한다.
 
+Historical execution note: the completed evaluation captured ratings for 96 pairs from three evaluators (288 ratings, no unable-to-judge responses). Per-evaluator rows, assignment/mapping files and joined intermediates were removed after their aggregate results and limitations were recorded in the [calibration README](./README.md). The protocol below describes the intended evidence collection and is not evidence that those individual files remain available.
+
 각 rating row에는 최소 query_id, sample_id, evaluator_id, blinded presentation order, Likert/판단불가 응답, optional note, 평가 시각/환경 식별, 재생 완료 여부, playback artifact SHA-256 및 `[0초, 56초)` 범위를 기록한다. 평가자가 들은 artifact hash가 cosine pair의 sample 및 manifest `prepared_sha256`와 연결되는지 확인한다. Evaluator별 원자료를 덮어쓰거나 합산값만 남기지 않는다. Disagreement는 평가자별 값과 함께 보존하며 평균 하나로 숨기지 않는다. 평가자 간 일치도와 집계방법은 실제 표본을 본 뒤 명시하고, 결과가 없는 상태에서 수치를 미리 정하지 않는다.
 
 ## 저장과 한계

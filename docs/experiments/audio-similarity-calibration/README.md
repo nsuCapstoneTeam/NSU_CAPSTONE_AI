@@ -2,15 +2,15 @@
 
 ## 목적과 상태
 
-이 자료는 NSUAI-36 “Calibration 표본 및 청취 평가 프로토콜 준비”를 위한 calibration 계획과 evidence다. calibration 후보 선정은 완료되어 PASS 후보 50곡이 확정됐다(Incompetech 2곡, 새 FMA 전체곡 20곡, Wikimedia Commons 22곡, ccMixter 6곡). 후보 선정 완료는 실제 Audio 취득이나 calibration 실험 완료를 뜻하지 않는다.
+이 자료는 NSUAI-36 calibration cohort와 청취 평가의 계획·실행 evidence다. 후보 선정뿐 아니라 실제 50곡 acquisition/source validation, centered 60초 preparation, MSCLAP Audio Embedding, 16×50 raw cosine, 96쌍 청취 평가와 분석까지 완료했다. 이는 최종 표시 변환 확정이나 독립 validation 완료를 뜻하지 않는다.
 
 Event query는 실제 사용자 데이터가 아니라 대표적인 합성 시나리오 benchmark다. 기존 draft inventory 20개를 모두 보존하며 engineering calibration v1의 ACTIVE는 16개, RESERVE는 2개, REPLACE 후보는 2개다. 16개는 통계적으로 최적이거나 충분하다고 검증된 수가 아니며 coverage와 청취 workload를 고려한 실용적 규모다.
 
 ## 현재 기준
 
 - Accepted 서버 협의 012에 따라 순위는 raw cosine으로 결정한다. Spring은 순서를 다시 정렬하지 않는다.
-- 사용자 표시용 음악 유사도는 후보 독립 고정 변환이지만, 공식·threshold·breakpoint·parameter는 NSUAI-12 실험 전 확정하지 않는다.
-- ADR-0007의 입력 길이 60–80초를 유지한다. 본 계획의 offline segment 준비는 중앙의 정확한 60초를 선택하는 것으로, 사용자 업로드 정책을 바꾸지 않는다.
+- 사용자 표시용 음악 유사도는 후보 독립 고정 변환이다. calibration 분석은 완료했지만 최종 공식·threshold·breakpoint·parameter는 확정하지 않았다. provisional 후보와 독립 validation 상태는 아래에 기록한다.
+- 이 calibration cohort는 당시 기록된 ADR-0007의 60–80초 조건 아래 준비했다. 준비된 중앙 정확히 60초 segment는 현재 AI 저장소의 56~60초 허용 범위에도 들어간다. 이 과거 실험 기록은 사용자 업로드/API 정책이 바뀌었다고 뜻하지 않는다.
 - calibration 후보 선정: 완료, PASS 50곡
 - Audio source acquisition/validation: completed, 50/50.
 - Centered exact 60-second prepared audio: completed, 50/50.
@@ -18,10 +18,15 @@ Event query는 실제 사용자 데이터가 아니라 대표적인 합성 시�
 - Raw cosine: completed, 16 ACTIVE queries x 50 songs = 800 values.
 - Listening evaluation: completed, 96 pairs x 3 evaluators = 288 ratings; unable_to_judge = 0.
 - Calibration analysis: completed; raw cosine vs human mean Pearson = 0.502 and Spearman = 0.524. Rank-group means (top/mid/bottom) = 2.854 / 2.375 / 1.448.
+- Listening evaluation summary: 96 query/song pairs, 3 evaluators, 288 ratings, and 0 unable-to-judge responses. Mean of the 96 pair-level evaluator averages = 2.226/5 (median 2.0). Evaluator-pair agreement was variable (Pearson 0.297–0.515; Spearman 0.259–0.506).
+- Fixed raw-cosine-bin human means were 1.406 (<0.10, n=23), 1.842 (0.10–<0.20, n=19), 2.417 (0.20–<0.30, n=16), 2.979 (0.30–<0.40, n=16), 2.769 (0.40–<0.50, n=13), and 2.667 (≥0.50, n=9; small sample). The upper bins are not monotonic.
+- The temporary linear candidate had Pearson 0.558 and Spearman 0.535 against pair-level human means; these are calibration-cohort correlations, not independent validation.
 - Final 0-100 display-score calibration: not finalized. Provisional candidate only: `clamp(100 * cosine / 0.4, 0, 100)`.
 - Independent validation: not performed; this 50-song cohort and listening evaluation are calibration evidence only.
 
-Candidate selection and calibration status are tracked separately. The 50-song source/prepared cohort, MSCLAP Audio Embedding, 16 x 50 raw cosine, 96-pair listening evaluation (3 evaluators, 288 ratings), and calibration analysis are complete. See [Audio Embedding evidence](./audio-embedding-evidence.json), [raw cosine artifact](./artifacts/calibration-v1-raw-cosine.json), and [listening analysis](./artifacts/listening-evaluation-analysis.json). Final display-score calibration is not finalized; independent validation has not been performed.
+The completed listening evaluation was summarized here before removing evaluator-level CSVs, assignment/blinding files, the browser review page, derived intermediate reports, and 40 generated blinded playback WAVs plus their ZIP. Individual ratings and evaluator identifiers are no longer retained in the repository. The evaluation used 5-point Likert ratings; the 96 pairs were stratified from ranks 1/2, 25/26, and 49/50 over 16 ACTIVE queries and 50 candidate songs. The result is ordinal calibration evidence and does not establish recommendation accuracy or a final display-score mapping.
+
+Candidate selection and calibration status are tracked separately. The 50-song source/prepared cohort, MSCLAP Audio Embedding, 16 x 50 raw cosine, 96-pair listening evaluation (3 evaluators, 288 ratings), and calibration analysis are complete. See [Audio Embedding evidence](./audio-embedding-evidence.json), [raw cosine artifact](./artifacts/calibration-v1-raw-cosine.json), and the aggregate listening results above. Final display-score calibration is not finalized; independent validation has not been performed.
 
 현재 PASS 50곡은 calibration cohort다. 이 cohort의 raw cosine 분포와 청취평가는 transformation 선정 자료이며 독립 validation 자료가 아니다. 최종 transformation 선택 후 별도로 구성한 독립 validation cohort에서 검증한다. 현재 50곡을 validation holdout으로 간주하지 않으며, 별도 validation cohort의 크기와 구성은 아직 정하지 않았다.
 
@@ -43,12 +48,12 @@ Event query 자료는 다음 세 단계를 실험용으로 분리한다. 아래 
 2. `structured_interpretation`: calibration-only 의미 주석이며 production AI 결과나 Spring API 계약이 아니다. 속성은 mood, tempo, desired_genre, instrument_preference, vocal_preference, acoustic_electronic, dynamic_progression, usage_context, rhythmic_character, activity_character다. ACTIVE 16개는 Raw 근거 검수를 완료했고 RESERVE/REPLACE는 미검수 placeholder로 유지한다.
 3. `msclap_model_input`: 사람이 작성한 영어 calibration 입력이다. ACTIVE 16개는 semantic fidelity 검수를 마쳤고, `approved_for_calibration_v1_experiment`로 calibration v1 Text Embedding/cosine 실험 입력으로 승인했다. 이는 모델 성능 검증이나 production query 확정이 아니다. RESERVE/REPLACE 4개는 `draft_not_confirmed_model_input` 및 `not_reviewed`를 유지한다.
 
-현재 자료는 실제 사용자 데이터가 아닌 representative synthetic scenario benchmark다. ACTIVE 16개의 Structured Interpretation Raw 근거 검수, 영어 입력 semantic fidelity 검수 및 calibration v1 실험 입력 승인은 완료했다. 2026-10-16 ACTIVE 16개를 MSCLAP 2023 Text Encoder로 batch 생성했고, 결과와 실행 identity는 [Text Embedding evidence](./text-embedding-evidence.json)에 기록했다. 출력은 `[16, 1024]`, `float32`, CPU였으며 Text Encoder 출력에 L2 normalization을 적용하지 않았다. 같은 16-query batch의 반복 출력은 정확히 같았지만, batch와 single 입력은 bitwise 동일하지 않았다(상세 차이는 evidence 참조). 임의 허용 오차는 정하지 않았으므로 이후 cosine 실행은 이 evidence의 batch artifact를 입력으로 사용해야 한다. 이 canonical Text Embedding artifact는 61,228 bytes의 작은 calibration 산출물이므로 `docs/experiments/audio-similarity-calibration/artifacts/calibration-v1-text-embeddings.npz`에 Git으로 보존한다. cosine 실행 전 evidence SHA-256, query ID 순서, `[16, 1024]` shape, `float32`, finite 여부 및 execution identity가 일치하는지 확인하고 하나라도 어긋나면 중단한다. Audio Embedding/acquisition, cosine 계산, 검색 성능 검증, 청취 평가와 transformation 선정은 미수행이며, 입력은 production query로 확정되지 않았다.
+현재 자료는 실제 사용자 데이터가 아닌 representative synthetic scenario benchmark다. ACTIVE 16개의 Structured Interpretation Raw 근거 검수, 영어 입력 semantic fidelity 검수 및 calibration v1 실험 입력 승인은 완료했다. 2026-10-16 ACTIVE 16개를 MSCLAP 2023 Text Encoder로 batch 생성했고, 결과와 실행 identity는 [Text Embedding evidence](./text-embedding-evidence.json)에 기록했다. 출력은 `[16, 1024]`, `float32`, CPU였으며 Text Encoder 출력에 L2 normalization을 적용하지 않았다. 같은 16-query batch의 반복 출력은 정확히 같았지만, batch와 single 입력은 bitwise 동일하지 않았다(상세 차이는 evidence 참조). 임의 허용 오차는 정하지 않았으므로 기존 cosine 실행은 이 evidence의 batch artifact를 입력으로 사용했다. 이 canonical Text Embedding artifact는 61,228 bytes의 작은 calibration 산출물이므로 `docs/experiments/audio-similarity-calibration/artifacts/calibration-v1-text-embeddings.npz`에 Git으로 보존한다. cosine 실행 전 evidence SHA-256, query ID 순서, `[16, 1024]` shape, `float32`, finite 여부 및 execution identity를 대조한다. Audio Embedding/acquisition, raw cosine, 청취 평가와 calibration analysis는 완료했다. 이 benchmark 입력은 production query로 확정되지 않았고, production 검색 성능 검증은 수행하지 않았다.
 
 같은 Text Embedding 검증 경로는 저장소 루트에서 Python 3.11 및 프로젝트의 MSCLAP CPU 의존성이 설치된 환경에서 실행한다. 기본 출력 경로는 canonical NPZ/evidence를 가리키며, 기존 canonical 결과가 이미 있으므로 보호를 위해 거부된다. 일반 검증 또는 재실행에서는 아래 예제처럼 `--embedding-output`과 `--evidence-output`에 임시/non-canonical 경로를 지정한다. `--overwrite`는 canonical 결과를 의도적으로 다시 게시할 때만 사용한다. 실행 전 통합 calibration validator를 수행하고, dirty worktree에서는 모델 추론을 시작하지 않는다. 동일한 16-query batch의 반복 출력은 bitwise identical이어야 성공하며, 불일치하면 canonical artifact/evidence를 확정하지 않고 실패한다. batch와 single 입력의 차이는 별도 진단으로만 기록하며 허용 오차는 정하지 않았다.
 
 
-Text Embedding evidence는 임시 harness가 아니라 저장소의 canonical runner에서 clean worktree로 생성했다. 실행 commit은 `61790c4821aff6a4a6e6084f7c9f3457ee2a0320`이며, GPT-2 tokenizer snapshot `607a30d783dfa663caf39e06633721c8d4cfcd7e`, 실제 snapshot 파일 SHA-256, runtime tokenizer serialization hash, MSCLAP source/config hash와 checkpoint hash를 evidence에 기록했다. Audio Embedding, cosine, ranking 및 production validation은 미수행이다. 이 SHA는 실제 runner를 실행한 execution/implementation commit이며, 최신 실행 결과를 기록한 evidence/document commit 2f46a94b137898a3b8a318234b0e5fa5d03bc58e과 구분한다.
+Text Embedding evidence는 임시 harness가 아니라 저장소의 canonical runner에서 clean worktree로 생성했다. 실행 commit은 `61790c4821aff6a4a6e6084f7c9f3457ee2a0320`이며, GPT-2 tokenizer snapshot `607a30d783dfa663caf39e06633721c8d4cfcd7e`, 실제 snapshot 파일 SHA-256, runtime tokenizer serialization hash, MSCLAP source/config hash와 checkpoint hash를 evidence에 기록했다. 이어서 Audio Embedding과 cosine을 생성하고 listening calibration analysis를 완료했다. production ranking 성능 검증은 수행하지 않았다. 이 SHA는 실제 runner를 실행한 execution/implementation commit이며, 최신 실행 결과를 기록한 evidence/document commit 2f46a94b137898a3b8a318234b0e5fa5d03bc58e과 구분한다.
 
 ### Text Encoder 자원 준비와 결과 보호
 
