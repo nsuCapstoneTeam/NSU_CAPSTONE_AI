@@ -25,19 +25,15 @@
 
 Commit message는 다음 형식을 사용한다.
 
-```text
 종류(선택적 범위): 한국어 설명
-```
 
 예:
 
-```text
 feat(embedding): Audio Highlight 입력 검증 구현
 fix(search): 검색 결과 validation 오류 수정
 docs: Audio Embedding 정책 정합화
 test: Calibration fixture 독립성 보강
 chore: 테스트 실행 환경 정리
-```
 
 ---
 
@@ -55,9 +51,11 @@ chore: 테스트 실행 환경 정리
 - AI preprocessing
 - AI-side validation
 
+서비스 핵심 알고리즘을 `scripts/`에 중복 구현하지 않는다.
+
 ## `scripts/`
 
-개발·검증용 CLI를 둔다.
+개발·검증용 CLI와 개발 자동화 스크립트를 둔다.
 
 주요 역할:
 
@@ -66,8 +64,7 @@ chore: 테스트 실행 환경 정리
 - `app/` 기능 호출
 - 결과/report 출력
 - exit code 처리
-
-서비스 핵심 알고리즘을 `scripts/`에 중복 구현하지 않는다.
+- 개발 workflow 자동화
 
 ## `tests/`
 
@@ -84,7 +81,7 @@ chore: 테스트 실행 환경 정리
 - 검증 evidence
 - 개발 Roadmap
 
-AI 개발 순서와 현재 단계는 다음을 우선 참고한다.
+AI 개발 순서와 현재 단계는 다음 문서를 우선 참고한다.
 
 `docs/AI_DEVELOPMENT_ROADMAP.md`
 
@@ -164,13 +161,11 @@ Linear와 `NSU_CAPSTONE`은 기본적으로 READ-ONLY reference다.
 
 현재 검색 입력 흐름은 다음을 따른다.
 
-```text
 Spring predefined mapping
 → canonical English input
 → AI validation
 → MSCLAP Text Embedding
 → similarity / search / ranking
-```
 
 현재 검색 입력에서 AI는 다음을 수행하지 않는다.
 
@@ -340,9 +335,7 @@ Main Agent는 새 작업을 받으면 구현 전에 최소 다음을 확인한�
 
 실제 구현 전에 Main Agent는 반드시 다음 제목으로 계획을 작성한다.
 
-```text
 변경안 및 작업 예정 내용
-```
 
 최소 포함:
 
@@ -368,15 +361,11 @@ Main Agent는 새 작업을 받으면 구현 전에 최소 다음을 확인한�
 
 기본 Main worktree:
 
-```text
 D:\WorkSpace\NSU_CAPSTONE_AI
-```
 
-branch:
+기본 branch:
 
-```text
 main
-```
 
 Main은 다음 역할만 담당한다.
 
@@ -397,37 +386,56 @@ Main은 `main`에서 기능 구현 코드를 직접 수정하지 않는다.
 
 형식:
 
-```text
 Branch:
 feat/<issue-or-task>-<short-name>
 
 Worktree:
 D:\WorkSpace\NSU_CAPSTONE_AI-<issue-or-task>
-```
 
 예:
 
-```text
+Branch:
 feat/nsuai-27-matching-api
 
+Worktree:
 D:\WorkSpace\NSU_CAPSTONE_AI-nsuai-27
-```
 
 worktree는 최신 `main` 기준으로 생성한다.
-
-예:
-
-```bash
-git fetch origin
-git worktree add ../NSU_CAPSTONE_AI-nsuai-27 \
-  -b feat/nsuai-27-matching-api main
-```
 
 서로 관계없는 작업을 하나의 Worker worktree에 섞지 않는다.
 
 ---
 
-# 14. Worker Agent 역할
+# 14. Worker 자동화 스크립트
+
+새 Worker 환경 생성은 가능한 경우 다음 스크립트를 사용한다.
+
+scripts/dev/start-worker.ps1
+
+사용 예:
+
+.\scripts\dev\start-worker.ps1 `
+  -Issue "nsuai-27" `
+  -Name "matching-api"
+
+`start-worker.ps1`의 역할:
+
+- Main branch 여부 확인
+- Main working tree clean 여부 확인
+- `origin` fetch
+- feature branch 생성
+- Git worktree 생성
+- VS Code Workspace에 Worker folder 추가
+- Worker 전용 local VS Code task 생성
+- Worker Codex terminal 실행 준비
+
+Main Agent가 동일한 작업을 매번 수동으로 반복하지 않는다.
+
+Worker 전용 `.vscode/tasks.json`은 로컬 개발 편의를 위한 임시 파일로 취급하며 feature commit에 포함하지 않는다.
+
+---
+
+# 15. Worker Agent 역할
 
 Worker Agent는 전용 worktree에서만 실제 구현을 수행한다.
 
@@ -453,33 +461,30 @@ Worker는 독자적으로 다음을 수행하지 않는다.
 
 ---
 
-# 15. Worker Local Commit
+# 16. Worker Local Commit
 
 사용자가 구현 계획을 승인한 범위에서는 Worker가 local commit까지 수행할 수 있다.
 
-Commit 전에:
+Commit 전에 다음을 확인한다.
 
 - 이번 작업 관련 파일만 stage
-- staged diff 확인
-- 테스트 결과 확인
-- secret 포함 여부 확인
+- staged diff
+- 테스트 결과
+- secret 포함 여부
+- unrelated file 포함 여부
 
-을 수행한다.
+무분별한 다음 명령 사용을 피한다.
 
-무분별한:
-
-```text
 git add .
 git add -A
-```
 
-사용을 피하고 작업 범위에 맞게 stage한다.
+가능하면 필요한 파일을 명시적으로 stage한다.
 
 push는 수행하지 않는다.
 
 ---
 
-# 16. Worker 완료 보고
+# 17. Worker 완료 보고
 
 Worker는 구현 완료 후 Main에게 최소 다음을 전달한다.
 
@@ -516,24 +521,18 @@ Worker는 구현 완료 후 Main에게 최소 다음을 전달한다.
 
 ---
 
-# 17. Main 독립 리뷰
+# 18. Main 독립 리뷰
 
 Worker가 local commit을 완료하면 Main Agent가 독립 리뷰한다.
 
 기본 비교:
 
-```bash
 git diff main...<feature-branch>
-```
 
-필요하면:
+필요하면 다음도 확인한다.
 
-```bash
 git log main..<feature-branch>
 git show <commit>
-```
-
-를 사용한다.
 
 최소 검토 항목:
 
@@ -553,18 +552,16 @@ Main은 Worker 코드를 직접 수정하지 않는다.
 
 문제가 있으면 Worker에게 review feedback을 전달한다.
 
-```text
 Main Review
 → Worker 수정
 → Worker 테스트/local commit
 → Main 재리뷰
-```
 
 문제가 없어질 때까지 반복한다.
 
 ---
 
-# 18. Human Approval Gate
+# 19. Human Approval Gate
 
 Main 리뷰가 완료되면 사용자에게 다음을 보고한다.
 
@@ -583,22 +580,18 @@ Main 리뷰가 완료되면 사용자에게 다음을 보고한다.
 
 ---
 
-# 19. Push / PR
+# 20. Push / PR
 
 사용자 승인 후 feature branch를 push한다.
 
 예:
 
-```bash
 git push -u origin feat/nsuai-27-matching-api
-```
 
-PR:
+PR은 다음 구조를 사용한다.
 
-```text
 base: main
 head: feature branch
-```
 
 PR 본문에는 최소 다음을 포함한다.
 
@@ -614,7 +607,7 @@ PR/CI 리뷰에서 문제가 발견되면 Worker가 수정하고 Main이 다시 
 
 ---
 
-# 20. Merge
+# 21. Merge
 
 Merge는 사용자 승인 후 수행한다.
 
@@ -624,47 +617,47 @@ force push / force merge는 별도 승인 없이는 사용하지 않는다.
 
 ---
 
-# 21. Merge 후 Cleanup
+# 22. Merge 후 Worker 정리
 
-PR merge 후 Main worktree에서:
+PR merge 이후 Worker 정리는 가능한 경우 다음 스크립트를 사용한다.
 
-```bash
-git switch main
-git pull origin main
-git status
-```
+scripts/dev/finish-worker.ps1
 
-를 실행해 다음 상태를 확인한다.
+사용 예:
 
-```text
-main == origin/main
-working tree clean
-```
+.\scripts\dev\finish-worker.ps1 `
+  -Issue "nsuai-27" `
+  -Name "matching-api"
 
-확인 후 완료된 worktree를 제거한다.
+정리 전 다음을 확인한다.
 
-예:
+- Main working tree clean
+- Main 최신화 가능
+- Worker working tree clean
+- 필요한 commit이 모두 보존됨
+- PR merge 완료
 
-```bash
-git worktree remove ../NSU_CAPSTONE_AI-nsuai-27
-git branch -d feat/nsuai-27-matching-api
-git worktree prune
-```
+정리 대상:
 
-필요 없는 stash, 임시 파일, 완료된 작업 branch도 확인 후 정리한다.
+- Worker worktree
+- local feature branch
+- Git worktree metadata
+- Worker 전용 local VS Code 설정
+
+Worker가 dirty 상태이거나 branch가 merge되지 않은 경우 강제 삭제하지 않는다.
+
+PR merge 전에는 Worker worktree를 삭제하지 않는다.
 
 ---
 
-# 22. 여러 Worker
+# 23. 여러 Worker
 
 독립적인 작업은 여러 Worker로 나눌 수 있다.
 
-```text
 Main
 ├─ Worker A
 ├─ Worker B
 └─ Worker C
-```
 
 조건:
 
@@ -676,9 +669,8 @@ Main
 
 ---
 
-# 23. 역할 요약
+# 24. 역할 요약
 
-```text
 Human
 = Approval Gate
 
@@ -694,11 +686,9 @@ Worker Agent
 
 GitHub PR / CI
 = Integration Gate
-```
 
 최종 workflow:
 
-```text
 사용자 요청
 ↓
 Main 조사
@@ -707,7 +697,9 @@ Main 조사
 ↓
 사용자 승인
 ↓
-Main이 Worker branch/worktree 생성
+Main이 start-worker.ps1 실행
+↓
+Worker branch/worktree 생성
 ↓
 Worker 구현/테스트/local commit
 ↓
@@ -729,5 +721,6 @@ Merge
 ↓
 Main 최신화
 ↓
+finish-worker.ps1 실행
+↓
 Worker worktree/branch 정리
-```
