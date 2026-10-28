@@ -39,9 +39,9 @@
   최종 기준 확정이나 사용자용 종합 점수 구현 완료를 뜻하지 않는다.
 - raw cosine ranking·후보 독립 transformation·provisional 점수·calibration 원칙과 생성/변환 버전의 구분은
   [ADR-0008](adr/ADR-0008-music-similarity-transformation-and-ranking.md)을 따른다.
-  구체 calibration과 transformation/calibration 버전 체계의 구현·검증은 후속 작업이다.
+  calibration cohort 분석은 완료했지만 최종 transformation 선정 및 transformation/calibration 버전 체계의 production 구현·검증은 남아 있다.
 - 후보 집합과 독립된 고정 0~100 음악 유사도 변환을 사용한다. raw cosine이 순위를 정하고 표시 점수는 순위를 바꾸지 않는다.
-- 최종 formula·threshold·breakpoint·계수는 NSUAI-12 calibration 실험 후 결정한다.
+- 최종 formula·threshold·breakpoint·계수는 아직 확정하지 않았다. provisional 후보와 완료된 cohort 분석은 [calibration 기록](experiments/audio-similarity-calibration/README.md)을 참고한다. 독립 validation은 수행하지 않았다.
 - 단, 아래 값은 실제 MSCLAP 결과와 평가 evidence를 바탕으로 결정한다.
   - similarity 유효 범위
   - threshold
@@ -51,7 +51,7 @@
 
 ### 현행 흐름과 서버 정책
 
-- Spring Eligibility → 모든 통과 ACTIVE 후보 쌍 전달 → AI raw cosine 정렬, 최대 100곡 반환 → Spring이 순서를 유지하고 응답을 검증 → Spring 템플릿 설명·저장·응답.
+- 서비스 흐름은 행사 등록 후 발급된 `eventId`로 본문 없는 추천 요청을 보내는 방식이다. Spring이 등록자·상태를 확인하고 한 행사 snapshot에서 Eligibility와 AI 입력을 구성한다. 세부 흐름과 내부 DTO 경계는 [현재 AI 작업 기준](api/CLAP_RECOMMENDATION_DIRECTION.md)을 따른다.
 - Spring은 입력 ACTIVE 후보를 임의로 자르지 않는다. 숫자 입력 최대치는 NSUAI-15의 성능·메모리·동시성 실측 후 결정하며, 결과 반환 상한 100곡과 구분한다. 상한 초과 시 503/경보를 사용하며 임의 분할 호출을 하지 않는다.
 - Spring은 rank/order 연속성, 중복, 후보 범위, 결과 개수, 0~100 점수 및 표시 점수 단조성을 확인한다. raw cosine은 Spring 계약에 포함하지 않으므로 raw cosine 순위 검증은 AI 쪽이 담당한다.
 - 외부 결과 의미는 단일 `resultVersion`으로 식별한다. model/checkpoint, generation/preprocessing, transformation/calibration, 상세 분석, 요청 해석 버전은 AI 내부에서 나눠 추적한다.
@@ -149,7 +149,12 @@ NSU_CAPSTONE_AI/
 
 현재 진행: 임시 정규화 함수와 음악 파일 검색 CLI를 구현하고 새 음악 24곡의 쌍별
 유사도·청취 평가를 수행했다. 이는 곡 단위 검증이며 Phase 6 추천용 후보 제공 또는
-Phase 9 HTTP API 완료가 아니다. 한국어→영어 자동 변환 구현은 미정으로 보류한다.
+Phase 9 HTTP API 완료가 아니다. FMA16 한국어/영어 비교는 소규모 예비 실험이며,
+후속 [대규모 AudioCaps paired retrieval 실험](experiments/text-input-method-result.md)은
+현재 MSCLAP 2023에서 영어 caption 입력 우세를 확인했다. AudioCaps는 일반 audio caption
+검색이며 행사→음악 추천 검증은 아니다. 검색 입력 처리 방식은 Spring predefined mapping으로
+결정됐으나 mapping 및 canonical AI 업무 API는 구현 전이다. 자유 자연어 검색은 별도 후속
+협의·ADR로 재검토한다.
 
 관련 Issue:
 - `NSUAI-1` CLAP 기반 음악 의미 유사도 계산
@@ -198,17 +203,17 @@ Cosine Similarity
 
 현재 Audio 공통 생성·테이블·동기 저장·DB 후보 검색 CLI를 구현했습니다.
 Audio 공통 생성기는 승인된 [ADR-0007](adr/ADR-0007-audio-highlight-embedding-strategy.md)의
-60~80초 validation 및 고정 8 chunk 대표 벡터 생성 정책을 적용합니다.
-실제 권리 확인 Phase A 6곡의 MSCLAP 생성 경로 기술 검증과 [전용 PostgreSQL/pgvector 통합 검증](experiments/audio-embedding-postgres-validation/README.md)은 완료했습니다. 검색/음악 품질 평가와 개발 벡터 재생성은 별도 후속 단계입니다.
-음악 입력은 동기로 처리하며 AI에서 연동 계약 초안을 먼저 작성합니다.
+56~60초 inclusive validation 및 고정 8 chunk 대표 벡터 생성 정책을 적용합니다.
+실제 권리 확인 Phase A 6곡의 MSCLAP 생성 경로 기술 검증과 [전용 PostgreSQL/pgvector 통합 검증](experiments/audio-embedding-postgres-validation/README.md)은 완료했습니다. 별도의 50곡 calibration cohort Audio/Text Embedding·raw cosine·청취 분석도 완료했으며 자세한 결과는 [calibration 기록](experiments/audio-similarity-calibration/README.md)에 있습니다.
+음악 입력은 동기로 처리합니다. Spring 업무 API 구현은 Accepted 012/014 정책을 기준으로 후속 진행하며, 내부 DTO의 미정 계약을 이 Roadmap에서 새로 확정하지 않습니다.
 [저장 안내](guides/EMBEDDING_STORAGE.md), [DB 검색 검증](guides/DATABASE_AUDIO_SEARCH.md)을 참고합니다.
-Text 생성·번역, 백엔드 ID/FK·수정/삭제 계약, 오류 기록·자동 재처리는 미완료입니다.
+Text Embedding 생성(NSUAI-41)과 저장/profile 호환성(NSUAI-42)은 구현 완료했습니다. 영어 입력 경로의 근거와 Spring predefined mapping 결정은 확보했지만 mapping 및 AI 업무 API는 구현 전입니다. 과거 Held-out24는 한국어 사용자 입력을 Qwen structured pipeline이 MSCLAP용 영어 의미로 해석한 개발 평가이며 서비스 경로나 한국어/영어 직접 입력 비교가 아닙니다. Spring 업무 API 연결, 백엔드 ID/FK·revision lifecycle과 오류 기록·자동 재처리는 별도 미완료 범위입니다.
 Phase 3 전체 완료를 의미하지 않습니다.
 
 남은 작업:
 - [x] 기존 30초 FMA와 다른 Phase A Dataset의 로컬 MSCLAP 기술 검증용 출처·라이선스 확인(사용자 확인 근거) 및 60초 적격 fixture 준비·길이 검증
 - [ ] 개발 벡터 재생성 대상과 새 입력 매핑 확인: 같은 FMA 원본으로 재생성하지 않음
-- [x] ADR-0007 D1에 따른 decoded sample frame 기준 60~80초 inclusive 길이 validation 구현
+- [x] 최신 Audio 입력 기준에 따른 decoded sample frame 기준 56~60초 inclusive 길이 validation 구현
 - [x] ADR-0007 D2·D3·D4에 따른 처음 56초 사용 및 7초 × 8개 non-overlap Chunk 생성
 - [x] ADR-0007 D6·D7·D8에 따른 Chunk별 L2 → Mean Pooling(N=8) → 최종 L2 및 대표 벡터 1개 생성
 - [x] 저장·검색의 공통 생성 경로와 preprocessing/generation metadata 정합화
@@ -231,12 +236,12 @@ Audio 정책 적용 순서:
 완료: ADR-0007 generator·generation metadata 구현, synthetic Audio 단위 검증, MSCLAP batch smoke validation.
 완료 단계: Phase A Dataset 준비·60초 입력 기술 검증·Phase A 로컬 MSCLAP 기술 검증용 출처·라이선스 확인.
 완료 단계: 2026-10-09 [실제 6곡 MSCLAP 생성 경로 검증](experiments/audio-highlight-msclap-validation/README.md). 같은 process 반복과 별도 process/model reload에서 [8,1024]→[1,1024] 및 exact 재현성 확인.
-완료: 2026-10-09 전용 PostgreSQL/pgvector 통합 검증. 저장 round-trip, cosine 수치 parity(`abs=1e-6`, `rtol=0`), 정확한 ranking parity 및 격리/rollback 결과는 [실험 기록](experiments/audio-embedding-postgres-validation/README.md)을 참고한다. 다음은 재생성 대상·입력 mapping·소유권 확인과 별도 승인이다. 기존 dev/test Embedding은 이번 단계에서 삭제하거나 재생성하지 않았다. 이후 새 generation 저장·검색, similarity 분포·품질 평가, calibration은 각각 후속 검증이다.
+완료: 2026-10-09 전용 PostgreSQL/pgvector 통합 검증. 저장 round-trip, cosine 수치 parity(`abs=1e-6`, `rtol=0`), 정확한 ranking parity 및 격리/rollback 결과는 [실험 기록](experiments/audio-embedding-postgres-validation/README.md)을 참고한다. Text Embedding 생성·저장도 구현했다. 별도의 50곡 calibration cohort similarity·청취 평가 분석은 [실험 기록](experiments/audio-similarity-calibration/README.md)에 완료 상태로 보존했다. 기존 dev/test Embedding은 이번 단계에서 삭제하거나 재생성하지 않았다. 최종 display calibration, 독립 validation, production 검색 품질 평가는 남아 있다.
 기존 30초 FMA의 핵심 조건·결과·한계는 Historical Markdown으로 보존하고 원본·상세 산출물은 삭제하며 임의 반복/padding으로 FMA를 새 fixture로 바꾸지 않는다.
 2026-10-08 [Phase A](experiments/audio-highlight-phase-a/README.md)에서 Kevin MacLeod 음원 6곡의 지정 60초 WAV 생성·기술 검증·반복 재현성을 완료했다. 공식 곡의 CC BY 4.0과 원본 MP3의 공식 Incompetech 직접 다운로드는 각각 confirmed_by_user다. Phase A 종합 verification_status=verified, rights_cleared=true로 로컬 MSCLAP 기술 검증용 출처·라이선스 확인을 완료했다. 공식 서버 파일과 SHA-256 비교는 not_performed이며 모든 향후 서비스/배포 용도의 포괄적인 권리 검토 완료를 뜻하지 않는다. 실제 MSCLAP/DB 평가·벡터 삭제/재생성은 수행하지 않았다.
 Dataset 선행조건은 Roadmap과 [FMA 안내](guides/FMA_VALIDATION.md)·[DB 검증 안내](guides/DATABASE_AUDIO_SEARCH.md)에서 관리하고 ADR-0007은 변경하지 않는다.
 운영 ACTIVE revision 보관·전환 정책과 구분합니다. 생성기는 float64로 norm과 pooling을
-계산하고 정확한 0 및 non-finite만 거부합니다. 실제 모델·Dataset 생성 경로 검증은 위 후속 실험에서 완료했으며, 품질 평가와 DB 통합은 별도로 수행합니다.
+계산하고 정확한 0 및 non-finite만 거부합니다. 실제 모델 생성 경로와 calibration cohort 분석은 각각 해당 실험에서 완료했으며, 운영 검색 품질과 독립 validation은 별도 미수행입니다.
 
 목표:
 - MSCLAP Embedding을 실제 서비스 구조로 연결한다.
@@ -266,10 +271,10 @@ Text Embedding
 
 구현 항목:
 - ADR-0007 기준 공통 Audio Embedding 생성 — 저장·검색에서 재사용
-- Text Embedding 생성
+- Text Embedding 생성 경로 구현 완료 (`NSUAI-41`); Spring predefined mapping과 canonical 입력 업무 API는 후속 구현이며, AI 검색 입력 번역/LLM 해석은 현재 경로에서 사용하지 않음
 - 모델 버전 저장
 - Embedding dimension 관리
-- pgvector 저장
+- Audio/Text pgvector 저장과 Text↔Audio profile 호환성 구현 완료 (`NSUAI-42`)
 - 중복 생성 정책
 - 실패 시 재처리 가능한 오류 정보
 
@@ -279,7 +284,7 @@ Text Embedding
 - 생성된 벡터 저장 가능
 - 저장된 Embedding을 Similarity 계산에 사용 가능
 - ADR-0007의 길이 경계·분석 범위·고정 Chunk·aggregation·재현성을 검증하고 저장·검색에 동일 규칙이 적용됨을 확인
-- 다른 Dataset의 60~80초 입력·대상 매핑, preprocessing/generation metadata 정합화·새 방식 개발 벡터 재생성 완료; 운영 ACTIVE revision 정책과 구분
+- 과거 개발/검증 Dataset 입력·대상 매핑 및 새 방식 벡터 생성은 당시 60~80초 기준으로 완료했다. 현재 56~60초 AI 입력 범위에도 포함되는 정확한 60초 fixture는 그대로 유효하며, 운영 ACTIVE revision 정책과 구분한다. Linear AI-033 / NSU-89의 60~80초 문구는 최신 사용자 결정과 불일치하므로 후속 동기화 대상이다.
 
 ---
 
@@ -317,15 +322,12 @@ Audio
 
 관련 Issue: `NSUAI-12`. `NSUAI-13`은 NSUAI-16에 통합된 Duplicate이며 재활성화하지 않는다.
 
-목표:
-- raw cosine ranking은 변경하지 않고, candidate-independent fixed 0~100 표시 변환 v1을 calibration 실험에서 선정·검증한다.
-- 현재 임시 linear clamp를 최종 변환으로 간주하지 않는다. 구체 공식·threshold·breakpoint·계수는 NSUAI-12 evidence 후 결정한다.
-- FMA Historical 집계는 calibration input으로 재사용하지 않는다. ADR-0007 generation policy로 새로 생성한 Embedding·similarity distribution·evaluation evidence를 쓴다.
+상태: 50곡 cohort, 16×50 raw cosine, 96쌍×3명 청취 평가 및 분석을 완료했다([결과](experiments/audio-similarity-calibration/README.md)). 분석에서 raw cosine과 사람 평균의 Pearson 0.502, Spearman 0.524 및 rank 상/중/하 평균 2.854/2.375/1.448을 관찰했다.
 
-완료 기준:
-- 실험 표본·분포·평가 한계와 calibration/검증 표본 분리를 기록한다.
-- 표시 변환이 ranking order를 바꾸지 않고 동일 cosine의 점수가 후보 집합에 독립적인지 확인한다.
-- 외부 resultVersion과 AI 내부 생성·변환 세부 버전을 구분한다.
+남은 작업:
+- 최종 표시 변환은 미확정이다. `clamp(100 * cosine / 0.4, 0, 100)`는 provisional 후보일 뿐이다.
+- 독립 validation cohort는 아직 수행하지 않았다. calibration 자료를 일반화 성능 검증으로 재사용하지 않는다.
+- 표시 변환의 production 적용과 `resultVersion` 연결은 별도 구현·검증 대상으로 남아 있다.
 
 ---
 
@@ -335,12 +337,16 @@ Audio
 관련 Issue: `NSUAI-15`, `NSUAI-16`. 입력 최대치는 NSUAI-15에서 실측 후 정한다.
 
 ```text
-Spring Eligibility·모든 통과 ACTIVE 후보 쌍 및 Event 원문
-→ AI 후보 호환성 확인·raw cosine 정렬
-→ 최대 100곡·구조화된 상세 정보·요청 해석 결과 반환
+저장 행사 등록 → eventId로 본문 없는 추천 요청
+→ Spring 권한·상태 확인 및 단일 snapshot 고정
+→ 같은 snapshot의 Eligibility, Spring이 생성한 canonical English 검색 입력 + eligible ACTIVE 후보 쌍을 AI에 전달
+→ AI canonical input/후보 호환성 확인·raw cosine 정렬
+→ 최대 100곡·구조화된 상세 정보 반환
 → Spring 순서/구조 검증 후 순위를 유지하고 결과 구성
 → 사용자가 별도 버튼으로 해당 Artist와 매칭
 ```
+
+사용자→Spring endpoint와 행사 입력 규칙은 Spring 소유 계약이다. AI 내부 요청의 구체 DTO는 별도 계약 확정 전까지 미정으로 유지한다([현재 AI 작업 기준](api/CLAP_RECOMMENDATION_DIRECTION.md)).
 
 완료 기준:
 - ACTIVE 후보 쌍을 계산 전에 정확히 제한하고 결과 revision 반환.
@@ -587,9 +593,8 @@ Canceled/Duplicate 이력은 현행 구현 backlog가 아니다: `NSUAI-10`, `NS
 
 # 5. 현재 다음 작업
 
-MSCLAP PoC·Audio/Text 차원·실제 Similarity 측정과 Audio 저장/검색 CLI는 이미 수행한 단계다.
-Phase A 입력 준비, ADR-0007 실제 6곡 MSCLAP 생성 경로 검증 및 전용 PostgreSQL/pgvector 통합 검증을 완료했다. DB 통합 결과는 [실험 기록](experiments/audio-embedding-postgres-validation/README.md)에 있다. 검색 품질·similarity 분포/calibration은 미완료다.
-다음은 재생성 대상·새 입력 mapping·소유권 확인이다. 기존 개발 벡터를 삭제·재생성하는 작업은 별도 승인을 받은 뒤에만 진행한다.
+MSCLAP PoC·Audio/Text 생성 및 저장 경로, Phase A 기술 검증과 전용 PostgreSQL/pgvector 통합 검증을 완료했다. 별도 50곡 calibration cohort의 raw cosine·청취 분석도 완료했으며 결과는 [calibration 기록](experiments/audio-similarity-calibration/README.md)에 있다. 최종 display calibration과 독립 validation, 운영 검색 품질의 일반화는 미완료다.
+다음 서비스 구현은 새 검색 입력 협의와 Accepted 012/014의 유지 범위에 따른 Spring 추천 API 연동(NSU-63)이다. Spring mapping과 canonical input DTO/API는 후속 구현이며, 기존 개발 벡터의 삭제·재생성은 소유권·mapping 확인과 별도 승인 후에만 수행한다.
 
 ## 2026-10-07~10 정합화 이력
 

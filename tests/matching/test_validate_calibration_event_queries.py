@@ -28,11 +28,13 @@ def test_unique_query_ids_pass_cli_with_twenty_queries(tmp_path):
         encoding='utf-8',
     )
 
+    repository_root = Path(__file__).resolve().parents[2]
     result = subprocess.run(
-        [sys.executable, 'scripts/matching/validate_calibration_event_queries.py', str(path)],
+        [sys.executable, '-m', 'scripts.matching.validate_calibration_event_queries', str(path)],
         check=False,
         capture_output=True,
         text=True,
+        cwd=repository_root,
     )
 
     assert result.returncode == 0
@@ -60,11 +62,13 @@ def test_duplicate_query_id_fails_cli_even_with_twenty_queries(tmp_path):
     queries[-1]['query_id'] = queries[0]['query_id']
     path.write_text(json.dumps({'queries': queries}), encoding='utf-8')
 
+    repository_root = Path(__file__).resolve().parents[2]
     result = subprocess.run(
-        [sys.executable, 'scripts/matching/validate_calibration_event_queries.py', str(path)],
+        [sys.executable, '-m', 'scripts.matching.validate_calibration_event_queries', str(path)],
         check=False,
         capture_output=True,
         text=True,
+        cwd=repository_root,
     )
 
     assert result.returncode != 0

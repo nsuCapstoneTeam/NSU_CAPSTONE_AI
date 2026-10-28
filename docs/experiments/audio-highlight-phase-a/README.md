@@ -1,6 +1,6 @@
 # ADR-0007 Phase A Audio Dataset
 
-이번 Dataset은 실제 음악 검증의 입력을 준비하는 로컬 실험 fixture다. 원곡에서 Highlight를 추출하는 기능을 production application에 추가하지 않는다. 서비스는 Artist가 이미 60~80초 Highlight를 제공한다는 전제를 유지한다.
+이번 Dataset은 실제 음악 검증의 입력을 준비하는 로컬 실험 fixture다. 원곡에서 Highlight를 추출하는 기능을 production application에 추가하지 않는다. Artist가 제공하는 Highlight는 현재 56~60초 inclusive 입력 범위를 따른다. 이 Dataset의 정확한 60초 fixture는 최대 경계에 유효하다.
 
 고정 정의는 [manifest.json](manifest.json), 권리 확인 근거는 [ATTRIBUTION.md](ATTRIBUTION.md), 실제 실행 결과는 [inspection-report.md](inspection-report.md)에 기록한다. manifest의 경로는 repository root 기준이다. `track_id`는 fixture 내부 식별자이며 Backend music ID가 아니다.
 
@@ -17,10 +17,10 @@ libsndfile FLOAT WAV writer의 PEAK chunk에는 생성 시각이 들어가 파�
 프로젝트 루트에서 실행한다. 이번 Windows 검증은 아래 기존 가상환경을 사용했다. 환경별 Python 실행 경로는 달라질 수 있다. 새 dependency를 설치하거나 requirements를 변경하지 않았다.
 
 ```powershell
-& ./tmp/review-venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check source --report datasets/audio-highlight-validation/results/source-validation.json
-& ./tmp/review-venv/Scripts/python.exe -B -m scripts.datasets.prepare_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --report datasets/audio-highlight-validation/results/preparation.json
-& ./tmp/review-venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check highlights --report datasets/audio-highlight-validation/results/highlight-validation.json
-& ./tmp/review-venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check highlights --repeat --report datasets/audio-highlight-validation/results/reproducibility.json
+& ./.venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check source --report datasets/audio-highlight-validation/results/source-validation.json
+& ./.venv/Scripts/python.exe -B -m scripts.datasets.prepare_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --report datasets/audio-highlight-validation/results/preparation.json
+& ./.venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check highlights --report datasets/audio-highlight-validation/results/highlight-validation.json
+& ./.venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check highlights --repeat --report datasets/audio-highlight-validation/results/reproducibility.json
 ```
 
 `prepare`는 기존 출력이 있으면 실패하며 덮어쓰기 옵션을 제공하지 않는다. 이미 생성된 Dataset에서는 `validate`를 실행한다. `validate`는 기본적으로 파일을 수정하지 않는다. `--report`를 명시하면 새 JSON만 기록하며 기존 report도 덮어쓰지 않는다. 다른 실행의 결과를 보존하려면 새 report 이름을 사용한다. 출력 생성 중 실패한 파일도 임의 삭제하지 않으므로 오류 결과를 확인한 후 별도로 처리한다.

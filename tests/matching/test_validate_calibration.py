@@ -7,6 +7,7 @@ import pytest
 from jsonschema import Draft202012Validator, FormatChecker
 
 from scripts.matching.validate_calibration import _read_json, main
+from tests.helpers.calibration import load_unacquired_manifest_fixture
 
 
 CALIBRATION_DIR = (
@@ -39,7 +40,7 @@ def _run_validator(tmp_path, capsys, *, manifest=None, event_queries=None):
 
 
 def _acquired_full_track_sample(*, prepared=False):
-    sample = _load_json('manifest.json')['samples'][0]
+    sample = load_unacquired_manifest_fixture()['samples'][0]
     sample.update({
         'acquisition_method': 'official_direct_download',
         'source_local_path': 'data/calibration/audio/source/cal-incompetech-mandeville/track.mp3',
@@ -66,7 +67,7 @@ def _acquired_full_track_sample(*, prepared=False):
 
 
 def _manifest_with_sample(sample):
-    manifest = _load_json('manifest.json')
+    manifest = load_unacquired_manifest_fixture()
     manifest['samples'][0] = sample
     return manifest
 
@@ -188,7 +189,7 @@ def test_invalid_acquisition_or_prepared_state_fails(tmp_path, capsys, mutate, e
 
 
 def test_not_acquired_manifest_does_not_require_audio_filesystem_access():
-    manifest = _load_json('manifest.json')
+    manifest = load_unacquired_manifest_fixture()
     assert all(sample['acquisition_method'] == 'not_acquired' for sample in manifest['samples'])
     assert all(sample['source_local_path'] is None for sample in manifest['samples'])
     assert all(sample['prepared_local_path'] is None for sample in manifest['samples'])
@@ -736,7 +737,7 @@ def test_source_file_size_must_be_an_integer(tmp_path, capsys):
 
 
 def test_finite_source_measurements_with_valid_integer_units_pass(tmp_path, capsys):
-    manifest = _load_json('manifest.json')
+    manifest = load_unacquired_manifest_fixture()
     sample = manifest['samples'][0]
     sample['acquisition_method'] = 'official_direct_download'
     sample['source_local_path'] = 'data/calibration/audio/source/cal-incompetech-mandeville/track.mp3'
@@ -887,7 +888,8 @@ def test_optional_attribution_may_be_null(tmp_path, capsys):
 
 
 def test_acquired_short_preview_is_valid_metadata(tmp_path, capsys):
-    manifest = _load_json('manifest.json')
+    manifest = load_unacquired_manifest_fixture()
+    manifest['cohort_status'] = 'candidate_selection_incomplete'
     sample = manifest['samples'][0]
     sample['acquisition_method'] = 'official_direct_download'
     sample['source_local_path'] = 'data/calibration/audio/source/cal-incompetech-mandeville/track.mp3'
@@ -927,7 +929,7 @@ def test_short_source_cannot_be_marked_verified_full_track(tmp_path, capsys):
 
 
 def test_acquired_sample_requires_source_path_hash_and_size(tmp_path, capsys):
-    manifest = _load_json('manifest.json')
+    manifest = load_unacquired_manifest_fixture()
     manifest['samples'][0]['acquisition_method'] = 'official_direct_download'
 
     result, output = _run_validator(tmp_path, capsys, manifest=manifest)
@@ -952,7 +954,7 @@ def test_acquired_sample_can_be_awaiting_decode(tmp_path, capsys):
 
 
 def test_acquired_complete_sample_with_60_second_decode_passes(tmp_path, capsys):
-    manifest = _load_json('manifest.json')
+    manifest = load_unacquired_manifest_fixture()
     sample = manifest['samples'][0]
     sample['acquisition_method'] = 'official_direct_download'
     sample['source_local_path'] = 'data/calibration/audio/source/cal-incompetech-mandeville/track.mp3'
@@ -1031,7 +1033,7 @@ def segment_start(sample):
 
 
 def test_partial_prepared_metadata_fails(tmp_path, capsys):
-    manifest = _load_json('manifest.json')
+    manifest = load_unacquired_manifest_fixture()
     manifest['samples'][0]['prepared_duration'] = 60
 
     result, output = _run_validator(tmp_path, capsys, manifest=manifest)
@@ -1041,7 +1043,7 @@ def test_partial_prepared_metadata_fails(tmp_path, capsys):
 
 
 def test_unacquired_sample_cannot_claim_decode_or_prepared_metadata(tmp_path, capsys):
-    manifest = _load_json('manifest.json')
+    manifest = load_unacquired_manifest_fixture()
     manifest['samples'][0]['source_sample_rate'] = 44100
 
     result, output = _run_validator(tmp_path, capsys, manifest=manifest)
@@ -1051,7 +1053,7 @@ def test_unacquired_sample_cannot_claim_decode_or_prepared_metadata(tmp_path, ca
 
 
 def test_incomplete_cohort_does_not_apply_complete_only_eligibility_rules(tmp_path, capsys):
-    manifest = _load_json('manifest.json')
+    manifest = load_unacquired_manifest_fixture()
     manifest['cohort_status'] = 'candidate_selection_incomplete'
     manifest['samples'].pop()
     manifest['samples'][0]['rights_status'] = 'excluded'

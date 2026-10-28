@@ -12,18 +12,25 @@
 
 ## 현행 처리 흐름
 
+사용자 추천 요청은 행사를 먼저 등록해 발급받은 `eventId`로 보낸다. Spring API는 `POST /api/v1/events/{eventId}/recommendations`이며 요청 본문은 없다. 등록한 `EVENT_PARTNER`만 요청할 수 있고, 조건을 바꾸려면 행사를 수정한 뒤 다시 요청한다. 저장된 행사만 추천 입력으로 사용한다([NSU_CAPSTONE 행사 API §8](https://github.com/nsuCapstoneTeam/NSU_CAPSTONE/blob/main/docs/api/03_events.md#8-%EC%B6%94%EC%B2%9C-%EC%9A%94%EC%B2%AD%EA%B3%BC%EC%9D%98-%EC%97%B0%EB%8F%99-nsu-58), [추천 API §0.1](https://github.com/nsuCapstoneTeam/NSU_CAPSTONE/blob/main/docs/api/02_recommendation_trust_and_new_artist.md#01-%EC%B6%94%EC%B2%9C-api)).
+
 ```text
-Spring Eligibility
-→ 모든 통과 ACTIVE 후보 쌍 (music_id, audioRevision) 전달
+event 등록 → 발급된 eventId로 추천 요청(본문 없음)
+→ Spring이 등록자 권한·행사 상태를 확인하고 저장된 행사 snapshot을 고정
+→ 같은 snapshot으로 Eligibility와 canonical English AI 입력을 구성
+→ Spring이 canonical input과 eligible ACTIVE 후보 쌍 (music_id, audioRevision)을 전달
 → AI가 raw cosine으로 정렬하고 최대 100곡 반환
 → Spring이 순서를 유지하고 응답 구조·범위를 검증
 → Spring이 구조화된 근거로 템플릿 설명을 구성
 → 결과 저장·응답; 화면은 상위 10곡부터 표시
 ```
 
+- 새 검색 입력 결정에 따라 Spring은 사용자 입력의 의미를 소유하고 predefined mapping으로 canonical English input을 구성한다. AI는 Event Description에서 mood/tempo/Genre를 재추출하거나 입력을 번역하지 않는다. 정확한 DTO는 새 서버 협의 및 API 설계 대상이며 아직 구현되지 않았다. 기존 Accepted 012의 다른 책임은 유지한다.
+- 사용자 API의 `eventId`는 Spring이 저장 행사를 찾는 식별자다. Spring→AI 내부 DTO는 별도 계약이며 필드 모양은 미정이다. 이를 `eventId` 단독 조회 요청으로 바꾸거나 AI 요청에 `eventId`를 새 필수 필드로 정하지 않는다. AI는 행사 CRUD, 등록자 권한, 행사 상태 정책을 소유하지 않는다.
 - Spring은 Eligibility, 권한 및 ACTIVE revision 재검증, AI 응답의 구조적 검사, 곡/Artist 연결, 신뢰 정보 결합, 템플릿 설명, 저장과 응답을 담당한다.
-- Spring은 통과한 모든 ACTIVE 후보 쌍을 보낸다. 입력 최대치는 아직 숫자로 확정하지 않았으며 NSUAI-15의 성능·메모리·동시성 실측 후 정한다. 후보 상한 초과 시 503과 운영 경보를 사용하며 임의 절단이나 분할 호출을 하지 않는다.
+- Spring은 Eligibility 통과 곡의 모든 eligible ACTIVE `(music_id, audioRevision)` 쌍을 보낸다. 입력 최대치는 아직 숫자로 확정하지 않았으며 NSUAI-15의 성능·메모리·동시성 실측 후 정한다. 후보 상한 초과 시 503과 운영 경보를 사용하며 임의 절단이나 분할 호출을 하지 않는다.
 - AI는 처리 가능한 후보를 raw cosine 내림차순으로 정렬해 최대 100곡을 반환한다. 100곡은 반환 상한이며 입력 후보 최대치와 구분한다. Spring은 순서를 재정렬하지 않는다.
+- 로컬 CLI와 과거 실험은 해당 실험의 frozen input pipeline을 유지하지만, 이는 현행 서비스 검색 입력 계약이 아니다.
 - raw cosine은 ranking signal이다. 사용자 표시용 0~100 음악 유사도는 별도 표현 계층이며 ranking 기준을 대체하지 않는다. 표시 변환은 고정·단조 증가·candidate-independent여야 하고, 후보 집합 min/max·query별 normalization·softmax·rank 기반 상대점수는 사용하지 않는다. 최종 calibration status는 not finalized이며 현재 선형 후보는 provisional이다.
 - Spring은 rank/order 연속성, 중복, 후보 범위, 결과 개수, score 범위와 표시 score의 단조성을 검사한다. Spring 계약에는 raw cosine을 추가하지 않으므로 raw cosine 순위 자체는 AI 측 테스트가 검증한다.
 - 곡→아티스트 집계를 하지 않는다. Artist별 대표 곡 선정이나 집계 순위를 만들지 않는다.
@@ -40,7 +47,7 @@ Spring Eligibility
 - [007](https://linear.app/nsu-capstone/document/007-추천-단위는-곡-69137a45b2c6): 곡 단위와 아티스트 집계 없음의 관련 Accepted 근거.
   결과 최대 100곡 및 신규 슬롯 미적용은 Accepted 012의 현재 범위에 따른다.
 - [009](https://linear.app/nsu-capstone/document/009-종합-적합도의-항목-구성-85e281c843cd): BPM/Rhythm 측정·요청 비교 상세와 `null`+reason, 공연 형태 Hard Filter 등 유지되는 부분만 참조한다. 의미/BPM/Rhythm 평균은 음악 순위 기준에서 대체됐다.
-- [008](https://linear.app/nsu-capstone/document/008-추천-이유-생성-흐름-ae6cde7df2de): 별도 AI Explanation API 호출 범위는 대체됐다. Spring이 AI의 구조화된 상세 정보·행사 요청 해석·실제 통과 조건을 근거로 템플릿 설명을 만든다. LLM은 필수가 아니다.
+- [008](https://linear.app/nsu-capstone/document/008-추천-이유-생성-흐름-ae6cde7df2de): 별도 AI Explanation API 호출 범위는 대체됐다. Spring이 AI의 구조화된 상세 정보·Spring이 확정한 canonical 행사 요청 의미·실제 통과 조건을 근거로 템플릿 설명을 만든다. 검색 입력 의미는 AI가 재해석하지 않으며 LLM은 필수가 아니다.
 - [010](https://linear.app/nsu-capstone/document/010-ai-곡-검색-실패시간-초과-시-추천-api-응답-46a63dece138): 검색 장애를 결과 0건으로 숨기지 않는다.
   오류의 `code`·`retryable`·`requestId`, 제한적 재시도 및 503/504 정책을 따른다.
 
@@ -49,7 +56,7 @@ Spring Eligibility
 
 ## 현재 구현과 남은 계약
 
-현재 AI 공통 AudioEmbeddingGenerator는 ADR-0007에 기록한 저장소 범위의 56~60초 validation과 처음 56초의 고정 8 Chunk 집계를 적용한다. 이는 Spring 업로드/API validation 계약까지 갱신되었음을 뜻하지 않는다. 파일/DB 검색 CLI, 임시 표시 점수, Health API도 구현되어 있다.
+현재 AI 공통 AudioEmbeddingGenerator는 ADR-0007에 기록한 저장소 범위의 56~60초 inclusive validation과 처음 56초의 고정 8 Chunk 집계를 적용한다. Linear AI-033 / NSU-89의 기존 60~80초 문구는 후속 동기화 대상이며, 이는 Spring 업로드/API validation 계약까지 갱신되었음을 뜻하지 않는다. 파일/DB 검색 CLI, 임시 표시 점수, Health API도 구현되어 있다.
 전체 통과 ACTIVE 후보 쌍 입력을 받는 HTTP 흐름, 최대 100곡 반환, 화면·매칭 버튼은 아직 구현 전이다. 전체 후보 입력은 전체 결과 반환을 뜻하지 않는다.
 현재 CLI Top5·DB `top_k` 상한·과거 측정값은 로컬 검증 범위이며 새 서비스 목표의 반환 정책으로 취급하지 않는다.
 

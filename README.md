@@ -6,10 +6,9 @@
 아티스트–행사 매칭 플랫폼의 Python AI 서버입니다. Microsoft MSCLAP 기반 음악·텍스트와
 음악·음악 유사도, 파일 검색 CLI, FastAPI Health Check, PostgreSQL + pgvector 준비 상태 검사를 다룹니다.
 
-Phase A Dataset 준비, 실제 6곡 MSCLAP 생성 경로 검증, 전용 PostgreSQL/pgvector 통합 검증을 완료했습니다.
-다음은 기존 개발 벡터의 소유권·대상과 새 입력 mapping을 확인하는 단계입니다. 기존 벡터 삭제·재생성은 별도 승인 전에는 수행하지 않습니다.
-현행 서비스 흐름은 Spring Eligibility가 통과한 전체 ACTIVE 후보 쌍 전달 → AI raw cosine 정렬·최대 100곡 반환 → Spring의 순서 유지·응답 검증·템플릿 설명입니다. 입력 후보 상한은 NSUAI-15의 성능·메모리·동시성 실측 후 결정합니다.
-업무 HTTP API, 입력 해석 및 BPM/Rhythm 상세 분석은 후속 구현이며, AI가 별도 설명 API를 제공하는 흐름은 아닙니다. 0~100 표시 변환은 calibration 실험 후 결정합니다.
+Phase A의 6곡 기술 검증과 별도로 calibration v1 cohort도 완료했습니다: 50곡 source/prepared audio, 실제 MSCLAP Audio Embedding, ACTIVE 16개 × 50곡 raw cosine, 96쌍 × 평가자 3명의 청취 평가와 분석까지 마쳤습니다. Text Embedding 생성(NSUAI-41)과 저장·profile 호환성(NSUAI-42)도 구현되어 있습니다. 실험 상태와 한계는 [calibration 기록](docs/experiments/audio-similarity-calibration/README.md)을 참고하세요.
+추천 서비스는 등록된 행사를 기준으로 동작합니다. 합의된 방향에서 Spring은 등록자 권한·행사 상태를 검사한 뒤 같은 snapshot에서 Eligibility와 canonical AI 입력을 구성합니다. AI 검색 이후 Spring은 AI 순서를 유지하고 결과를 저장·응답합니다. 입력 후보 상한은 NSUAI-15의 성능·메모리·동시성 실측 후 결정합니다.
+업무 HTTP API, Spring mapping 및 canonical input 연동은 후속 구현이며, AI는 검색 입력을 번역하거나 LLM으로 재해석하지 않습니다. AI가 별도 설명 API를 제공하는 흐름은 아닙니다. Calibration 분석은 완료했지만 최종 0~100 표시 변환은 확정하지 않았고 독립 validation도 수행하지 않았습니다.
 
 ## 구현 상태
 
@@ -19,13 +18,13 @@ Phase A Dataset 준비, 실제 6곡 MSCLAP 생성 경로 검증, 전용 PostgreS
 | MSCLAP 2023 CPU 임베딩·유사도 | 구현·FMA 실측, Audio/Text 1024차원 확인 |
 | FMA 다운로드·체크섬·표본 선정·측정 보고서 | 구현 |
 | 긴 문장의 토큰 제한과 실제 입력 기록 | 검증 스크립트에 구현 |
-| 한국어 → 영어 변환 | 입력 정책 확정, 번역 기능 구현 전 |
-| Embedding 동기 생성·pgvector 저장 | Audio 테이블·동기 저장 CLI 구현, 임시 ID 계약, Text·백엔드 연동 전 |
+| 검색 입력 canonicalization | Spring predefined mapping 방향 결정; mapping 및 AI 업무 API 미구현 |
+| Embedding 동기 생성·pgvector 저장 | Audio 경로와 Text 생성·저장/profile 호환 경로 구현, Spring 업무 API 연동 전 |
 | 음악 입력 후 동기 처리 | AI 선설계·동기 방향 확정, 업무 API 구현 전 |
 | 공통 Audio 임베딩 생성 | 파일 해시 기반 전처리·벡터 검증·메타데이터 반환, 검색 CLI 연결 |
 | 음악 파일로 후보 곡 검색 | CLI 구현, 원본 코사인 순위·음악 간 임시 0~100점 반환 |
 | DB 저장 임베딩으로 후보 곡 검색 | 호환 조건 필터·동일 파일 제외·pgvector 정확 검색 CLI 구현 |
-| 임시 유사도 표시 점수 | 음악↔텍스트 0~0.4 / 음악↔음악 0~1, 최종 기준 검증 필요 |
+| 표시 점수 | 개발 CLI의 임시 변환과 calibration 비교용 provisional 후보가 있음; 최종 0~100 변환 미확정, 독립 validation 미수행 |
 | BPM/Rhythm 상세 분석·구조화된 추천 근거 | 후속 구현; 추천 이유는 Accepted 012에 따라 Spring 템플릿 책임이며 별도 AI Explanation API는 사용하지 않음 |
 | 전체 ACTIVE 후보 입력·최대 100곡 결과 반환 | Accepted 012 정책 반영; 업무 HTTP API 구현 전; 입력 후보 상한은 NSUAI-15 실측 후 결정; Spring 순서 유지·아티스트 집계/후보 비교 설명 제외 |
 | 분석·매칭 HTTP API·Spring Boot 연동 | 후속 구현 |
@@ -71,7 +70,7 @@ FMA 검증 도구·영어 입력 정책·음악 파일 검색·임시 점수 변
 ### 현재 사용 조건
 
 현재 `search_audio.py`를 실행하려면 query Audio와 manifest의 모든 candidate Audio가 각각
-**60~80초(양 경계 포함)**여야 합니다. 생성기는 ADR-0007 정책에 따라 처음 56초를 7초씩
+**56~60초(양 경계 포함)**여야 합니다. 생성기는 ADR-0007 정책에 따라 처음 56초를 7초씩
 8개의 겹치지 않는 구간으로 처리하고, Chunk별 L2 정규화 → Mean Pooling → 최종 L2
 정규화로 대표 Embedding 하나를 만듭니다.
 
@@ -269,7 +268,7 @@ py -3.11 -m venv .venv
 - [API 책임 경계](docs/api/README.md)
 - [협업 가이드](docs/협업-가이드/README.md)
 
-PostgreSQL 통합 검증과 실제 6곡 MSCLAP 생성 경로 검증은 완료됐습니다. 다음은 기존 개발 벡터의 소유권·재생성 대상과 새 입력 mapping을 확인하고 별도 승인받는 일입니다. 승인 뒤 dev/test 벡터를 ADR-0007 generation으로 재생성하고 저장·검색을 확인한 다음, 새 similarity 분포와 음악 품질을 평가하고 calibration을 진행합니다.
-백엔드 ID·수정/삭제 계약, Text 생성·번역, BPM/Rhythm 구조화 상세 정보, 곡별 순위·0~100 음악 유사도와 Spring 템플릿 설명을 포함한 Accepted 012 업무 API 연동은 Roadmap의 의존 순서에 따라 진행합니다. raw cosine은 AI 내부 정렬 기준이며 Spring 응답 계약에 노출하지 않습니다.
+Calibration cohort와 청취 분석은 완료됐습니다. 기존 개발 벡터의 소유권·재생성 대상은 별도 승인 전까지 유지하며, 재생성 및 운영 저장·검색은 해당 데이터의 소유권과 mapping을 확인한 뒤 진행합니다. 다음 서비스 단계는 Accepted 012/014에 따른 Spring 업무 API 연동(NSU-63)이며 내부 AI DTO의 미정 계약은 확정된 것으로 간주하지 않습니다.
+Text Embedding 생성·저장은 구현 완료됐지만 Spring predefined mapping 및 canonical 입력 업무 API 연동은 후속 구현입니다. 검색 입력의 번역/LLM 의미 해석은 현재 경로에서 사용하지 않습니다. raw cosine은 AI 내부 정렬 기준이며 Spring 응답 계약에 노출하지 않습니다. calibration 분석은 근거를 제공하지만 최종 display calibration을 확정하지 않습니다.
 기존 30초 FMA의 핵심 실험 근거만 Markdown으로 유지하며 새 생성 정책 검증에 사용하지 않습니다.
-검색 품질·similarity 분포/calibration, 처리 가능한 입력 후보 최대치 실측, 013 MP3/M4A 검증은 미완료이며 번역 구현도 보류합니다.
+최종 0~100 display calibration과 독립 validation, production 검색 품질의 일반화 검증, 처리 가능한 입력 후보 최대치 실측 및 013 MP3/M4A 검증은 미완료입니다. Spring mapping 및 canonical 입력 API는 미구현이며, 향후 자유 자연어 검색 처리는 별도 협의와 ADR로 재검토합니다.

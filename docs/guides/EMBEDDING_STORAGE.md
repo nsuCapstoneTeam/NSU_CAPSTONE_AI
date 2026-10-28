@@ -58,7 +58,7 @@ result = self.generator.generate(audio_path)
 만들면 검색 입력과 저장 후보의 벡터 분포가 달라질 수 있기 때문입니다.
 원본 파일의 SHA-256을 계산해 기대 해시와 비교하고 생성 전후 해시를 확인합니다.
 SHA-256은 원본 식별·변경 감지에 쓰며 crop 위치나 seed 결정에는 사용하지 않습니다.
-현재 생성기는 파일을 decode하고 60~80초 길이를 검증한 뒤 처음 56초를 7초 × 8개
+현재 생성기는 파일을 decode하고 56~60초 inclusive 길이를 검증한 뒤 처음 56초를 7초 × 8개
 non-overlap Chunk로 처리합니다. 각 MSCLAP Chunk Embedding을 L2 정규화하고,
 Mean Pooling 후 최종 L2 정규화하여 대표 벡터 하나와 생성 metadata를 반환합니다.
 벡터의 유한값·0벡터·shape·차원도 검사합니다.

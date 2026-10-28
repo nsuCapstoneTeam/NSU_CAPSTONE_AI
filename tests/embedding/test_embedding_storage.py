@@ -68,7 +68,7 @@ def test_source_facts_do_not_change_shared_generation_profile():
     second = make_result()
     second.metadata.update({
         'source_sha256': 'b' * 64,
-        'source_duration_seconds': 80,
+        'source_duration_seconds': 60,
         'source_sample_rate': 48_000,
         'source_channels': 2,
         'source_path': '/another/location/audio.wav',
