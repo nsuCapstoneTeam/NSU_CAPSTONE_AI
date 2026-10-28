@@ -1,6 +1,6 @@
 # ADR-0007 Phase A Audio Dataset
 
-이번 Dataset은 실제 음악 검증의 입력을 준비하는 로컬 실험 fixture다. 원곡에서 Highlight를 추출하는 기능을 production application에 추가하지 않는다. 서비스는 Artist가 이미 60~80초 Highlight를 제공한다는 전제를 유지한다.
+이번 Dataset은 실제 음악 검증의 입력을 준비하는 로컬 실험 fixture다. 원곡에서 Highlight를 추출하는 기능을 production application에 추가하지 않는다. Artist가 제공하는 Highlight는 현재 60~80초 입력 범위를 따른다. 이 Dataset의 정확한 60초 fixture는 양 경계 포함 조건에 유효하다.
 
 고정 정의는 [manifest.json](manifest.json), 권리 확인 근거는 [ATTRIBUTION.md](ATTRIBUTION.md), 실제 실행 결과는 [inspection-report.md](inspection-report.md)에 기록한다. manifest의 경로는 repository root 기준이다. `track_id`는 fixture 내부 식별자이며 Backend music ID가 아니다.
 

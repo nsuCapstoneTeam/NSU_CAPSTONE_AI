@@ -3,9 +3,9 @@
 ## Status
 
 - **Accepted (사용자 승인, 2026-10-06); ADR-0007 generation policy 구현 완료**.
-- 범위: Audio Highlight 권장 길이·최소/최대 길이 validation 정책, 분석 범위, Chunk 구성, 대표 벡터 집계, 개발/테스트 벡터 재생성 정책.
+- 범위: Audio Highlight의 현재 AI 저장소 입력 범위와 과거 길이 결정 이력, 분석 범위, Chunk 구성, 대표 벡터 집계, 개발/테스트 벡터 재생성 정책.
 - 승인 근거: 2026-10-06 이 작업 대화의 사용자 최종 문서 작업 승인과 정책 변경 지시(R0).
-- 이전 결정은 아래 변경 이력에 보존한다. 현행 정책은 권장 60초·허용 60~80초(양 경계 포함)·고정 8 non-overlap Chunk이며 기존 D5는 폐기한다.
+- 이전 결정은 아래 변경 이력에 보존한다. 2026-10-23 기록의 AI 전용 56~60초 입력안은 Linear AI-033 및 NSU-89와 충돌해 현행 정책으로 채택하지 않았다. 현재 원본 입력 validation은 60~80초(양 경계 포함)이며, 분석에는 처음 56초를 사용한다.
 - Accepted는 이 범위의 설계 승인을 뜻한다. 팀 전체 제품 요구사항 동기화나 구현 완료를 뜻하지 않는다.
 
 구현 상태: 저장·검색에서 공통 AudioEmbeddingGenerator를 사용하며 60~80초 inclusive validation, 처음 56초의 고정 8개 7초 Chunk, Chunk별 L2 → Mean Pooling(N=8) → 최종 L2 및 대표 벡터 1개 생성, generation metadata/profile이 구현되었다. 관련 unit tests와 MSCLAP batch smoke validation도 수행했다. 2026-10-08 [Phase A](../experiments/audio-highlight-phase-a/README.md)에서 실제 음악 6곡의 60초 Highlight Dataset 준비·decode/PCM/반복 재현성 기술 검증 및 로컬 MSCLAP 기술 검증용 출처·라이선스 확인을 완료했다(사용자 공식 라이선스·직접 다운로드 확인 근거, Phase A verified/rights_cleared=true; 공식 서버 파일과 SHA-256 비교는 not_performed). 2026-10-09 [실제 6곡 MSCLAP 생성 경로 검증](../experiments/audio-highlight-msclap-validation/README.md)과 [전용 PostgreSQL/pgvector 통합 검증](../experiments/audio-embedding-postgres-validation/README.md)을 완료했다. 음악 품질 평가, 개발/test Embedding 재생성, similarity 분포 검증 및 calibration은 아직 완료되지 않았다.
@@ -17,7 +17,8 @@
 | 초기 검토안 (미채택) | 60초 고정·9 Chunk·마지막 53~60초 overlap | 이전 대화의 검토안이며 채택하지 않음 |
 | 2026-10-06 이전 사용자 승인 | 60~70초 권장, 별도 길이 상한 없음, 처음 최대 56초, 7초 이상 짧은 입력 허용, 마지막 end-aligned overlap, N=1~8, 7초 미만 처리 미결정 | 당시 결정으로 보존. 현행 정책에서 폐기 |
 | 2026-10-06 Linear v1.10 정합화 | AI-033을 길이 정책의 주 기준으로 정리하고 AI-037/RIGHTS-023 및 AI-EMBED의 참조 책임 분리. Linear 저장 후 재조회 확인: 메인 2026-10-06T12:26:56.843Z, AI 2026-10-06T12:27:22.785Z | 당시 정합화 기록 유지. 길이·짧은 입력 정책은 v1.11로 대체 |
-| 2026-10-06 최종 사용자 승인 / Linear v1.11 | 권장 60초, 허용 60~80초(60·80초 포함), 처음 56초, 고정 8 non-overlap Chunk, Mean Pooling(N=8) | 현행 정책. 최소/최대 validation 구현은 후속 작업. 기존 D5 폐기, 번호 재사용·다른 Decision 재번호 없음 |
+| 2026-10-06 최종 사용자 승인 / Linear v1.11 | 권장 60초, 허용 60~80초(60·80초 포함), 처음 56초, 고정 8 non-overlap Chunk, Mean Pooling(N=8) | 현재 AI-033 및 NSU-89와 일치하는 입력/분석 정책 |
+| 2026-10-23 AI 저장소 입력안 (미채택) | 당시 제안: 56~60초 입력, 처음 56초·8×7초 non-overlap Chunk | AI-033 및 NSU-89의 60~80초 입력 범위와 충돌해 현행 validation으로 채택하지 않음. 56초 분석 및 Chunk 구성은 유지 |
 
 ## Context
 
@@ -43,7 +44,7 @@ MSCLAP의 `compute_similarity()`는 학습된 배율을 곱하므로 순수 cosi
 
 | ID | 확정한 정책 |
 | --- | --- |
-| D1 | 사용자가 선택한 Highlight의 권장 길이는 60초다. 최소 60초·최대 80초 길이 validation을 적용하며 양 경계는 허용한다. |
+| D1 | AI 저장소 Audio 입력은 최소 60초·최대 80초로 validation하며 양 경계를 허용한다. 권장 입력은 60초다. 외부 서비스 계약은 별도 동기화 전까지 이 ADR의 변경만으로 바뀌지 않는다. |
 | D2 | 허용된 입력의 처음 56초만 사용해 7초 × 8개의 non-overlap Chunk를 생성한다. 56초 이후는 사용하지 않는다. |
 | D3 | MSCLAP 2023의 7초 처리 단위를 유지하고 `duration=60`으로 바꾸지 않는다. |
 | D4 | 분석 범위에서 random 7초 하나만 선택하지 않고 결정적인 여러 Chunk를 반영한다. |
@@ -56,7 +57,7 @@ MSCLAP의 `compute_similarity()`는 학습된 배율을 곱하므로 순수 cosi
 
 입력 길이를 L초라 할 때 L < 60 또는 L > 80은 길이 validation 실패다.
 60 <= L <= 80은 길이 validation을 통과하며, 다른 파일 형식·크기·권리 조건은 별도로 충족해야 한다.
-권장 길이는 60초다. 허용된 입력은 처음 56초에서 항상 8개의 겹치지 않는 Chunk를 생성한다.
+권장 입력은 60초다. 허용된 입력은 처음 56초에서 항상 8개의 겹치지 않는 Chunk를 생성한다.
 구간은 시작 포함·끝 제외다. 구현은 decoded frame 수와 sample rate를 기준으로 길이를 판정하고
 정확한 sample 경계로 Chunk를 자른다.
 
@@ -68,15 +69,15 @@ MSCLAP의 `compute_similarity()`는 학습된 배율을 곱하므로 순수 cosi
 
 | 입력 길이 | 길이 validation | Embedding 처리 |
 | --- | --- | --- |
-| L < 60초 (7·30·53·56초 포함) | 실패 | Embedding 생성 대상 아님 |
-| L = 60초 | 통과, 권장 길이 | 처음 56초, 8 non-overlap Chunk |
-| 60 < L < 80초 (70초 포함) | 통과 | 처음 56초, 8 non-overlap Chunk |
+| L < 60초 | 실패 | Embedding 생성 대상 아님 |
+| L = 60초 | 통과, 최소 경계 | 처음 56초, 8 non-overlap Chunk |
+| 60 < L < 80초 | 통과 | 처음 56초, 8 non-overlap Chunk |
 | L = 80초 | 통과, 최대 경계 | 처음 56초, 8 non-overlap Chunk |
 | L > 80초 | 실패 | Embedding 생성 대상 아님 |
 
 ```text
-Artist가 직접 선택한 Highlight (권장 60초)
-→ 길이 validation: 60초 ≤ L ≤ 80초 (구현 완료)
+Artist가 직접 선택한 Highlight
+→ AI 저장소 길이 validation: 60초 ≤ L ≤ 80초 (구현 완료)
 → Audio 전처리 → 처음 56초의 7초 × 8 non-overlap Chunk
 → 동일 MSCLAP 2023으로 Chunk별 Audio Embedding
 → Chunk별 L2 Normalize → Mean Pooling(N=8) → 최종 L2 Normalize
@@ -89,7 +90,16 @@ Artist가 직접 선택한 Highlight (권장 60초)
 근거 유형은 출처의 종류를 구분한다. 기술적 판단이 공식 권장사항과 같은 수준의 검증을
 받았다는 뜻이 아니다. R0~R10은 마지막 References와 연결된다.
 
-### D1. 권장 60초와 허용 60~80초
+### D1. 현재 입력 범위: AI-033 및 NSU-89 기준
+
+- **Decision:** AI 저장소 generator는 decoded frame과 sample rate 기준으로 60초 이상 80초 이하를 허용한다. 양 경계를 포함하며 권장 입력은 60초다.
+- **Rationale:** 업로드 및 AI 입력의 허용 원본 길이를 AI-033/NSU-89와 일치시킨다. 허용 입력은 모두 처음 56초 분석 구간을 포함한다.
+- **Evidence:** Linear AI-033과 NSU-89는 모두 60~80초 inclusive를 요구한다. NSUAI-25는 동일 입력 조건과 처음 56초 분석/8개 Chunk 생성을 명시한다.
+- **Consequences:** 60초 미만과 80초 초과는 AI generator가 거부한다. Linear·Backend·Frontend 담당과의 정책 동기화는 별도 작업이다.
+
+### D1 historical rationale: 2026-10-06의 60~80초 결정
+
+다음 세부 근거는 2026-10-06 승인 기록이다. 현재 동일한 60~80초 입력 범위는 AI-033 및 NSU-89를 따른다.
 
 #### D1-a. 권장 길이 60초
 
@@ -116,8 +126,8 @@ Artist가 직접 선택한 Highlight (권장 60초)
 
 - **Decision:** 허용된 60~80초 Highlight의 처음 56초만 7초 × 8개의 겹치지 않는 Chunk로 분석한다. 56초 이후는 사용하지 않는다.
 - **Rationale:** 7초로 나누어떨어지는 분석 범위와 고정 추론 작업량을 사용한다. 모든 허용 입력에서 같은 구간 경계를 적용하고 잔여·overlap·가변 Chunk 처리가 필요하지 않게 한다. 저장·Audio 검색은 같은 생성 규칙을 사용한다.
-- **Evidence:** [Project Requirement] R0와 R9의 AI-033. [Engineering Rationale] 7 × 8 = 56, 허용 최소 60초. 56초와 8개 선택은 공식 자료가 아닌 프로젝트 정책이다.
-- **Alternative / Trade-off:** 60초·9 Chunk·마지막 overlap 또는 전체 파일 분석 대신 처음 56초만 사용한다. 60초 입력의 마지막 4초, 80초 입력의 마지막 24초는 반영되지 않는다. 고정 Chunk 수가 실제 처리시간의 동일성을 보장하지 않으며 처리시간은 아직 측정하지 않았다.
+- **Evidence:** 2026-10-23 기록에서도 처음 56초 분석·8개 구성을 유지했다. 입력 허용 길이는 AI-033/NSU-89의 60~80초다. [Engineering Rationale] 7 × 8 = 56; 56초와 8개 선택은 프로젝트 기술 정책이다.
+- **Alternative / Trade-off:** 60초·9 Chunk·마지막 overlap 또는 전체 파일 분석 대신 처음 56초만 사용한다. 당시 60~80초 범위에서는 입력 마지막 4~24초가 반영되지 않았다. 현재 60~80초 범위에서는 처음 56초 뒤의 구간만 사용하지 않는다. 고정 Chunk 수가 실제 처리시간의 동일성을 보장하지 않으며 처리시간은 아직 측정하지 않았다.
 
 ### D3. MSCLAP 2023의 7초 유지
 
@@ -165,10 +175,10 @@ Artist가 직접 선택한 Highlight (권장 60초)
 
 | 방식 | 장점 | 선택하지 않은 이유 / Trade-off | 관련 Decision |
 | --- | --- | --- | --- |
-| 정확한 60초·9 Chunk·마지막 53~60초 | 60초 전체 포함 | 미채택 검토안. 현행 허용 60~80초·처음 56초 고정 분석과 다름 | D1, D2 |
+| 정확한 60초·9 Chunk·마지막 53~60초 | 60초 전체 포함 | 미채택 검토안. 현재 허용 60~80초·처음 56초 고정 분석과 다름 | D1, D2 |
 | 전체 파일 또는 duration=60 | 구간 집계가 없거나 전체 범위 처리 | 길이·비용 증가 또는 pretrained 입력 조건 변경, 별도 검증 필요 | D2, D3 |
 | Chunk 하나 선택 | 적은 추론·저장 비용 | 다른 분석 구간을 반영하지 못함 | D4, D7 |
-| 짧은 입력 허용·end-aligned overlap (이전 정책) | 짧은 파일도 처리 가능 | 최소 60초 validation 결정으로 현행 정책에서 폐기. short-audio·잔여 처리 예외를 두지 않음 | D1, D2 |
+| 짧은 입력 허용·end-aligned overlap (이전 정책) | 짧은 파일도 처리 가능 | 현재 AI 저장소는 최소 60초를 적용하며 short-audio·잔여 처리 예외는 두지 않음 | D1, D2 |
 | Max/Top-K similarity | 요청과 맞는 국소 구간 선택 가능 | 요청별 점수·집계 정책 및 구간 벡터 접근이 필요하며 단일 대표 벡터 방식과 다름 | D7 |
 | Chunk별 DB 저장 | 구간 보존·부분 검색 | 곡별 여러 벡터와 검색 결과 집계·중복 처리 필요 | D7 |
 | Weighted Pooling | 중요한 구간의 비중 조절 | 가중치 산정·근거·검증이 필요, 현재 동일 Chunk 비중 정책과 다름 | D7 |
@@ -191,7 +201,7 @@ Artist가 직접 선택한 Highlight (권장 60초)
 
 ### 기준 문서와 현재 구현의 차이
 
-- R9의 메인 Linear Requirements v1.11을 실제 저장 후 재조회로 확인했다. AI-033은 권장 60초·허용 60~80초(경계 포함)·처음 56초의 주 기준이다. AI-037/RIGHTS-023은 기존 AI-033 참조와 권리·원본 저장 정책을 유지하며 수정하지 않았다. AI-EMBED는 길이 정책을 AI-033, 고정 Chunk/aggregation을 이 ADR로 참조한다. 이는 Audio 정책 한정 승인이고 v1.11 문서 전체는 승인 전이다. v1.9의 추천/신규 아티스트 미승인 정책, 최종 전체 승인 revision v1.8 및 구현 Baseline v1.1은 유지한다.
+- Linear AI-033과 NSU-89는 AI 원본 입력을 60~80초(양 경계 포함)로 정한다. AI 저장소 입력 validation도 이를 따른다. 2026-10-23 기록의 56~60초 AI 전용 입력안은 적용하지 않는다. 분석은 허용된 원본에서 처음 56초를 사용한다.
 - R8에 따라 서버 협의는 Linear가 관리 위치다. 저장소에 남은 server-agreements 문서와 번호 정합화는 이번 범위 밖이다. 서버 협의 012는 2026-10-10 기준 Accepted이며 이 ADR은 해당 외부 계약을 재정의하지 않는다. 이 상태 갱신은 ADR-0007 Decision을 변경하지 않는다.
 - 기존 ADR 0003의 MSCLAP·pgvector 방향과 0006의 동기 처리는 유지한다. D9는 개발/테스트 데이터 한정이며 운영 ACTIVE revision 보존 결정을 폐기하지 않는다.
 - ADR 작성 당시 구현은 해시 seed의 단일 crop이었다. 이후 ADR-0007 생성 정책과 generation metadata/profile을 구현했으며 관련 unit tests와 MSCLAP batch smoke validation을 수행했다. Phase A의 실제 음악 6곡·60초 Highlight 준비와 기술 검증, Phase A 로컬 MSCLAP 기술 검증용 권리 확인은 완료했다. 실제 6곡 MSCLAP 생성 경로와 전용 PostgreSQL 통합 검증은 2026-10-09 완료했다. 품질 평가·개발/test 벡터 재생성과 similarity 분포 검증·calibration은 아직 완료되지 않았다. 현재 동작은 [공통 생성 기준 문서](../guides/AUDIO_EMBEDDING.md), 완료·잔여 구현 작업은 [Roadmap Phase 3](../AI_DEVELOPMENT_ROADMAP.md)에서 확인한다.
@@ -206,7 +216,7 @@ Artist가 직접 선택한 Highlight (권장 60초)
 
 | ID | 자료 | 지원하는 결정 또는 사실 |
 | --- | --- | --- |
-| R0 | 2026-10-06 이 작업 대화의 사용자 최종 승인: 권장 60초·허용 60~80초(양 경계 포함)·대표 Highlight 유지 목적의 80초 상한·처음 56초/고정 8 non-overlap Chunk·두 단계 L2/Mean(N=8)·기존 개발 벡터 재생성 정책 유지·문서만 작업 | D1~D4·D6~D9의 프로젝트 정책 출처. 이전 정책 및 D5 폐기는 변경 이력 참조. 외부 permalink는 없으며 Decision에 승인 내용을 기록 |
+| R0 | 2026-10-06 이 작업 대화의 사용자 결정: 당시 권장 60초·허용 60~80초(양 경계 포함)·대표 Highlight 유지 목적의 80초 상한·처음 56초/고정 8 non-overlap Chunk·두 단계 L2/Mean(N=8)·기존 개발 벡터 재생성 정책 유지·문서만 작업 | 당시 D1~D4·D6~D9의 정책 근거를 보존한다. 현재 입력 범위는 AI-033 및 NSU-89의 60~80초 조건을 따른다 |
 | R1 | [Microsoft config_2023.yml](https://github.com/microsoft/CLAP/blob/e8a6467b87cd85716e20c6a008126150d9740be0/msclap/configs/config_2023.yml) | D3의 duration=7, wrapper 44100Hz, d_proj=1024 |
 | R2 | [Microsoft CLAPWrapper.py](https://github.com/microsoft/CLAP/blob/e8a6467b87cd85716e20c6a008126150d9740be0/msclap/CLAPWrapper.py) | D3·D4·D6·D8의 preprocess_audio/load_audio_into_tensor/get_audio_embeddings/compute_similarity 사실, short-audio 반복·다채널 flatten |
 | R3 | [Microsoft models/clap.py](https://github.com/microsoft/CLAP/blob/e8a6467b87cd85716e20c6a008126150d9740be0/msclap/models/clap.py) | D6의 AudioEncoder·Projection 반환 경로: 최종 L2 없음 |

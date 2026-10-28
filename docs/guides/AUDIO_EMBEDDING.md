@@ -21,13 +21,12 @@ ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide�
 
 이 절은 현재 구현에 적용된 Audio 생성 규칙이다. 결정 이유·공식 근거·대안과
 trade-off 및 이전 정책의 변경 이력은 [ADR-0007](../adr/ADR-0007-audio-highlight-embedding-strategy.md)에 기록한다.
-제품 길이 정책의 주 기준은 [Linear AI-033](https://linear.app/nsu-capstone/document/ssot-아티스트-행사-매칭-플랫폼-mvp-요구사항-e38bb23f87b1)의 v1.11이다.
+입력 길이는 Linear AI-033 및 NSU-89 기준에 따라 60~80초(양 경계 포함)입니다. 생성기는 이 원본에서 처음 56초만 분석합니다.
 현재 공통 생성기 구현은 아래 정책을 적용한다. 실제 6곡 MSCLAP 생성 경로 검증과 전용 PostgreSQL/pgvector 통합 검증은 완료됐으며,
 검색·음악 품질 평가, 새 similarity 분포 및 calibration은 별도 후속 단계다.
 
-- Artist가 직접 선택한 대표 Highlight의 **권장 길이는 60초**다.
-- **최소 60초·최대 80초**를 길이 validation 조건으로 적용한다. L < 60초 또는 L > 80초는 실패하고, **60초 ≤ L ≤ 80초는 통과**한다. 양 경계인 60초와 80초도 허용한다.
-- 길이 validation 통과는 형식·크기·권리 등 다른 조건 통과를 의미하지 않는다. 최대 80초는 업로드 대상을 전체 음악 파일이 아닌 대표 Highlight로 유지하기 위한 서비스 정책이다.
+- AI 저장소의 현재 AudioEmbeddingGenerator 입력 길이는 **최소 60초·최대 80초**다. L < 60초 또는 L > 80초는 실패하고, **60초 ≤ L ≤ 80초는 통과**한다. 양 경계인 60초와 80초를 포함한다.
+- 권장 길이는 60초다. 길이 validation 통과는 형식·크기·권리 등 다른 조건의 통과를 의미하지 않는다. 원본 입력 범위는 Linear AI-033 및 NSU-89와 맞춘다.
 - 허용된 입력의 **처음 56초만** 사용해 **7초 × 8개의 non-overlap Chunk**를 생성한다. 56초 이후 구간은 Audio Embedding 생성에 사용하지 않는다.
 - 각 Chunk는 같은 MSCLAP 2023으로 생성하고 **Chunk별 L2 Normalize → Mean Pooling(N=8) → 최종 L2 Normalize**하여 대표 Audio Embedding 1개를 만든다.
 - 대표 벡터를 PostgreSQL + pgvector에 저장한다. Text Embedding과의 서비스 검색 연결은 후속 구현이다.
@@ -51,10 +50,11 @@ trade-off 및 이전 정책의 변경 이력은 [ADR-0007](../adr/ADR-0007-audio
 ### 정책 변경 이력
 
 - 2026-10-06 이전 승인 기준: 60~70초 권장, 짧은 입력 허용·end-aligned overlap, 가변 Chunk 수, 7초 미만 처리 미결정.
-- 2026-10-06 최종 사용자 승인: 위 정책과 별도 길이 상한을 두지 않던 설명을 현행 정책에서 폐기하고 권장 60초·허용 60~80초·고정 8 non-overlap Chunk로 대체했다. 이전 결정의 이유와 근거는 ADR-0007 변경 이력에서 확인한다.
+- 2026-10-06 사용자 승인: 권장 60초·허용 60~80초·고정 8 non-overlap Chunk를 정했다. 상세 이력은 ADR-0007을 참조한다.
+- 2026-10-23 기록의 AI 저장소 56~60초 입력안은 Linear AI-033 및 NSU-89의 60~80초 허용 범위와 충돌해 현행 정책으로 채택하지 않았습니다. 처음 56초 분석과 8개 Chunk 구성은 유지합니다.
 
 MSCLAP 공식은 2023의 7초 전처리와 similarity 정규화를 제공하지만,
-권장 60초·허용 60~80초·56초 분석·고정 Chunk 구성·두 단계 L2와 Mean Pooling은 **프로젝트 자체 정책**이다.
+허용 원본 길이는 AI-033/NSU-89를 따르며, 처음 56초 분석·고정 Chunk 구성·두 단계 L2와 Mean Pooling은 **프로젝트 기술 정책**이다.
 최종 L2는 저장 표현을 통일하는 정책이며, 내부에서 norm을 제거하는
 pgvector cosine 검색의 수학적 필수조건은 아니다.
 

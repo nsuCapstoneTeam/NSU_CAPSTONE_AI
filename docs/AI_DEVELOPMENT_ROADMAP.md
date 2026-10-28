@@ -279,7 +279,7 @@ Text Embedding
 - 생성된 벡터 저장 가능
 - 저장된 Embedding을 Similarity 계산에 사용 가능
 - ADR-0007의 길이 경계·분석 범위·고정 Chunk·aggregation·재현성을 검증하고 저장·검색에 동일 규칙이 적용됨을 확인
-- 다른 Dataset의 60~80초 입력·대상 매핑, preprocessing/generation metadata 정합화·새 방식 개발 벡터 재생성 완료; 운영 ACTIVE revision 정책과 구분
+- 과거 개발/검증 Dataset 입력·대상 매핑 및 새 방식 벡터 생성은 당시 60~80초 기준으로 완료했다. 현재 60~80초 AI 입력 범위에도 포함되는 정확한 60초 fixture는 그대로 유효하며, 운영 ACTIVE revision 정책과 구분한다.
 
 ---
 
