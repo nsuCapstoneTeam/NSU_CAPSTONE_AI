@@ -107,6 +107,14 @@ def validate_chunk_embeddings(vectors, *, expected_count=CHUNK_COUNT, expected_d
         raise ValueError('embedding_dimension_mismatch')
 
 
+def _validate_duration_frames(frame_count, sample_rate):
+    """Validate duration with exact decoded-frame boundaries, without rounding."""
+    if frame_count < MIN_AUDIO_DURATION_SECONDS * sample_rate:
+        raise ValueError('audio_duration_below_minimum')
+    if frame_count > MAX_AUDIO_DURATION_SECONDS * sample_rate:
+        raise ValueError('audio_duration_above_maximum')
+
+
 def _decode_and_chunk(path):
     """원본 길이를 decoded frame으로 검사하고 처음 56초를 8개 PCM WAV로 만든다."""
     import torchaudio
@@ -120,10 +128,7 @@ def _decode_and_chunk(path):
     frame_count = waveform.shape[1]
     source_channels = waveform.shape[0]
     # 초 단위 float 비교 대신 decoded sample count와 rate로 경계를 정확히 판정한다.
-    if frame_count < MIN_AUDIO_DURATION_SECONDS * sample_rate:
-        raise ValueError('audio_duration_below_minimum')
-    if frame_count > MAX_AUDIO_DURATION_SECONDS * sample_rate:
-        raise ValueError('audio_duration_above_maximum')
+    _validate_duration_frames(frame_count, sample_rate)
 
     analysis_frame_count = ANALYSIS_DURATION_SECONDS * sample_rate
     waveform = waveform[:, :analysis_frame_count]

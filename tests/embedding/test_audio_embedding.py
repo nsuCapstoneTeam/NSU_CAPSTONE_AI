@@ -17,6 +17,7 @@ from app.embedding.audio_embedding import (
     CALIBRATION_CHECKPOINT_REVISION,
     CALIBRATION_CHECKPOINT_SHA256,
     audio_file_sha256,
+    _validate_duration_frames,
     validate_audio_embedding,
     validate_chunk_embeddings,
 )
@@ -139,21 +140,63 @@ def test_default_loader_rejects_non_calibration_revision(monkeypatch):
 
 
 @pytest.mark.parametrize(('duration', 'accepted'), [
-    (59.9, False), (60, True), (70, True), (80, True), (80.1, False),
+    (60 * SAMPLE_RATE - 1, False),
+    (60 * SAMPLE_RATE, True),
+    (70 * SAMPLE_RATE, True),
+    (80 * SAMPLE_RATE, True),
+    (80 * SAMPLE_RATE + 1, False),
 ])
-def test_decoded_frame_duration_boundaries(tmp_path, duration, accepted):
-    path = write_audio(tmp_path / f'{duration}.wav', duration)
-    model, observed = audio_reading_model()
+def test_decoded_frame_duration_boundaries(tmp_path, monkeypatch, duration, accepted):
+    import torchaudio
+
+    saved = []
+    waveform = torch.arange(duration, dtype=torch.float32).reshape(1, -1)
+    monkeypatch.setattr(torchaudio, 'load', lambda _path: (waveform, SAMPLE_RATE))
+    monkeypatch.setattr(
+        torchaudio, 'save',
+        lambda _path, chunk, _rate, **_kwargs: saved.append(
+            (tuple(chunk.shape), float(chunk[0, 0]), float(chunk[0, -1]))
+        ),
+    )
+    path = tmp_path / 'synthetic-audio.wav'
+    path.write_bytes(b'synthetic source identity')
+    model = Mock(
+        model_fp=f'/cache/snapshots/{CALIBRATION_CHECKPOINT_REVISION}/CLAP_weights_2023.pth',
+        get_audio_embeddings=Mock(return_value=torch.ones((CHUNK_COUNT, 3))),
+    )
+    model.verified_checkpoint_sha256 = CALIBRATION_CHECKPOINT_SHA256
     generator = AudioEmbeddingGenerator(model)
     if accepted:
         result = generator.generate(path)
+        paths = model.get_audio_embeddings.call_args.args[0]
         assert result.vector.shape == (1, 3)
-        assert len(observed['calls']) == 1
+        assert len(paths) == CHUNK_COUNT == 8
+        assert result.metadata['source_duration_seconds'] == pytest.approx(duration / SAMPLE_RATE)
+        assert [entry[0] for entry in saved] == [(1, 7 * SAMPLE_RATE)] * CHUNK_COUNT
+        assert [entry[1] for entry in saved] == [index * 7 * SAMPLE_RATE for index in range(CHUNK_COUNT)]
+        assert saved[-1][2] == 56 * SAMPLE_RATE - 1
     else:
-        expected = 'audio_duration_below_minimum' if duration < 60 else 'audio_duration_above_maximum'
+        expected = 'audio_duration_below_minimum' if duration < 60 * SAMPLE_RATE else 'audio_duration_above_maximum'
         with pytest.raises(AudioEmbeddingError, match=expected):
             generator.generate(path)
+        assert saved == []
         model.get_audio_embeddings.assert_not_called()
+
+
+@pytest.mark.parametrize('sample_rate', [8_000, 22_050, 44_100, 48_000])
+@pytest.mark.parametrize(('seconds', 'frame_offset', 'accepted'), [
+    (60, -1, False), (60, 0, True), (80, -1, True), (80, 0, True), (80, 1, False),
+])
+def test_duration_frame_boundaries_are_exact_for_supported_rates(
+    sample_rate, seconds, frame_offset, accepted,
+):
+    frame_count = seconds * sample_rate + frame_offset
+    if accepted:
+        _validate_duration_frames(frame_count, sample_rate)
+    else:
+        expected = 'audio_duration_below_minimum' if seconds == 60 else 'audio_duration_above_maximum'
+        with pytest.raises(ValueError, match=expected):
+            _validate_duration_frames(frame_count, sample_rate)
 
 
 def test_exact_chunk_count_boundaries_and_non_overlap(tmp_path):

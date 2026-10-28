@@ -51,11 +51,18 @@ def load_candidates(manifest_path, query_path):
     return candidates, excluded, query_hash
 
 
+def _audio_error_detail(error):
+    if error.reason in ('audio_duration_below_minimum', 'audio_duration_above_maximum'):
+        return f'{error.reason} (decoded duration must be 60-80 seconds inclusive)'
+    return error.reason
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--audio', type=Path, required=True)
+    parser.add_argument('--audio', type=Path, required=True,
+                        help='query audio; decoded duration must be 60-80 seconds inclusive')
     parser.add_argument('--manifest', type=Path, required=True,
-                        help='JSON tracks with integer track_id and audio_path; relative paths use current directory')
+                        help='JSON tracks with integer track_id and audio_path; every candidate must decode to 60-80 seconds inclusive; relative paths use current directory')
     parser.add_argument('--output', type=Path, required=True, help='New JSON file, never overwritten')
     parser.add_argument('--top-k', type=int, default=5)
     args = parser.parse_args()
@@ -73,7 +80,7 @@ def main():
             query_result = generator.generate(args.audio, expected_sha256=query_hash)
         except AudioEmbeddingError as error:
             print(
-                f'Error: query audio embedding failed: {error.reason} ({error.audio_path})',
+                f'Error: query audio embedding failed: {_audio_error_detail(error)} ({error.audio_path})',
                 file=sys.stderr,
             )
             return 1
@@ -87,7 +94,7 @@ def main():
             except AudioEmbeddingError as error:
                 print(
                     f"Error: candidate track_id={track['track_id']} audio embedding failed: "
-                    f'{error.reason} ({error.audio_path})',
+                    f'{_audio_error_detail(error)} ({error.audio_path})',
                     file=sys.stderr,
                 )
                 return 1
