@@ -203,7 +203,7 @@ Cosine Similarity
 
 현재 Audio 공통 생성·테이블·동기 저장·DB 후보 검색 CLI를 구현했습니다.
 Audio 공통 생성기는 승인된 [ADR-0007](adr/ADR-0007-audio-highlight-embedding-strategy.md)의
-60~80초 validation 및 고정 8 chunk 대표 벡터 생성 정책을 적용합니다.
+56~60초 inclusive validation 및 고정 8 chunk 대표 벡터 생성 정책을 적용합니다.
 실제 권리 확인 Phase A 6곡의 MSCLAP 생성 경로 기술 검증과 [전용 PostgreSQL/pgvector 통합 검증](experiments/audio-embedding-postgres-validation/README.md)은 완료했습니다. 별도의 50곡 calibration cohort Audio/Text Embedding·raw cosine·청취 분석도 완료했으며 자세한 결과는 [calibration 기록](experiments/audio-similarity-calibration/README.md)에 있습니다.
 음악 입력은 동기로 처리합니다. Spring 업무 API 구현은 Accepted 012/014 정책을 기준으로 후속 진행하며, 내부 DTO의 미정 계약을 이 Roadmap에서 새로 확정하지 않습니다.
 [저장 안내](guides/EMBEDDING_STORAGE.md), [DB 검색 검증](guides/DATABASE_AUDIO_SEARCH.md)을 참고합니다.
@@ -213,7 +213,7 @@ Phase 3 전체 완료를 의미하지 않습니다.
 남은 작업:
 - [x] 기존 30초 FMA와 다른 Phase A Dataset의 로컬 MSCLAP 기술 검증용 출처·라이선스 확인(사용자 확인 근거) 및 60초 적격 fixture 준비·길이 검증
 - [ ] 개발 벡터 재생성 대상과 새 입력 매핑 확인: 같은 FMA 원본으로 재생성하지 않음
-- [x] ADR-0007 D1에 따른 decoded sample frame 기준 60~80초 inclusive 길이 validation 구현
+- [x] 최신 Audio 입력 기준에 따른 decoded sample frame 기준 56~60초 inclusive 길이 validation 구현
 - [x] ADR-0007 D2·D3·D4에 따른 처음 56초 사용 및 7초 × 8개 non-overlap Chunk 생성
 - [x] ADR-0007 D6·D7·D8에 따른 Chunk별 L2 → Mean Pooling(N=8) → 최종 L2 및 대표 벡터 1개 생성
 - [x] 저장·검색의 공통 생성 경로와 preprocessing/generation metadata 정합화
@@ -284,7 +284,7 @@ Text Embedding
 - 생성된 벡터 저장 가능
 - 저장된 Embedding을 Similarity 계산에 사용 가능
 - ADR-0007의 길이 경계·분석 범위·고정 Chunk·aggregation·재현성을 검증하고 저장·검색에 동일 규칙이 적용됨을 확인
-- 과거 개발/검증 Dataset 입력·대상 매핑 및 새 방식 벡터 생성은 당시 60~80초 기준으로 완료했다. 현재 60~80초 AI 입력 범위에도 포함되는 정확한 60초 fixture는 그대로 유효하며, 운영 ACTIVE revision 정책과 구분한다.
+- 과거 개발/검증 Dataset 입력·대상 매핑 및 새 방식 벡터 생성은 당시 60~80초 기준으로 완료했다. 현재 56~60초 AI 입력 범위에도 포함되는 정확한 60초 fixture는 그대로 유효하며, 운영 ACTIVE revision 정책과 구분한다. Linear AI-033 / NSU-89의 60~80초 문구는 최신 사용자 결정과 불일치하므로 후속 동기화 대상이다.
 
 ---
 

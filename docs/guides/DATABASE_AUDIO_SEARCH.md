@@ -3,7 +3,7 @@
 ## 새 ADR-0007 개발/검증의 입력 선행조건
 
 FMA Historical PoC의 핵심 실험 근거는 Markdown으로 보존하고, 원본·manifest·상세 결과는 2026-10-09 Cleanup에서 삭제한다.
-새 개발/검증에는 **FMA와 다른 Dataset의 60~80초(양 경계 포함) 입력**을 사용한다.
+새 개발/검증에는 **56~60초(양 경계 포함) 입력**을 사용한다.
 [Phase A](../experiments/audio-highlight-phase-a/README.md)의 6곡·60초 fixture와 Phase A 범위 출처·라이선스 확인은 완료됐다. [실제 6곡 MSCLAP 생성 경로 기술 검증](../experiments/audio-highlight-msclap-validation/README.md)과 [PostgreSQL/pgvector 통합 검증](../experiments/audio-embedding-postgres-validation/README.md)은 2026-10-09 완료했다. 통합 검증은 승인된 `abs=1e-6`, `rtol=0` cosine 수치 parity와 별개인 정확한 ranking parity를 적용했다. 이는 사용자 표시용 0~100 calibration이나 검색 품질 검증을 완료했다는 뜻이 아니다.
 기존 FMA를 임의 반복·padding해서 새 검증 입력으로 바꾸지 않는다.
 
@@ -15,7 +15,7 @@ ADR-0007의 정책·Decision은 그대로이며 Dataset 절차는 Roadmap/Guide�
 
 
 현재 DB 검색은 query 음악도 저장 시와 같은 공통 AudioEmbeddingGenerator로 생성합니다.
-60~80초 validation 후 처음 56초를 7초 × 8개 non-overlap Chunk로 나누고,
+56~60초 validation 후 처음 56초를 7초 × 8개 non-overlap Chunk로 나누고,
 MSCLAP batch Embedding → Chunk L2 → Mean Pooling(N=8) → Final L2 순서로
 단일 대표 벡터를 만듭니다. 아래 실제 검증 결과와 저장된 개발 벡터는 이전 generation의 historical 기록입니다.
 

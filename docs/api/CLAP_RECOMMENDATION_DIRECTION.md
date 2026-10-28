@@ -56,7 +56,7 @@ event 등록 → 발급된 eventId로 추천 요청(본문 없음)
 
 ## 현재 구현과 남은 계약
 
-현재 AI 공통 AudioEmbeddingGenerator는 ADR-0007에 기록한 저장소 범위의 56~60초 validation과 처음 56초의 고정 8 Chunk 집계를 적용한다. 이는 Spring 업로드/API validation 계약까지 갱신되었음을 뜻하지 않는다. 파일/DB 검색 CLI, 임시 표시 점수, Health API도 구현되어 있다.
+현재 AI 공통 AudioEmbeddingGenerator는 ADR-0007에 기록한 저장소 범위의 56~60초 inclusive validation과 처음 56초의 고정 8 Chunk 집계를 적용한다. Linear AI-033 / NSU-89의 기존 60~80초 문구는 후속 동기화 대상이며, 이는 Spring 업로드/API validation 계약까지 갱신되었음을 뜻하지 않는다. 파일/DB 검색 CLI, 임시 표시 점수, Health API도 구현되어 있다.
 전체 통과 ACTIVE 후보 쌍 입력을 받는 HTTP 흐름, 최대 100곡 반환, 화면·매칭 버튼은 아직 구현 전이다. 전체 후보 입력은 전체 결과 반환을 뜻하지 않는다.
 현재 CLI Top5·DB `top_k` 상한·과거 측정값은 로컬 검증 범위이며 새 서비스 목표의 반환 정책으로 취급하지 않는다.
 
