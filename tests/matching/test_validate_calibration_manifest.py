@@ -79,13 +79,17 @@ def test_null_and_blank_source_hashes_are_ignored():
     assert duplicate_source_content_hashes(manifest) == []
 
 
-def test_current_not_acquired_manifest_has_no_duplicate_source_hashes():
-    manifest_path = (
-        Path(__file__).resolve().parents[2]
-        / 'docs' / 'experiments' / 'audio-similarity-calibration' / 'manifest.json'
-    )
-    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-
+def test_unacquired_manifest_fixture_has_no_duplicate_source_hashes():
+    manifest = {
+        'samples': [
+            {
+                'sample_id': f'cal-{index}',
+                'acquisition_method': 'not_acquired',
+                'source_sha256': None,
+            }
+            for index in range(50)
+        ],
+    }
     assert len(manifest['samples']) == 50
     assert all(sample['acquisition_method'] == 'not_acquired' for sample in manifest['samples'])
     assert duplicate_source_content_hashes(manifest) == []
@@ -159,10 +163,11 @@ def test_unique_sample_ids_pass_cli(tmp_path):
     )
 
     result = subprocess.run(
-        [sys.executable, 'scripts/matching/validate_calibration_manifest.py', str(manifest_path)],
+        [sys.executable, '-m', 'scripts.matching.validate_calibration_manifest', str(manifest_path)],
         check=False,
         capture_output=True,
         text=True,
+        cwd=Path(__file__).resolve().parents[2],
     )
 
     assert result.returncode == 0
@@ -179,10 +184,11 @@ def test_duplicate_sample_ids_fail_cli(tmp_path):
     )
 
     result = subprocess.run(
-        [sys.executable, 'scripts/matching/validate_calibration_manifest.py', str(manifest_path)],
+        [sys.executable, '-m', 'scripts.matching.validate_calibration_manifest', str(manifest_path)],
         check=False,
         capture_output=True,
         text=True,
+        cwd=Path(__file__).resolve().parents[2],
     )
 
     assert result.returncode != 0

@@ -14,13 +14,15 @@ from scripts.datasets.highlight_dataset import sha256
 from scripts.embedding import generate_calibration_audio_embeddings as audio_runner
 from scripts.matching import prepare_calibration_audio as preparation
 from scripts.matching import register_calibration_audio as registration
+from tests.helpers.calibration import load_unacquired_manifest_fixture
 
 
 SAMPLE_IDS = ['cal-incompetech-mandeville', 'cal-incompetech-lasting-hope']
 
 
 def _base_manifest():
-    return json.loads(registration.DEFAULT_MANIFEST.read_text(encoding='utf-8'))
+    # Reuse the test-only independent manifest fixture, never the acquired canonical state.
+    return load_unacquired_manifest_fixture()
 
 
 def _register_and_prepare(root, sample_id, seed):
