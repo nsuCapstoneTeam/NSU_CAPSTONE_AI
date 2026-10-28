@@ -10,7 +10,10 @@
 $OutputEncoding = [Console]::OutputEncoding
 $ErrorActionPreference = "Stop"
 
-# Git 저장소 루트 확인
+# ------------------------------------------------------------
+# 1. Main 저장소 확인
+# ------------------------------------------------------------
+
 $repo = git rev-parse --show-toplevel
 
 if (-not $repo) {
@@ -20,15 +23,13 @@ if (-not $repo) {
 
 $repo = $repo.Trim()
 
-# main branch 확인
 $currentBranch = (git branch --show-current).Trim()
 
 if ($currentBranch -ne "main") {
-    Write-Error "Main worktree의 main branch에서 실행해야 합니다."
+    Write-Error "Main worktree의 main branch에서 실행해야 합니다. 현재 branch: $currentBranch"
     exit 1
 }
 
-# Main clean 확인
 $status = git status --porcelain
 
 if ($status) {
@@ -36,7 +37,10 @@ if ($status) {
     exit 1
 }
 
-# Worker 정보 계산
+# ------------------------------------------------------------
+# 2. Worker 정보 계산
+# ------------------------------------------------------------
+
 $issueSlug = $Issue.ToLower()
 $nameSlug = $Name.ToLower()
 
@@ -46,25 +50,17 @@ $repoName = Split-Path $repo -Leaf
 $workerPath = Join-Path $parent "$repoName-$issueSlug"
 $workerBranch = "feat/$issueSlug-$nameSlug"
 
-if (-not (Test-Path $workerPath)) {
-    Write-Error "Worker worktree가 존재하지 않습니다: $workerPath"
-    exit 1
-}
-
-# Worker clean 확인
 Write-Host ""
-Write-Host "Worker 상태를 확인합니다..."
+Write-Host "Worker 정리 대상"
+Write-Host "Branch   : $workerBranch"
+Write-Host "Worktree : $workerPath"
 
-$workerStatus = git -C $workerPath status --porcelain
+# ------------------------------------------------------------
+# 3. Main 최신화
+# ------------------------------------------------------------
 
-if ($workerStatus) {
-    Write-Error "Worker working tree가 clean 상태가 아닙니다. Worker를 삭제하지 않습니다."
-    exit 1
-}
-
-# origin/main 최신화
 Write-Host ""
-Write-Host "Main을 최신 상태로 갱신합니다..."
+Write-Host "origin/main 최신 상태를 확인합니다..."
 
 git fetch origin
 
@@ -80,43 +76,138 @@ if ($LASTEXITCODE -ne 0) {
     exit $LASTEXITCODE
 }
 
-# VS Code Workspace에서 Worker 제거
-Write-Host ""
-Write-Host "VS Code Workspace에서 Worker를 제거합니다..."
+# ------------------------------------------------------------
+# 4. Worker branch 존재 여부 확인
+# ------------------------------------------------------------
 
-code --remove $workerPath
+$branchExists = git branch --list $workerBranch
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Warning "VS Code Workspace에서 Worker 제거에 실패했습니다."
+if (-not $branchExists) {
+    Write-Host ""
+    Write-Host "Local feature branch는 이미 제거되어 있습니다."
+}
+else {
+    # --------------------------------------------------------
+    # 5. Worker branch가 main에 merge됐는지 확인
+    # --------------------------------------------------------
+
+    git merge-base --is-ancestor $workerBranch main
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Worker branch가 아직 main에 merge되지 않았습니다. Worker를 삭제하지 않습니다."
+        exit 1
+    }
+
+    Write-Host ""
+    Write-Host "Worker branch가 main에 merge된 것을 확인했습니다."
 }
 
-# Git worktree 제거
-Write-Host ""
-Write-Host "Worker worktree를 제거합니다..."
+# ------------------------------------------------------------
+# 6. Worker working tree 상태 확인
+# ------------------------------------------------------------
 
-git worktree remove $workerPath
+if (Test-Path $workerPath) {
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Worker worktree 제거에 실패했습니다."
-    exit $LASTEXITCODE
+    Write-Host ""
+    Write-Host "Worker working tree 상태를 확인합니다..."
+
+    $workerStatus = git -C $workerPath status --porcelain
+
+    if ($workerStatus) {
+        Write-Error "Worker working tree가 clean 상태가 아닙니다. Worker를 삭제하지 않습니다."
+        exit 1
+    }
+}
+else {
+    Write-Host ""
+    Write-Host "Worker 디렉터리는 이미 제거되어 있습니다."
 }
 
-# Local feature branch 제거
-Write-Host ""
-Write-Host "Local feature branch를 제거합니다..."
+# ------------------------------------------------------------
+# 7. VS Code Workspace에서 Worker 제거
+# ------------------------------------------------------------
 
-git branch -d $workerBranch
+if (Test-Path $workerPath) {
 
-if ($LASTEXITCODE -ne 0) {
-    Write-Warning "Local branch를 삭제하지 못했습니다. merge 여부를 확인하세요."
+    Write-Host ""
+    Write-Host "VS Code Workspace에서 Worker를 제거합니다..."
+
+    code --remove $workerPath
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warning "VS Code Workspace에서 Worker 제거에 실패했습니다."
+    }
 }
 
-# Worktree metadata 정리
+# ------------------------------------------------------------
+# 8. Git worktree 제거
+# ------------------------------------------------------------
+
+$normalizedWorkerPath = $workerPath.Replace('\', '/')
+$worktreeList = git worktree list --porcelain
+
+$workerRegistered =
+    $worktreeList -match [regex]::Escape($normalizedWorkerPath)
+
+if ($workerRegistered) {
+
+    Write-Host ""
+    Write-Host "Worker worktree를 제거합니다..."
+    Write-Host "삭제가 실패하면 Worker Codex/터미널이 해당 폴더를 사용 중인지 확인하세요."
+
+    git worktree remove $workerPath
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Worker worktree 제거에 실패했습니다. Worker 터미널 또는 Codex를 종료한 뒤 다시 실행하세요."
+        exit $LASTEXITCODE
+    }
+}
+else {
+    Write-Host ""
+    Write-Host "Git worktree 등록은 이미 제거되어 있습니다."
+}
+
+# ------------------------------------------------------------
+# 9. stale worktree metadata 정리
+# ------------------------------------------------------------
+
 git worktree prune
+
+# ------------------------------------------------------------
+# 10. Local feature branch 제거
+# ------------------------------------------------------------
+
+$branchExists = git branch --list $workerBranch
+
+if ($branchExists) {
+
+    Write-Host ""
+    Write-Host "Local feature branch를 제거합니다..."
+
+    git branch -d $workerBranch
+
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Local feature branch 제거에 실패했습니다."
+        exit $LASTEXITCODE
+    }
+}
+else {
+    Write-Host ""
+    Write-Host "Local feature branch는 이미 제거되어 있습니다."
+}
+
+# ------------------------------------------------------------
+# 11. 최종 상태 확인
+# ------------------------------------------------------------
+
+Write-Host ""
+Write-Host "최종 상태를 확인합니다..."
+
+git worktree list
 
 Write-Host ""
 Write-Host "Worker 정리 완료"
 Write-Host "Branch   : $workerBranch"
 Write-Host "Worktree : $workerPath"
 Write-Host ""
-Write-Host "Worker Codex 터미널이 남아 있으면 VS Code 터미널의 휴지통 버튼으로 종료하세요."
+Write-Host "VS Code에 종료된 Worker 터미널이 남아 있으면 해당 터미널만 닫으세요."
