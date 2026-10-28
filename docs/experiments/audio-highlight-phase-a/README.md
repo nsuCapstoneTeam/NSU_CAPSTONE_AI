@@ -17,10 +17,10 @@ libsndfile FLOAT WAV writer의 PEAK chunk에는 생성 시각이 들어가 파�
 프로젝트 루트에서 실행한다. 이번 Windows 검증은 아래 기존 가상환경을 사용했다. 환경별 Python 실행 경로는 달라질 수 있다. 새 dependency를 설치하거나 requirements를 변경하지 않았다.
 
 ```powershell
-& ./tmp/review-venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check source --report datasets/audio-highlight-validation/results/source-validation.json
-& ./tmp/review-venv/Scripts/python.exe -B -m scripts.datasets.prepare_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --report datasets/audio-highlight-validation/results/preparation.json
-& ./tmp/review-venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check highlights --report datasets/audio-highlight-validation/results/highlight-validation.json
-& ./tmp/review-venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check highlights --repeat --report datasets/audio-highlight-validation/results/reproducibility.json
+& ./.venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check source --report datasets/audio-highlight-validation/results/source-validation.json
+& ./.venv/Scripts/python.exe -B -m scripts.datasets.prepare_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --report datasets/audio-highlight-validation/results/preparation.json
+& ./.venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check highlights --report datasets/audio-highlight-validation/results/highlight-validation.json
+& ./.venv/Scripts/python.exe -B -m scripts.datasets.validate_audio_highlights --manifest docs/experiments/audio-highlight-phase-a/manifest.json --check highlights --repeat --report datasets/audio-highlight-validation/results/reproducibility.json
 ```
 
 `prepare`는 기존 출력이 있으면 실패하며 덮어쓰기 옵션을 제공하지 않는다. 이미 생성된 Dataset에서는 `validate`를 실행한다. `validate`는 기본적으로 파일을 수정하지 않는다. `--report`를 명시하면 새 JSON만 기록하며 기존 report도 덮어쓰지 않는다. 다른 실행의 결과를 보존하려면 새 report 이름을 사용한다. 출력 생성 중 실패한 파일도 임의 삭제하지 않으므로 오류 결과를 확인한 후 별도로 처리한다.
