@@ -4,7 +4,7 @@
 
 일반적인 코딩 원칙, 최소 변경 원칙, 단순성, 구현 전 사고 및 검증 가능한 목표 설정은 상위 `~/.codex/AGENTS.md`를 따른다.
 
-이 문서에는 NSU_CAPSTONE_AI 프로젝트에서만 필요한 authority, Linear, ADR/SSOT, Main/Worker, Git worktree 및 승인 흐름을 정의한다.
+이 문서에는 NSU_CAPSTONE_AI 프로젝트에서만 필요한 Authority, Linear, ADR/SSOT, Main/Worker Agent Session, Git Worktree 및 승인 흐름을 정의한다.
 
 ---
 
@@ -21,7 +21,7 @@
 - 최종 보고
 - 미결정 사항
 
-코드, 명령어, 파일명, 경로, 함수/클래스/변수명, API field, library/model 이름은 원문을 유지할 수 있다.
+코드, 명령어, 파일명, 경로, 함수/클래스/변수명, API field, library/framework/model 이름은 원문을 유지할 수 있다.
 
 Commit message는 다음 형식을 사용한다.
 
@@ -33,7 +33,7 @@ feat(embedding): Audio Highlight 입력 검증 구현
 fix(search): 검색 결과 validation 오류 수정
 docs: Audio Embedding 정책 정합화
 test: Calibration fixture 독립성 보강
-chore: 테스트 실행 환경 정리
+chore: 개발 환경 정리
 
 ---
 
@@ -55,7 +55,7 @@ chore: 테스트 실행 환경 정리
 
 ## `scripts/`
 
-개발·검증용 CLI와 개발 자동화 스크립트를 둔다.
+개발·검증용 CLI와 실험 실행 도구를 둔다.
 
 주요 역할:
 
@@ -64,7 +64,9 @@ chore: 테스트 실행 환경 정리
 - `app/` 기능 호출
 - 결과/report 출력
 - exit code 처리
-- 개발 workflow 자동화
+- 실험 실행 orchestration
+
+VS Code Agent Session이나 Git Worktree lifecycle을 자체 스크립트로 중복 구현하지 않는다.
 
 ## `tests/`
 
@@ -91,7 +93,7 @@ AI 개발 순서와 현재 단계는 다음 문서를 우선 참고한다.
 
 # 3. Authority / SSOT
 
-정보 종류별 authority는 다음과 같다.
+정보 종류별 Authority는 다음과 같다.
 
 ## 서비스 전체 요구사항 / 공통 용어
 
@@ -112,7 +114,7 @@ AI 개발 순서와 현재 단계는 다음 문서를 우선 참고한다.
 - tests
 - `docs/guides/`
 
-## 실험 및 검증 evidence
+## 실험 및 검증 Evidence
 
 - `docs/experiments/`
 
@@ -123,6 +125,8 @@ AI 개발 순서와 현재 단계는 다음 문서를 우선 참고한다.
 SSOT는 반드시 `SSOT.md`라는 단일 파일을 의미하지 않는다.
 
 각 정보의 현재 authoritative source를 확인한다.
+
+Authority가 다른 문서끼리 충돌하면 최신처럼 보이는 문장을 임의로 선택하지 않는다.
 
 ---
 
@@ -146,7 +150,7 @@ Linear와 `NSU_CAPSTONE`은 기본적으로 READ-ONLY reference다.
 
 - Linear Issue
 - Issue status
-- comment
+- Linear comment
 - Requirements
 - 서버간 공통 협의 사항
 - 용어집
@@ -155,11 +159,13 @@ Linear와 `NSU_CAPSTONE`은 기본적으로 READ-ONLY reference다.
 
 접근할 수 없는 Linear 정보를 최신이라고 추측하지 않는다.
 
+서버 계약이나 ownership 등 Linear Authority에 의존하는 작업은 Authority를 확인할 수 없으면 해당 정책 결정을 보류한다.
+
 ---
 
 # 5. 현재 검색 입력 책임
 
-현재 검색 입력 흐름은 다음을 따른다.
+현재 검색 입력 목표 흐름은 다음과 같다.
 
 Spring predefined mapping
 → canonical English input
@@ -167,22 +173,49 @@ Spring predefined mapping
 → MSCLAP Text Embedding
 → similarity / search / ranking
 
-현재 검색 입력에서 AI는 다음을 수행하지 않는다.
+현재 검색 입력에서 AI는 다음을 수행하지 않는 방향이다.
 
 - OPUS-MT 번역
 - M2M100 번역
 - Qwen/LLM 기반 자연어 해석
 - Spring canonical input의 의미 재해석
 
+단, Linear 서버 협의의 Accepted/Proposed 상태를 반드시 확인한다.
+
+현재 코드 또는 ADR의 목표 상태와 서버 간 계약 Authority가 충돌하면 계약이 확정됐다고 가정하여 API를 구현하지 않는다.
+
 자유 자연어 검색이 다시 필요해질 경우 별도 서버 협의와 ADR을 통해 결정한다.
 
-추천 이유 설명용 LLM 가능성과 검색 입력 변환 책임은 별개의 문제로 취급한다.
+추천 이유 설명용 LLM과 검색 입력 변환 책임은 별개의 문제로 취급한다.
 
 ---
 
-# 6. AI Repository 책임 범위
+# 6. Audio Highlight 현재 기준
 
-AI 저장소가 독립적으로 관리할 수 있는 영역:
+현재 Repository의 Audio Highlight 기준은 다음과 같다.
+
+- 사용자 업로드 허용 길이: 56초 이상 60초 이하
+- 실제 분석 구간: 처음 56초
+- chunk 길이: 7초
+- chunk 수: 8개
+- chunk 간 overlap 없음
+- 각 Chunk Embedding L2 normalization
+- 8개 Chunk Mean Pooling
+- 최종 대표 Embedding L2 normalization
+
+다음은 현재 채택된 처리 방식으로 사용하지 않는다.
+
+- 60~80초 입력 정책
+- 9 chunks
+- 53~60초 overlap chunk
+
+과거 Linear, Requirement 또는 문서에 이전 정책이 남아 있으면 현재 코드로 되돌리는 근거로 사용하지 않고 Authority 충돌로 보고한다.
+
+---
+
+# 7. AI Repository 책임 범위
+
+AI 저장소가 독립적으로 관리할 수 있는 주요 영역:
 
 - MSCLAP
 - Audio/Text Embedding
@@ -194,6 +227,7 @@ AI 저장소가 독립적으로 관리할 수 있는 영역:
 - AI-side validation
 - pgvector 기반 AI 검색
 - similarity 계산
+- BPM/Rhythm 기술 검증
 - model/checkpoint
 - preprocessing version
 - generation version/profile
@@ -209,24 +243,31 @@ AI 저장소가 서비스 전체 정책으로 독립 결정하지 않는 영역:
 - Backend lifecycle/state
 - 서비스 전체 score 조합
 - 미합의 API 계약
+- 서버 간 데이터 ownership
+
+API boundary 또는 AI 내부 구현 문서는 유지할 수 있다.
+
+다만 서비스 전체 정책이나 서버 간 계약을 AI 저장소에서 새로 확정하지 않는다.
 
 ---
 
-# 7. Authority 충돌 처리
+# 8. Authority 충돌 처리
 
-Linear, ADR, Guide, 실제 코드, tests 사이에 충돌이 있으면 먼저 다음을 확인한다.
+Linear, ADR, Guide, Roadmap, 실제 코드, tests 사이에 충돌이 있으면 다음을 확인한다.
 
 1. 무엇이 충돌하는가
-2. 각 내용이 어느 source에 있는가
-3. 각 source의 현재 상태는 무엇인가
-4. 해당 결정의 authority는 어디인가
+2. 각 내용이 어느 Source에 있는가
+3. 각 Source의 현재 상태는 무엇인가
+4. 해당 결정의 Authority는 어디인가
 5. 현재 작업에 어떤 영향을 주는가
 
-현재 accepted policy를 확정할 수 없으면 사용자에게 보고하고 해당 정책 변경을 보류한다.
+현재 Accepted Policy를 확정할 수 없으면 사용자에게 보고하고 관련 구현을 보류한다.
+
+충돌을 해결하기 위해 임의로 ADR, Linear 또는 API 계약을 수정하지 않는다.
 
 ---
 
-# 8. Embedding 공통 기준
+# 9. Embedding 공통 기준
 
 Audio Embedding 저장과 검색은 동일한 공통 Embedding generator를 사용한다.
 
@@ -244,9 +285,11 @@ Embedding 관련 작업에서는 필요한 경우 다음을 확인한다.
 
 서로 다른 preprocessing 또는 generation profile의 Embedding을 실수로 비교하지 않는다.
 
+모델에서 관측된 값을 근거 없이 영구 프로젝트 상수로 새로 정의하지 않는다.
+
 ---
 
-# 9. Data / Evidence
+# 10. Data / Evidence
 
 다음 destructive data 작업은 사용자 승인 없이 수행하지 않는다.
 
@@ -272,11 +315,15 @@ Embedding 관련 작업에서는 필요한 경우 다음을 확인한다.
 
 대용량 vector, model cache, 원본 Audio 및 중간 artifact는 필요성을 확인하지 않고 Git에 추가하지 않는다.
 
-완료된 실험의 핵심 결과는 가능한 경우 Markdown에 요약한다.
+완료된 실험의 핵심 결과는 가능한 경우 Markdown으로 사람이 검토할 수 있게 요약한다.
+
+Machine-readable evidence가 필요하면 JSON, CSV 등 적절한 형식을 별도로 사용한다.
+
+Mock 또는 synthetic 결과를 실제 모델/실제 데이터 검증 결과로 표현하지 않는다.
 
 ---
 
-# 10. ADR 규칙
+# 11. ADR 규칙
 
 ADR은 중요한 기술 결정과 그 이유를 기록한다.
 
@@ -293,23 +340,35 @@ ADR은 중요한 기술 결정과 그 이유를 기록한다.
 
 확정된 ADR Decision을 구현 중 임의로 변경하지 않는다.
 
-변경 필요성이 있으면 사용자에게 변경 이유와 영향 범위를 먼저 보고한다.
+ADR 변경이 필요해 보이면 변경 이유, Authority, 영향 범위를 먼저 사용자에게 보고한다.
+
+ADR은 단순 사용법 문서로 사용하지 않는다.
 
 ---
 
-# 11. 작업 시작 전 Main 조사
+# 12. 작업 시작 전 Main 조사
 
-Main Agent는 새 작업을 받으면 구현 전에 최소 다음을 확인한다.
+Main Agent는 새로운 작업을 받으면 구현 전에 현재 상태부터 조사한다.
 
 ## Git
 
+최소 다음을 확인한다.
+
+- 현재 worktree
 - current branch
 - local HEAD
+- origin/main
 - working tree
-- staged / unstaged / untracked
-- 필요 시 remote HEAD
+- staged 변경
+- unstaged 변경
+- untracked 변경
+- 현재 Worktree 목록
+- 관련 local/remote branch
+- 관련 PR
 
 ## Repository
+
+최소 다음을 확인한다.
 
 - 관련 코드
 - tests
@@ -318,8 +377,11 @@ Main Agent는 새 작업을 받으면 구현 전에 최소 다음을 확인한�
 - API/interface
 - Roadmap
 - experiment 문서
+- 최근 관련 변경사항
 
-## External authority
+## External Authority
+
+최소 다음을 확인한다.
 
 - 관련 Linear Issue
 - 서버간 공통 협의 사항
@@ -329,178 +391,232 @@ Main Agent는 새 작업을 받으면 구현 전에 최소 다음을 확인한�
 
 이 조사는 별도의 사용자 승인 없이 수행한다.
 
+기억이나 과거 대화만을 기준으로 현재 구현 상태를 단정하지 않는다.
+
 ---
 
-# 12. 변경안 및 작업 예정 내용
+# 13. 변경안 및 작업 예정 내용
 
-실제 구현 전에 Main Agent는 반드시 다음 제목으로 계획을 작성한다.
+실제 구현 전에 Main Agent는 반드시 다음 제목으로 사용자에게 계획을 작성한다.
 
-변경안 및 작업 예정 내용
+`변경안 및 작업 예정 내용`
 
-최소 포함:
+최소 다음을 포함한다.
 
 - 무엇을 변경하는가
 - 왜 필요한가
-- 어떤 authority/evidence에 근거하는가
+- 어떤 Authority/Evidence에 근거하는가
+- 예상 변경 범위
 - 예상 변경 파일
 - 파일별 변경 이유
 - 테스트 계획
+- 문서 변경 필요 여부
 - 위험 요소
 - 미결정 사항
-- Worker branch/worktree 이름
+- 권장 Worker Session 이름
 
-이 단계에서는 구현하지 않는다.
+이 단계에서는 실제 구현을 시작하지 않는다.
 
-사용자의 명시적 승인 후 Worker 작업을 시작한다.
+다음을 수행하지 않는다.
 
----
+- 기능 코드 수정
+- Worker Worktree 생성
+- Worker Session 시작
+- commit
+- push
+- PR
+- merge
 
-# 13. Main / Worker Workflow
-
-## Main worktree
-
-기본 Main worktree:
-
-D:\WorkSpace\NSU_CAPSTONE_AI
-
-기본 branch:
-
-main
-
-Main은 다음 역할만 담당한다.
-
-- 요구사항 분석
-- Linear/GitHub/ADR/SSOT 조사
-- 구현 계획 작성
-- Worker orchestration
-- Worker 결과 독립 리뷰
-- PR/merge 이후 cleanup
-
-Main은 `main`에서 기능 구현 코드를 직접 수정하지 않는다.
+사용자의 명시적 승인 후 Worker Agent Session을 시작한다.
 
 ---
 
-## Worker worktree
+# 14. Main Agent 역할
 
-사용자가 구현 계획을 승인하면 Main Agent가 작업별 feature branch와 worktree를 생성한다.
+Main Agent는 Planner, Orchestrator, Reviewer 역할을 담당한다.
 
-형식:
-
-Branch:
-feat/<issue-or-task>-<short-name>
-
-Worktree:
-D:\WorkSpace\NSU_CAPSTONE_AI-<issue-or-task>
+Main Agent의 기본 작업 공간은 `main` branch의 기본 Repository다.
 
 예:
 
-Branch:
-feat/nsuai-27-matching-api
+D:\WorkSpace\NSU_CAPSTONE_AI
 
-Worktree:
-D:\WorkSpace\NSU_CAPSTONE_AI-nsuai-27
+Main Agent의 역할:
 
-worktree는 최신 `main` 기준으로 생성한다.
+- 요구사항 분석
+- Git/Repository 상태 조사
+- Linear 확인
+- GitHub 확인
+- ADR/SSOT 확인
+- 작업 범위 결정
+- 구현 계획 작성
+- Worker Session 작업 명세 작성
+- Worker 진행 상태 확인
+- Worker 결과 독립 리뷰
+- PR/CI 검토
+- Integration 여부 판단
 
-서로 관계없는 작업을 하나의 Worker worktree에 섞지 않는다.
+Main Agent는 `main` worktree에서 기능 구현 코드를 직접 수정하지 않는다.
 
----
+Worker Review에서 문제가 발견되어도 Main이 직접 Worker 코드를 수정하지 않는다.
 
-# 14. Worker 자동화 스크립트
-
-새 Worker 환경 생성은 가능한 경우 다음 스크립트를 사용한다.
-
-scripts/dev/start-worker.ps1
-
-사용 예:
-
-.\scripts\dev\start-worker.ps1 `
-  -Issue "nsuai-27" `
-  -Name "matching-api"
-
-`start-worker.ps1`의 역할:
-
-- Main branch 여부 확인
-- Main working tree clean 여부 확인
-- `origin` fetch
-- feature branch 생성
-- Git worktree 생성
-- VS Code Workspace에 Worker folder 추가
-- Worker 전용 local VS Code task 생성
-- Worker Codex terminal 실행 준비
-
-Main Agent가 동일한 작업을 매번 수동으로 반복하지 않는다.
-
-Worker 전용 `.vscode/tasks.json`은 로컬 개발 편의를 위한 임시 파일로 취급하며 feature commit에 포함하지 않는다.
+수정은 해당 Worker Agent Session으로 돌려보낸다.
 
 ---
 
-# 15. Worker Agent 역할
+# 15. Worker Agent Session 생성
 
-Worker Agent는 전용 worktree에서만 실제 구현을 수행한다.
+사용자가 구현 계획을 승인하면 Worker는 VS Code Agent Session의 Git Worktree isolation을 기본으로 사용한다.
+
+기본 절차:
+
+1. VS Code Agents Window를 연다.
+2. 새로운 Agent Session을 생성한다.
+3. 대상 Repository로 `NSU_CAPSTONE_AI`를 선택한다.
+4. Code isolation으로 `New Worktree`를 선택한다.
+5. Base branch는 최신 `main`을 사용한다.
+6. Session 이름은 Issue와 작업 목적이 드러나게 지정한다.
+7. 승인된 작업 계획을 Worker Session에 전달한다.
+
+예시 Session 이름:
+
+NSUAI-50 BPM Rhythm Validation
+
+NSUAI-27 Matching API
+
+NSUAI-43 Audio Revision Storage
+
+Worker Agent Session은 Main과 별도의 conversation context와 Git Worktree를 사용한다.
+
+작업별 isolation은 VS Code/Codex가 제공하는 Worktree lifecycle을 우선 사용하며, 별도의 `start-worker.ps1` 같은 자체 lifecycle script를 기본 방식으로 사용하지 않는다.
+
+---
+
+# 16. Worker Agent 역할
+
+Worker Agent는 자신에게 할당된 Worktree 안에서만 실제 구현을 수행한다.
 
 Worker 책임:
 
+- 승인된 작업 범위 확인
+- 관련 Authority 재확인
 - 코드 구현
 - tests 작성/수정
-- 관련 문서 정합화
+- 필요한 문서 정합화
 - 실제 검증
-- local commit
+- 변경사항 설명
+- 필요한 경우 local commit
 
-Worker는 Main에서 승인받은 작업 범위를 벗어나지 않는다.
-
-작업 중 새로운 authority 충돌, 서버 계약 변경 또는 destructive change가 필요해지면 Main에게 보고한다.
+Worker는 Main에서 승인받은 작업 범위를 임의로 확대하지 않는다.
 
 Worker는 독자적으로 다음을 수행하지 않는다.
 
-- main 수정
-- push
-- PR 생성
-- merge
-- unrelated 작업
+- Main worktree 수정
+- unrelated refactoring
+- unrelated dependency upgrade
+- 서버 계약 변경
+- Linear 수정
+- NSU_CAPSTONE 수정
+- 요청하지 않은 migration
+- 사용자 승인 없는 merge
+
+작업 도중 다음이 발견되면 구현 범위를 확대하지 않고 Main에 보고한다.
+
+- Authority 충돌
+- 새로운 정책 결정 필요
+- destructive operation 필요
+- 예상하지 못한 API 계약 변경
+- 데이터 삭제 필요
+- 범위 밖 대규모 refactoring 필요
 
 ---
 
-# 16. Worker Local Commit
+# 17. Worker 검증
 
-사용자가 구현 계획을 승인한 범위에서는 Worker가 local commit까지 수행할 수 있다.
+Worker는 구현 완료 전에 변경 범위에 적절한 검증을 수행한다.
 
-Commit 전에 다음을 확인한다.
+최소 확인 대상:
 
-- 이번 작업 관련 파일만 stage
+- 관련 unit test
+- 필요한 integration test
+- invalid input
+- failure case
+- result/schema validation
+- 실제 실행이 필요한 경우 실제 실행 검증
+- 관련 문서와 구현 정합성
+- `git diff --check`
+
+실험 작업은 자동 테스트와 실제 실험 검증을 구분한다.
+
+예:
+
+unit test 통과
+≠ 실제 모델 inference 완료
+
+synthetic fixture 통과
+≠ 실제 음악 데이터 검증 완료
+
+mock DB test 통과
+≠ 실제 PostgreSQL integration 완료
+
+실행하지 않은 검증은 반드시 미실행으로 보고한다.
+
+테스트 실패가 있으면 완료 처리하지 않는다.
+
+---
+
+# 18. Worker Local Commit
+
+승인된 구현 범위에서는 Worker가 local commit까지 수행할 수 있다.
+
+Commit 전 다음을 확인한다.
+
+- 작업 관련 파일만 포함됐는지
 - staged diff
 - 테스트 결과
 - secret 포함 여부
 - unrelated file 포함 여부
 
-무분별한 다음 명령 사용을 피한다.
+가능하면 필요한 파일만 명시적으로 stage한다.
+
+무분별한 다음 명령 사용은 피한다.
 
 git add .
+
 git add -A
 
-가능하면 필요한 파일을 명시적으로 stage한다.
+Commit message 설명은 한국어로 작성한다.
 
-push는 수행하지 않는다.
+Worker가 local commit까지 수행했더라도 Main 독립 리뷰 전에는 Integration 완료로 취급하지 않는다.
 
 ---
 
-# 17. Worker 완료 보고
+# 19. Worker 완료 보고
 
-Worker는 구현 완료 후 Main에게 최소 다음을 전달한다.
+Worker는 구현 완료 후 최소 다음 내용을 보고한다.
 
 ## 변경 내용
 
 - 변경 파일
 - 파일별 역할
+- 주요 구현 내용
 
-## 주요 구현
+## 처리 흐름
 
-- 실제 처리 흐름
-- 주요 기술 결정
+해당되는 경우 입력부터 출력까지 실제 처리 흐름을 설명한다.
 
-## Test
+예:
 
-- 실행 명령
+Input
+→ Validation
+→ Preprocessing
+→ Core Logic
+→ Storage/Search
+→ Output
+
+## 검증
+
+- 실행한 명령
 - passed
 - skipped
 - failed
@@ -508,8 +624,9 @@ Worker는 구현 완료 후 Main에게 최소 다음을 전달한다.
 
 ## Git
 
-- branch
-- local commit hash
+- Worker branch
+- commit 상태
+- commit hash
 - working tree 상태
 
 ## Remaining
@@ -518,209 +635,408 @@ Worker는 구현 완료 후 Main에게 최소 다음을 전달한다.
 - 미완료
 - 미결정
 - 후속 작업
+- 범위 밖 발견 사항
 
 ---
 
-# 18. Main 독립 리뷰
+# 20. Main 독립 리뷰
 
-Worker가 local commit을 완료하면 Main Agent가 독립 리뷰한다.
+Worker 작업이 완료되면 바로 Integration하지 않는다.
 
-기본 비교:
+Main Agent가 Worker 결과를 독립적으로 검토한다.
 
-git diff main...<feature-branch>
+우선 VS Code Agent Session의 Changes/Diff 기능을 사용할 수 있다.
 
-필요하면 다음도 확인한다.
+필요한 경우 Git에서 다음과 같은 비교를 수행한다.
 
-git log main..<feature-branch>
+git diff main...<worker-branch>
+
+git log main..<worker-branch>
+
 git show <commit>
 
-최소 검토 항목:
+Main Agent는 최소 다음을 검토한다.
 
-- 승인된 요구사항 충족
-- Linear 계약 일치
-- ADR/SSOT 일치
+- 승인된 요구사항 충족 여부
+- Linear 계약 정합성
+- ADR / SSOT 정합성
 - API/interface 호환성
-- unintended scope expansion
+- 의도하지 않은 Scope 확장
 - 오류 처리
 - regression risk
 - 테스트 충분성
 - 문서 정합성
 - secret 포함 여부
-- unrelated file 포함 여부
+- unrelated 변경 여부
+- 실험 결과와 evidence 일치 여부
 
-Main은 Worker 코드를 직접 수정하지 않는다.
+Main Agent는 Review 중 Worker 코드를 직접 수정하지 않는다.
 
-문제가 있으면 Worker에게 review feedback을 전달한다.
+문제가 있으면 해당 Worker Session에 Review feedback을 전달한다.
+
+흐름:
 
 Main Review
 → Worker 수정
-→ Worker 테스트/local commit
+→ Worker 검증
+→ Worker local commit
 → Main 재리뷰
 
 문제가 없어질 때까지 반복한다.
 
 ---
 
-# 19. Human Approval Gate
+# 21. Human Approval Gate
 
-Main 리뷰가 완료되면 사용자에게 다음을 보고한다.
+Main 독립 리뷰가 완료되면 사용자에게 최소 다음을 보고한다.
 
 - 구현 요약
+- 변경 파일
 - commit 목록
 - 테스트 결과
-- 리뷰 결과
+- Main 리뷰 결과
 - known limitation
-- push/PR 준비 여부
+- 미결정 사항
+- PR 준비 여부
 
-사용자의 명시적 승인 전에는 다음을 수행하지 않는다.
+사용자의 명시적 승인 전에는 Integration을 완료하지 않는다.
 
-- push
+특히 다음 작업은 사용자 승인 후 진행한다.
+
 - PR 생성
 - merge
 
+Push가 PR 생성 과정에서 필요한 경우 승인된 PR 절차 범위 안에서 수행한다.
+
+Force push, force merge, branch protection 우회는 별도 명시적 승인 없이는 수행하지 않는다.
+
 ---
 
-# 20. Push / PR
+# 22. Pull Request
 
-사용자 승인 후 feature branch를 push한다.
+Main Review를 통과하고 사용자가 승인하면 PR을 생성한다.
 
-예:
+가능하면 VS Code Agent Session 또는 GitHub integration의 PR 생성 기능을 사용할 수 있다.
 
-git push -u origin feat/nsuai-27-matching-api
-
-PR은 다음 구조를 사용한다.
+PR 기본 방향:
 
 base: main
-head: feature branch
 
-PR 본문에는 최소 다음을 포함한다.
+head: Worker branch
+
+PR에는 최소 다음을 포함한다.
 
 - Summary
 - 변경 이유
 - 주요 구현
 - 테스트 결과
-- ADR/문서 영향
+- 문서/ADR 영향
 - known limitation
+- 미결정 사항
 - Out of scope
 
-PR/CI 리뷰에서 문제가 발견되면 Worker가 수정하고 Main이 다시 리뷰한다.
+PR을 생성하기 전에 변경 파일과 commit 범위를 다시 확인한다.
 
 ---
 
-# 21. Merge
+# 23. PR / CI Review
 
-Merge는 사용자 승인 후 수행한다.
+PR 생성 후 다음을 확인한다.
 
-branch protection이나 CI를 임의로 우회하지 않는다.
+- CI status
+- GitHub review
+- requested changes
+- merge conflict
+- branch behind 여부
+- 추가 regression
 
-force push / force merge는 별도 승인 없이는 사용하지 않는다.
+문제가 발견되면 해당 Worker Agent Session에서 수정한다.
 
----
+Main Agent는 수정 결과를 다시 독립 리뷰한다.
 
-# 22. Merge 후 Worker 정리
-
-PR merge 이후 Worker 정리는 가능한 경우 다음 스크립트를 사용한다.
-
-scripts/dev/finish-worker.ps1
-
-사용 예:
-
-.\scripts\dev\finish-worker.ps1 `
-  -Issue "nsuai-27" `
-  -Name "matching-api"
-
-정리 전 다음을 확인한다.
-
-- Main working tree clean
-- Main 최신화 가능
-- Worker working tree clean
-- 필요한 commit이 모두 보존됨
-- PR merge 완료
-
-정리 대상:
-
-- Worker worktree
-- local feature branch
-- Git worktree metadata
-- Worker 전용 local VS Code 설정
-
-Worker가 dirty 상태이거나 branch가 merge되지 않은 경우 강제 삭제하지 않는다.
-
-PR merge 전에는 Worker worktree를 삭제하지 않는다.
+PR Review가 통과해도 사용자 승인 없이 merge하지 않는다.
 
 ---
 
-# 23. 여러 Worker
+# 24. Merge
 
-독립적인 작업은 여러 Worker로 나눌 수 있다.
+사용자가 merge를 승인한 후에만 merge한다.
 
-Main
-├─ Worker A
-├─ Worker B
-└─ Worker C
+Merge 이후 Main Agent는 기본 Repository에서 `main`을 최신화한다.
 
-조건:
+확인 대상:
 
-- 서로 같은 파일을 동시에 수정하지 않는다.
-- 의존성이 강한 작업은 순차 처리한다.
-- 각 Worker는 별도 branch/worktree를 사용한다.
-- Main이 최종 integration을 검토한다.
-- 작은 단일 작업에는 불필요하게 Worker를 늘리지 않는다.
+- `main`이 `origin/main`과 동기화됐는지
+- working tree가 clean인지
+- merge된 변경이 실제 Main에 반영됐는지
+- 관련 테스트 또는 필요한 smoke validation이 가능한지
+
+Merge 결과가 확인되기 전에 Worker Session 또는 Worktree를 삭제하지 않는다.
 
 ---
 
-# 24. 역할 요약
+# 25. Worker Session / Worktree 정리
+
+작업 완료 후에는 VS Code Agent Session lifecycle을 우선 사용한다.
+
+완료된 Worker Session은 필요에 따라 다음 상태로 관리한다.
+
+- Mark as Done
+- Archive
+
+Session history가 향후 참고에 필요하면 즉시 삭제하지 않고 Archive를 우선한다.
+
+불필요해진 Worktree는 VS Code의 Worktree Cleanup 기능을 우선 사용한다.
+
+VS Code Command Palette에서 사용할 수 있는 Worktree Cleanup 기능을 확인한다.
+
+자동 Cleanup이 불가능한 경우 Git 상태를 먼저 확인한다.
+
+다음 상태에서는 Worktree를 강제로 삭제하지 않는다.
+
+- uncommitted change 존재
+- outgoing commit 존재
+- 관련 PR이 아직 open
+- merge 여부 확인 불가
+- Agent 작업 진행 중
+- Worker가 사용자 입력을 기다리는 중
+- 다른 process가 해당 Worktree를 사용 중
+
+강제 삭제보다 보존 후 확인을 우선한다.
+
+작업 완료 후에도 session history와 Git history는 서로 다른 목적을 가진다.
+
+Git에는 코드 변경 이력을 남기고, Agent Session에는 작업 맥락과 review history가 남을 수 있다.
+
+---
+
+# 26. 여러 Worker Agent Session
+
+서로 독립적인 작업은 여러 Worker Session으로 병렬 실행할 수 있다.
+
+예:
+
+Main Agent
+├─ Worker Session A / Worktree A
+├─ Worker Session B / Worktree B
+└─ Worker Session C / Worktree C
+
+병렬 작업 조건:
+
+- 각 독립 작업은 별도의 Worktree 사용
+- 동일 파일을 여러 Worker가 동시에 수정하는 구조는 피함
+- 의존성이 강한 작업은 순차 실행
+- 각 Worker 결과는 독립적으로 리뷰
+- Integration 후 전체 영향 범위를 다시 검증
+
+작은 단일 작업에 불필요하게 여러 Worker를 만들지 않는다.
+
+---
+
+# 27. Agent Session 운영 원칙
+
+Agent Session은 하나의 작업 단위를 기준으로 유지한다.
+
+하나의 Worker Session에 서로 관련 없는 여러 Issue를 계속 누적하지 않는다.
+
+새로운 독립 Issue는 새로운 Worker Session을 사용한다.
+
+Worker Session 이름은 검색과 추적이 가능하도록 Issue 번호와 목적을 포함한다.
+
+예:
+
+NSUAI-50 BPM Rhythm Validation
+
+Session을 생성할 때 Worker에게 최소 다음 context를 전달한다.
+
+- 작업 목표
+- 관련 Linear Issue
+- Authority
+- 승인된 변경 범위
+- 범위 밖 항목
+- 예상 검증
+- 위험 요소
+- 미결정 사항
+
+Worker에게 현재 대화의 전체 history를 무조건 복사하기보다 작업 수행에 필요한 context를 구조화해서 전달한다.
+
+---
+
+# 28. GitHub / Linear 역할 분리
+
+Linear는 다음을 관리한다.
+
+- 요구사항
+- Issue
+- Priority
+- 서버 협의
+- 서비스 정책
+- 미결정 사항
+
+GitHub는 다음을 관리한다.
+
+- source code
+- commit
+- branch
+- Pull Request
+- CI
+- code review
+- merge history
+
+ADR은 다음을 관리한다.
+
+- 중요한 AI 기술 결정
+- 결정 이유
+- 대안
+- 근거
+- 결과
+
+실험 문서는 다음을 관리한다.
+
+- 검증 방법
+- 데이터
+- 실행 환경
+- 결과
+- 한계
+
+같은 정보를 모든 시스템에 기계적으로 복제하지 않는다.
+
+각 시스템의 책임에 필요한 내용만 유지한다.
+
+---
+
+# 29. 완료 기준
+
+Agent는 코드가 작성됐다는 이유만으로 작업을 완료 처리하지 않는다.
+
+완료 판단에는 해당 작업에 필요한 범위에서 다음이 포함될 수 있다.
+
+- 요구사항 충족
+- 관련 테스트 통과
+- 필요한 실제 검증 완료
+- 문서 정합성 확인
+- Main 독립 리뷰 통과
+- PR/CI Review 통과
+- 사용자 승인
+- Main 반영 확인
+
+미실행 검증이나 unresolved item이 있으면 명확히 남긴다.
+
+---
+
+# 30. 금지 사항
+
+다음을 하지 않는다.
+
+- Main worktree에서 직접 기능 구현
+- 사용자 승인 전 Worker 구현 시작
+- 기억만으로 현재 구현 상태 단정
+- 미정 서버 계약 임의 확정
+- Linear 정책을 AI Repository에서 새로 정의
+- 관련 없는 refactoring
+- 관련 없는 dependency upgrade
+- 요청하지 않은 migration
+- 사용자 변경 임의 revert
+- 기존 데이터 승인 없이 삭제
+- secret 출력 또는 commit
+- 테스트 실패 은폐
+- Mock 검증을 실제 검증으로 표현
+- Main Review 없이 Integration 완료 처리
+- PR merge 전 Worker Worktree 삭제
+- 안전 확인 없이 Worktree 강제 삭제
+- 사용자 승인 없이 merge
+- VS Code가 이미 제공하는 Agent Session/Worktree lifecycle을 이유 없이 자체 스크립트로 중복 구현
+
+---
+
+# 31. 역할 요약
 
 Human
 = Approval Gate
++ Final Decision Maker
 
 Main Agent
 = Planner
 + Orchestrator
 + Independent Reviewer
 
-Worker Agent
+Worker Agent Session
 = Implementer
 + Tester
 + Local Committer
 
+VS Code Agent Session / Git Worktree
+= Isolation
++ Execution Environment
++ Session Lifecycle
+
 GitHub PR / CI
 = Integration Gate
 
-최종 workflow:
+Linear
+= Requirement / Coordination Authority
+
+ADR
+= AI Technical Decision Record
+
+---
+
+# 32. 최종 Workflow
 
 사용자 요청
 ↓
-Main 조사
+Main Agent 현재 상태 조사
 ↓
-변경안 및 작업 예정 내용
+Git / Linear / ADR / Guide / Roadmap / 코드 / tests 확인
+↓
+Authority 충돌 확인
+↓
+다음 작업 범위 결정
+↓
+`변경안 및 작업 예정 내용`
 ↓
 사용자 승인
 ↓
-Main이 start-worker.ps1 실행
+VS Code에서 Worker Agent Session 생성
 ↓
-Worker branch/worktree 생성
+Code Isolation: New Worktree
 ↓
-Worker 구현/테스트/local commit
+Worker에게 승인된 작업 명세 전달
 ↓
-Main 독립 리뷰
+Worker 구현
 ↓
-필요 시 Worker 수정
+Worker 테스트 / 실제 검증
+↓
+Worker local commit
+↓
+Main Agent 독립 리뷰
+↓
+문제 발견 시 Worker Session으로 feedback
+↓
+Worker 수정 / 재검증
 ↓
 Main 재리뷰
 ↓
-사용자 승인
+사용자에게 구현/검증/리뷰 결과 보고
 ↓
-Push / PR
+사용자 PR 승인
 ↓
-CI / Review
+Pull Request
 ↓
-사용자 승인
+CI / GitHub Review
+↓
+필요 시 Worker 수정 및 Main 재리뷰
+↓
+사용자 Merge 승인
 ↓
 Merge
 ↓
 Main 최신화
 ↓
-finish-worker.ps1 실행
+Main 반영 상태 확인
 ↓
-Worker worktree/branch 정리
+Worker Session Mark as Done 또는 Archive
+↓
+안전한 Worktree Cleanup
+↓
+다음 작업
