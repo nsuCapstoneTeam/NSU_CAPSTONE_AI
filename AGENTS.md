@@ -4,7 +4,7 @@
 
 일반적인 코딩 원칙, 최소 변경 원칙, 단순성, 구현 전 사고 및 검증 가능한 목표 설정은 상위 `~/.codex/AGENTS.md`를 따른다.
 
-이 문서에는 NSU_CAPSTONE_AI 프로젝트에서만 필요한 Authority, Linear, ADR/SSOT, Main/Worker Agent Session, Git Worktree 및 승인 흐름을 정의한다.
+이 문서에는 NSU_CAPSTONE_AI 프로젝트에서만 필요한 Authority, Linear, ADR/SSOT, Main/Worker Multi-Agent Orchestration, Git Worktree, Review 및 승인 흐름을 정의한다.
 
 ---
 
@@ -16,6 +16,7 @@
 - 작업 계획
 - 변경 예정 내용
 - 중간 보고
+- Worker 진행 상황
 - 검증 결과
 - 리뷰 결과
 - 최종 보고
@@ -50,6 +51,8 @@ chore: 개발 환경 정리
 - vector search
 - AI preprocessing
 - AI-side validation
+- BPM/Rhythm 분석 로직
+- AI inference
 
 서비스 핵심 알고리즘을 `scripts/`에 중복 구현하지 않는다.
 
@@ -64,9 +67,9 @@ chore: 개발 환경 정리
 - `app/` 기능 호출
 - 결과/report 출력
 - exit code 처리
-- 실험 실행 orchestration
+- experiment orchestration
 
-VS Code Agent Session이나 Git Worktree lifecycle을 자체 스크립트로 중복 구현하지 않는다.
+Codex가 이미 제공하는 Agent/Worktree lifecycle을 별도 프로젝트 스크립트로 중복 구현하지 않는다.
 
 ## `tests/`
 
@@ -354,7 +357,6 @@ Main Agent는 새로운 작업을 받으면 구현 전에 현재 상태부터 �
 
 최소 다음을 확인한다.
 
-- 현재 worktree
 - current branch
 - local HEAD
 - origin/main
@@ -362,7 +364,7 @@ Main Agent는 새로운 작업을 받으면 구현 전에 현재 상태부터 �
 - staged 변경
 - unstaged 변경
 - untracked 변경
-- 현재 Worktree 목록
+- 등록된 Worktree
 - 관련 local/remote branch
 - 관련 PR
 
@@ -413,27 +415,37 @@ Main Agent는 새로운 작업을 받으면 구현 전에 현재 상태부터 �
 - 문서 변경 필요 여부
 - 위험 요소
 - 미결정 사항
-- 권장 Worker Session 이름
+- Worker 작업 단위
 
 이 단계에서는 실제 구현을 시작하지 않는다.
 
 다음을 수행하지 않는다.
 
 - 기능 코드 수정
+- Worker 생성
 - Worker Worktree 생성
-- Worker Session 시작
 - commit
 - push
 - PR
 - merge
 
-사용자의 명시적 승인 후 Worker Agent Session을 시작한다.
+사용자의 명시적 승인 후 Main Agent가 Worker orchestration을 시작한다.
 
 ---
 
 # 14. Main Agent 역할
 
-Main Agent는 Planner, Orchestrator, Reviewer 역할을 담당한다.
+Main Agent는 전체 작업의 유일한 Orchestrator다.
+
+Main Agent 역할:
+
+- Planner
+- Orchestrator
+- Worker Spawner
+- Worktree Coordinator
+- Message Router
+- Independent Reviewer
+- Integration Coordinator
 
 Main Agent의 기본 작업 공간은 `main` branch의 기본 Repository다.
 
@@ -441,73 +453,244 @@ Main Agent의 기본 작업 공간은 `main` branch의 기본 Repository다.
 
 D:\WorkSpace\NSU_CAPSTONE_AI
 
-Main Agent의 역할:
+Main Agent의 책임:
 
-- 요구사항 분석
+- 사용자 요구사항 분석
 - Git/Repository 상태 조사
 - Linear 확인
 - GitHub 확인
 - ADR/SSOT 확인
 - 작업 범위 결정
 - 구현 계획 작성
-- Worker Session 작업 명세 작성
-- Worker 진행 상태 확인
+- Worker 역할 분할
+- Worker 생성
+- Worker Worktree isolation 확보
+- Worker에게 Task 전달
+- Worker 진행 상황 수집
+- Worker 간 필요한 정보 중계
+- Worker 결과 수집
 - Worker 결과 독립 리뷰
+- 수정 요청 전달
 - PR/CI 검토
 - Integration 여부 판단
 
 Main Agent는 `main` worktree에서 기능 구현 코드를 직접 수정하지 않는다.
 
-Worker Review에서 문제가 발견되어도 Main이 직접 Worker 코드를 수정하지 않는다.
+Main은 Worker Review 중 발견한 문제를 직접 수정하지 않는다.
 
-수정은 해당 Worker Agent Session으로 돌려보낸다.
-
----
-
-# 15. Worker Agent Session 생성
-
-사용자가 구현 계획을 승인하면 Worker는 VS Code Agent Session의 Git Worktree isolation을 기본으로 사용한다.
-
-기본 절차:
-
-1. VS Code Agents Window를 연다.
-2. 새로운 Agent Session을 생성한다.
-3. 대상 Repository로 `NSU_CAPSTONE_AI`를 선택한다.
-4. Code isolation으로 `New Worktree`를 선택한다.
-5. Base branch는 최신 `main`을 사용한다.
-6. Session 이름은 Issue와 작업 목적이 드러나게 지정한다.
-7. 승인된 작업 계획을 Worker Session에 전달한다.
-
-예시 Session 이름:
-
-NSUAI-50 BPM Rhythm Validation
-
-NSUAI-27 Matching API
-
-NSUAI-43 Audio Revision Storage
-
-Worker Agent Session은 Main과 별도의 conversation context와 Git Worktree를 사용한다.
-
-작업별 isolation은 VS Code/Codex가 제공하는 Worktree lifecycle을 우선 사용하며, 별도의 `start-worker.ps1` 같은 자체 lifecycle script를 기본 방식으로 사용하지 않는다.
+수정은 해당 Worker에게 다시 전달한다.
 
 ---
 
-# 16. Worker Agent 역할
+# 15. Human 역할
 
-Worker Agent는 자신에게 할당된 Worktree 안에서만 실제 구현을 수행한다.
+Human은 전체 개발 과정의 Approval Gate다.
+
+사용자가 직접 Worker Session이나 Worktree를 관리하는 것을 기본 workflow로 요구하지 않는다.
+
+사용자의 기본 역할:
+
+1. Main에게 개발 요청
+2. Main의 조사 및 계획 검토
+3. 구현 승인
+4. Main의 최종 Review 결과 검토
+5. PR 승인
+6. Merge 승인
+
+Worker 생성, Worker Task 전달, Worker 진행 확인, Worker Review feedback 전달은 Main Agent의 책임이다.
+
+---
+
+# 16. Main → Worker 자동 Orchestration
+
+사용자가 구현 계획을 승인하면 Main Agent가 Worker를 생성한다.
+
+사용자에게 Worker 생성 명령을 직접 수행하도록 요구하지 않는다.
+
+Main은 가능한 Codex Multi-Agent / Session / Worktree 기능을 사용해 Worker를 생성한다.
+
+목표 구조:
+
+Human
+→ Main Agent
+→ Worker Agent
+→ Isolated Worktree
+
+Main Agent는 Worker 생성 시 다음을 보장한다.
+
+- Main worktree와 분리된 작업 공간
+- Worker 전용 branch 또는 managed branch
+- Worker 전용 Git Worktree
+- 승인된 Task context 전달
+- Worker 결과를 Main이 다시 수집할 수 있는 communication path
+
+Main은 Worker가 Main worktree에서 기능 코드를 수정하도록 허용하지 않는다.
+
+---
+
+# 17. Worktree Isolation
+
+모든 실제 기능 구현 Worker는 독립된 Git Worktree를 사용한다.
+
+목표 구조:
+
+Main Repository
+└─ main
+
+Worker A
+└─ isolated worktree A
+
+Worker B
+└─ isolated worktree B
+
+Worker C
+└─ isolated worktree C
+
+가능하면 Codex가 제공하는 managed Worktree 기능을 사용한다.
+
+Worktree 생성 방법을 프로젝트 자체 PowerShell script로 중복 구현하지 않는다.
+
+Codex runtime이 현재 환경에서 Worker를 별도 Worktree에 안전하게 격리할 수 없는 경우:
+
+1. Main은 기능 구현을 시작하지 않는다.
+2. 현재 제약을 사용자에게 보고한다.
+3. Worker를 Main worktree에서 대신 실행하지 않는다.
+4. isolation을 우회하지 않는다.
+
+---
+
+# 18. Worker 생성 기준
+
+작업 단위가 하나라면 Worker 하나를 기본으로 한다.
+
+다음과 같이 독립적으로 분리 가능한 경우 여러 Worker를 사용할 수 있다.
+
+예:
+
+- 코드 구현
+- 독립적인 테스트 작성
+- 외부 기술 조사
+- 별도 데이터 검증
+- 독립 모듈 구현
+
+단, 단순히 병렬화가 가능하다는 이유만으로 Worker를 과도하게 늘리지 않는다.
+
+다음 조건이면 하나의 Worker를 우선한다.
+
+- 작업 규모가 작음
+- 같은 파일을 반복 수정해야 함
+- 작업 간 의존성이 높음
+- 순차적 결정이 필요함
+
+---
+
+# 19. Worker Task Package
+
+Main은 Worker를 생성할 때 단순히 "구현해"라고 지시하지 않는다.
+
+Worker에게 최소 다음 정보를 전달한다.
+
+## Goal
+
+무엇을 완료해야 하는지.
+
+## Authority
+
+- Linear Issue
+- 서버 협의
+- ADR
+- Guide
+- API/interface
+
+## Approved Scope
+
+사용자가 승인한 작업 범위.
+
+## Out of Scope
+
+이번 작업에서 하지 않을 것.
+
+## Expected Files
+
+예상 변경 파일 또는 영역.
+
+## Validation
+
+실행해야 하는 테스트 및 검증.
+
+## Constraints
+
+- destructive operation 금지
+- 서버 계약 임의 변경 금지
+- Linear 수정 금지
+- unrelated refactoring 금지
+
+## Stop Conditions
+
+사람 또는 Main의 결정이 필요해지는 조건.
+
+---
+
+# 20. Main ↔ Worker 통신
+
+Main과 Worker는 독립적으로 작업하되 communication path를 유지한다.
+
+Main은 Worker에게 필요한 추가 정보를 전달할 수 있다.
+
+Worker는 다음 상황에서 Main에 보고한다.
+
+- Authority 충돌
+- 요구사항 모호성
+- 새로운 정책 결정 필요
+- destructive operation 필요
+- 범위 밖 변경 필요
+- 예상하지 못한 dependency
+- 테스트 환경 문제
+- 실제 검증 불가능
+- 다른 Worker의 결과가 필요함
+
+Main은 Worker 결과를 수집하고 필요하면 추가 Task 또는 Review feedback을 전달한다.
+
+---
+
+# 21. Worker 간 통신
+
+Worker 간 직접적인 자유 통신을 기본으로 가정하지 않는다.
+
+Worker 간 정보 공유가 필요하면 Main Agent가 Message Router 역할을 수행한다.
+
+기본 구조:
+
+Worker A
+↕
+Main
+↕
+Worker B
+
+Main은 Worker A 결과 중 Worker B에게 필요한 정보만 구조화해서 전달한다.
+
+Worker A의 전체 conversation history를 Worker B에게 무조건 전달하지 않는다.
+
+서로 독립적인 작업은 필요한 interface/evidence만 공유한다.
+
+---
+
+# 22. Worker Agent 역할
+
+Worker Agent는 자신의 독립 Worktree에서만 실제 구현을 수행한다.
 
 Worker 책임:
 
-- 승인된 작업 범위 확인
-- 관련 Authority 재확인
+- 할당된 작업 이해
+- 관련 Authority 확인
 - 코드 구현
 - tests 작성/수정
 - 필요한 문서 정합화
 - 실제 검증
 - 변경사항 설명
-- 필요한 경우 local commit
+- local commit
 
-Worker는 Main에서 승인받은 작업 범위를 임의로 확대하지 않는다.
+Worker는 Main에서 승인받은 범위를 임의로 확대하지 않는다.
 
 Worker는 독자적으로 다음을 수행하지 않는다.
 
@@ -518,20 +701,30 @@ Worker는 독자적으로 다음을 수행하지 않는다.
 - Linear 수정
 - NSU_CAPSTONE 수정
 - 요청하지 않은 migration
-- 사용자 승인 없는 merge
-
-작업 도중 다음이 발견되면 구현 범위를 확대하지 않고 Main에 보고한다.
-
-- Authority 충돌
-- 새로운 정책 결정 필요
-- destructive operation 필요
-- 예상하지 못한 API 계약 변경
-- 데이터 삭제 필요
-- 범위 밖 대규모 refactoring 필요
+- 사용자 승인 없는 PR merge
 
 ---
 
-# 17. Worker 검증
+# 23. Worker Stop Conditions
+
+다음 상황에서는 Worker가 임의로 결정하지 않고 Main에 보고한다.
+
+- 평가 기준이 없음
+- 데이터셋이 정해지지 않음
+- 표본 수가 정해지지 않음
+- API 계약이 충돌함
+- Accepted / Proposed 문서가 충돌함
+- destructive data 작업이 필요함
+- 기존 ADR 변경이 필요함
+- 서비스 전체 정책 결정이 필요함
+- 다른 서버의 결정이 필요함
+- Scope가 크게 확대됨
+
+Worker는 이 경우 임의의 숫자, threshold, 계약 또는 정책을 만들지 않는다.
+
+---
+
+# 24. Worker 검증
 
 Worker는 구현 완료 전에 변경 범위에 적절한 검증을 수행한다.
 
@@ -546,7 +739,7 @@ Worker는 구현 완료 전에 변경 범위에 적절한 검증을 수행한다
 - 관련 문서와 구현 정합성
 - `git diff --check`
 
-실험 작업은 자동 테스트와 실제 실험 검증을 구분한다.
+실험 작업에서는 자동 테스트와 실제 실험 검증을 구분한다.
 
 예:
 
@@ -565,13 +758,13 @@ mock DB test 통과
 
 ---
 
-# 18. Worker Local Commit
+# 25. Worker Local Commit
 
 승인된 구현 범위에서는 Worker가 local commit까지 수행할 수 있다.
 
 Commit 전 다음을 확인한다.
 
-- 작업 관련 파일만 포함됐는지
+- 이번 작업 관련 파일만 포함
 - staged diff
 - 테스트 결과
 - secret 포함 여부
@@ -579,7 +772,7 @@ Commit 전 다음을 확인한다.
 
 가능하면 필요한 파일만 명시적으로 stage한다.
 
-무분별한 다음 명령 사용은 피한다.
+무분별한 다음 명령 사용을 피한다.
 
 git add .
 
@@ -587,13 +780,15 @@ git add -A
 
 Commit message 설명은 한국어로 작성한다.
 
-Worker가 local commit까지 수행했더라도 Main 독립 리뷰 전에는 Integration 완료로 취급하지 않는다.
+Worker가 local commit까지 수행해도 Main 독립 Review 전에는 Integration 완료로 취급하지 않는다.
+
+Worker는 사용자 승인 없이 PR merge를 수행하지 않는다.
 
 ---
 
-# 19. Worker 완료 보고
+# 26. Worker 완료 보고
 
-Worker는 구현 완료 후 최소 다음 내용을 보고한다.
+Worker는 구현 완료 후 Main에 다음을 반환한다.
 
 ## 변경 내용
 
@@ -603,9 +798,7 @@ Worker는 구현 완료 후 최소 다음 내용을 보고한다.
 
 ## 처리 흐름
 
-해당되는 경우 입력부터 출력까지 실제 처리 흐름을 설명한다.
-
-예:
+해당되는 경우:
 
 Input
 → Validation
@@ -616,18 +809,18 @@ Input
 
 ## 검증
 
-- 실행한 명령
+- 실행 명령
 - passed
 - skipped
 - failed
-- 실행하지 않은 검증
+- 미실행 검증
 
 ## Git
 
 - Worker branch
-- commit 상태
-- commit hash
+- local commit hash
 - working tree 상태
+- uncommitted change 여부
 
 ## Remaining
 
@@ -639,15 +832,41 @@ Input
 
 ---
 
-# 20. Main 독립 리뷰
+# 27. Main Worker 상태 관리
 
-Worker 작업이 완료되면 바로 Integration하지 않는다.
+Main은 Worker를 생성한 뒤 작업을 잊지 않는다.
 
-Main Agent가 Worker 결과를 독립적으로 검토한다.
+Main은 필요에 따라 Worker 상태를 확인한다.
 
-우선 VS Code Agent Session의 Changes/Diff 기능을 사용할 수 있다.
+가능한 상태 예:
 
-필요한 경우 Git에서 다음과 같은 비교를 수행한다.
+- Running
+- Waiting
+- Blocked
+- Completed
+- Failed
+- Needs Review
+- Needs Human Decision
+
+Worker가 사용자 입력을 기다리고 있으면 Main이 해당 내용을 사용자에게 전달한다.
+
+Worker가 완료되면 Main이 결과를 회수한다.
+
+Worker가 실패하면 Main은 원인을 확인하고 필요한 경우 재지시한다.
+
+같은 실패를 무한 반복하지 않는다.
+
+---
+
+# 28. Main 독립 리뷰
+
+Worker 작업이 완료되면 Main은 결과를 바로 Integration하지 않는다.
+
+Main Agent가 독립적으로 검토한다.
+
+가능하면 Worker가 만든 Worktree/branch의 실제 diff를 확인한다.
+
+필요한 경우:
 
 git diff main...<worker-branch>
 
@@ -670,53 +889,114 @@ Main Agent는 최소 다음을 검토한다.
 - unrelated 변경 여부
 - 실험 결과와 evidence 일치 여부
 
-Main Agent는 Review 중 Worker 코드를 직접 수정하지 않는다.
+Worker의 완료 보고만 믿고 승인하지 않는다.
 
-문제가 있으면 해당 Worker Session에 Review feedback을 전달한다.
+실제 diff와 test/evidence를 확인한다.
+
+---
+
+# 29. Review Feedback Loop
+
+Main Review에서 문제가 발견되면 Main이 직접 코드를 수정하지 않는다.
+
+해당 Worker에게 Review feedback을 전달한다.
 
 흐름:
 
-Main Review
+Worker 구현
+→ Worker 테스트
+→ Worker commit
+→ Main Review
+→ Review Issue 발견
+→ Main이 Worker에게 Feedback
 → Worker 수정
-→ Worker 검증
-→ Worker local commit
+→ Worker 재검증
+→ Worker 추가 commit
 → Main 재리뷰
 
 문제가 없어질 때까지 반복한다.
 
 ---
 
-# 21. Human Approval Gate
+# 30. 여러 Worker 병렬 실행
 
-Main 독립 리뷰가 완료되면 사용자에게 최소 다음을 보고한다.
+서로 독립적인 작업은 Main이 여러 Worker로 나누어 병렬 실행할 수 있다.
+
+예:
+
+Main Agent
+├─ Worker A / Worktree A
+├─ Worker B / Worktree B
+└─ Worker C / Worktree C
+
+조건:
+
+- 각 Worker는 독립 Worktree 사용
+- 동일 파일을 여러 Worker가 동시에 수정하는 구조는 피함
+- 서로 다른 책임으로 나눌 수 있어야 함
+- 작업 간 의존성이 강하면 순차 실행
+- 각 Worker 결과는 Main이 독립 Review
+- 최종 Integration 전 전체 영향 검토
+
+Main은 병렬화 자체를 목표로 하지 않는다.
+
+작업 품질과 충돌 방지가 우선이다.
+
+---
+
+# 31. Worker dependency
+
+Worker B가 Worker A의 결과에 의존하는 경우 Main은 이를 명시적으로 관리한다.
+
+예:
+
+Worker A
+= 데이터 분석
+
+Worker B
+= A 결과를 사용하는 구현
+
+이 경우 기본 흐름:
+
+Worker A 완료
+→ Main Review
+→ 필요한 결과 확정
+→ Worker B에게 전달
+
+A와 B를 무조건 동시에 실행하지 않는다.
+
+---
+
+# 32. Human Approval Gate
+
+Main 독립 Review가 완료되면 사용자에게 최소 다음을 보고한다.
 
 - 구현 요약
+- Worker 목록
+- Worker별 결과
 - 변경 파일
 - commit 목록
 - 테스트 결과
-- Main 리뷰 결과
+- 실제 검증 결과
+- Main Review 결과
 - known limitation
-- 미결정 사항
+- unresolved item
 - PR 준비 여부
 
-사용자의 명시적 승인 전에는 Integration을 완료하지 않는다.
+사용자의 명시적 승인 전에는 다음 단계로 넘어가지 않는다.
 
-특히 다음 작업은 사용자 승인 후 진행한다.
+특히 다음은 사용자 승인 후 진행한다.
 
 - PR 생성
 - merge
-
-Push가 PR 생성 과정에서 필요한 경우 승인된 PR 절차 범위 안에서 수행한다.
 
 Force push, force merge, branch protection 우회는 별도 명시적 승인 없이는 수행하지 않는다.
 
 ---
 
-# 22. Pull Request
+# 33. Pull Request
 
 Main Review를 통과하고 사용자가 승인하면 PR을 생성한다.
-
-가능하면 VS Code Agent Session 또는 GitHub integration의 PR 생성 기능을 사용할 수 있다.
 
 PR 기본 방향:
 
@@ -730,18 +1010,19 @@ PR에는 최소 다음을 포함한다.
 - 변경 이유
 - 주요 구현
 - 테스트 결과
-- 문서/ADR 영향
+- 실제 검증 결과
+- ADR/문서 영향
 - known limitation
-- 미결정 사항
+- unresolved item
 - Out of scope
 
-PR을 생성하기 전에 변경 파일과 commit 범위를 다시 확인한다.
+PR을 생성하기 전에 Main이 변경 파일과 commit 범위를 다시 확인한다.
 
 ---
 
-# 23. PR / CI Review
+# 34. PR / CI Review
 
-PR 생성 후 다음을 확인한다.
+PR 생성 후 Main은 다음을 확인한다.
 
 - CI status
 - GitHub review
@@ -750,119 +1031,152 @@ PR 생성 후 다음을 확인한다.
 - branch behind 여부
 - 추가 regression
 
-문제가 발견되면 해당 Worker Agent Session에서 수정한다.
+문제가 발견되면 해당 Worker에게 다시 수정 요청을 전달한다.
 
-Main Agent는 수정 결과를 다시 독립 리뷰한다.
+Main이 Worker 대신 직접 기능 코드를 수정하지 않는다.
+
+Worker 수정 후 Main이 재Review한다.
 
 PR Review가 통과해도 사용자 승인 없이 merge하지 않는다.
 
 ---
 
-# 24. Merge
+# 35. Merge
 
-사용자가 merge를 승인한 후에만 merge한다.
+사용자가 Merge를 승인한 후에만 Merge한다.
 
-Merge 이후 Main Agent는 기본 Repository에서 `main`을 최신화한다.
+branch protection이나 CI를 임의로 우회하지 않는다.
+
+Merge 이후 Main은 기본 Repository의 `main`을 최신 상태로 맞춘다.
 
 확인 대상:
 
-- `main`이 `origin/main`과 동기화됐는지
-- working tree가 clean인지
-- merge된 변경이 실제 Main에 반영됐는지
-- 관련 테스트 또는 필요한 smoke validation이 가능한지
+- `main == origin/main`
+- working tree clean
+- merge된 변경이 Main에 반영됨
+- 필요한 smoke test 가능 여부
+- 관련 문서 상태
 
-Merge 결과가 확인되기 전에 Worker Session 또는 Worktree를 삭제하지 않는다.
+Merge 결과가 확인되기 전에 Worker Worktree를 삭제하지 않는다.
 
 ---
 
-# 25. Worker Session / Worktree 정리
+# 36. Worker 종료 / Cleanup
 
-작업 완료 후에는 VS Code Agent Session lifecycle을 우선 사용한다.
+Worker의 작업 lifecycle은 Main이 관리한다.
 
-완료된 Worker Session은 필요에 따라 다음 상태로 관리한다.
+Merge와 Main 반영 확인이 완료된 이후 Worker를 종료한다.
 
-- Mark as Done
-- Archive
+Cleanup 전에 다음을 확인한다.
 
-Session history가 향후 참고에 필요하면 즉시 삭제하지 않고 Archive를 우선한다.
+- Worker 작업 완료
+- Main Review 완료
+- 필요한 commit 보존
+- PR Merge 완료
+- Main 최신화 완료
+- Worker working tree clean
+- outgoing 작업 없음
 
-불필요해진 Worktree는 VS Code의 Worktree Cleanup 기능을 우선 사용한다.
+그 후 Codex가 제공하는 Session/Worktree cleanup 기능을 우선 사용한다.
 
-VS Code Command Palette에서 사용할 수 있는 Worktree Cleanup 기능을 확인한다.
-
-자동 Cleanup이 불가능한 경우 Git 상태를 먼저 확인한다.
-
-다음 상태에서는 Worktree를 강제로 삭제하지 않는다.
+다음 상태에서는 Worker를 강제 삭제하지 않는다.
 
 - uncommitted change 존재
 - outgoing commit 존재
-- 관련 PR이 아직 open
+- 관련 PR open
 - merge 여부 확인 불가
 - Agent 작업 진행 중
-- Worker가 사용자 입력을 기다리는 중
+- Worker가 사람의 결정을 기다리는 중
 - 다른 process가 해당 Worktree를 사용 중
 
 강제 삭제보다 보존 후 확인을 우선한다.
 
-작업 완료 후에도 session history와 Git history는 서로 다른 목적을 가진다.
+---
 
-Git에는 코드 변경 이력을 남기고, Agent Session에는 작업 맥락과 review history가 남을 수 있다.
+# 37. Codex 기능 우선 사용
+
+Main/Worker orchestration에서는 Codex가 제공하는 다음 종류의 기능을 우선 사용한다.
+
+- Agent spawning
+- Agent/session management
+- Agent messaging
+- task follow-up
+- managed worktree
+- session fork
+- Worker status/result collection
+
+프로젝트 자체에서 이러한 lifecycle을 PowerShell script로 다시 구현하지 않는다.
+
+Codex의 실제 현재 runtime에서 지원되는 기능과 command/tool을 먼저 확인하고 사용한다.
+
+지원되지 않는 기능을 존재한다고 가정하지 않는다.
 
 ---
 
-# 26. 여러 Worker Agent Session
+# 38. Capability 확인
 
-서로 독립적인 작업은 여러 Worker Session으로 병렬 실행할 수 있다.
+Main이 Worker를 생성하기 전에 현재 Codex runtime에서 필요한 기능을 사용할 수 있는지 확인한다.
 
-예:
+최소 필요한 capability:
 
-Main Agent
-├─ Worker Session A / Worktree A
-├─ Worker Session B / Worktree B
-└─ Worker Session C / Worktree C
+- Worker Agent 생성
+- Worker와 Main 간 결과 전달
+- Git Worktree isolation
+- Worker 작업 상태 확인
 
-병렬 작업 조건:
+일부 capability가 현재 runtime에서 제공되지 않는 경우:
 
-- 각 독립 작업은 별도의 Worktree 사용
-- 동일 파일을 여러 Worker가 동시에 수정하는 구조는 피함
-- 의존성이 강한 작업은 순차 실행
-- 각 Worker 결과는 독립적으로 리뷰
-- Integration 후 전체 영향 범위를 다시 검증
-
-작은 단일 작업에 불필요하게 여러 Worker를 만들지 않는다.
+1. 기능이 있다고 가정하지 않는다.
+2. 사용자 몰래 수동 workflow로 변경하지 않는다.
+3. Main worktree에서 Worker 역할을 대신 수행하지 않는다.
+4. 어떤 capability가 부족한지 사용자에게 보고한다.
+5. 가능한 가장 가까운 안전한 orchestration 방법을 제시한다.
 
 ---
 
-# 27. Agent Session 운영 원칙
+# 39. Main Context 관리
 
-Agent Session은 하나의 작업 단위를 기준으로 유지한다.
+Main은 전체 프로젝트 context와 Authority를 유지한다.
 
-하나의 Worker Session에 서로 관련 없는 여러 Issue를 계속 누적하지 않는다.
+Worker에게 모든 Project history를 그대로 전달할 필요는 없다.
 
-새로운 독립 Issue는 새로운 Worker Session을 사용한다.
+Main은 각 Worker에게 필요한 context만 구조화해서 전달한다.
 
-Worker Session 이름은 검색과 추적이 가능하도록 Issue 번호와 목적을 포함한다.
+Worker 결과 중 프로젝트 전체 정책에 영향을 주는 내용은 Main에서 다시 검토한다.
 
-예:
+Main은 다음을 기억해야 한다.
 
-NSUAI-50 BPM Rhythm Validation
+- 현재 사용자 승인 범위
+- 활성 Worker
+- Worker별 Task
+- Worker별 Worktree
+- Worker 상태
+- Review 결과
+- unresolved decision
 
-Session을 생성할 때 Worker에게 최소 다음 context를 전달한다.
+---
 
-- 작업 목표
-- 관련 Linear Issue
+# 40. Worker Context 관리
+
+Worker는 하나의 명확한 Task에 집중한다.
+
+독립적인 새 Issue가 생기면 기존 Worker에 무조건 추가하지 않는다.
+
+필요하면 Main이 새로운 Worker를 생성한다.
+
+Worker context에는 최소 다음이 있어야 한다.
+
+- Goal
 - Authority
-- 승인된 변경 범위
-- 범위 밖 항목
-- 예상 검증
-- 위험 요소
-- 미결정 사항
-
-Worker에게 현재 대화의 전체 history를 무조건 복사하기보다 작업 수행에 필요한 context를 구조화해서 전달한다.
+- Scope
+- Out of Scope
+- Constraints
+- Validation
+- Stop Conditions
 
 ---
 
-# 28. GitHub / Linear 역할 분리
+# 41. GitHub / Linear / ADR 역할 분리
 
 Linear는 다음을 관리한다.
 
@@ -905,31 +1219,35 @@ ADR은 다음을 관리한다.
 
 ---
 
-# 29. 완료 기준
+# 42. 완료 기준
 
 Agent는 코드가 작성됐다는 이유만으로 작업을 완료 처리하지 않는다.
 
-완료 판단에는 해당 작업에 필요한 범위에서 다음이 포함될 수 있다.
+완료 판단에는 작업에 필요한 범위에서 다음이 포함될 수 있다.
 
 - 요구사항 충족
 - 관련 테스트 통과
 - 필요한 실제 검증 완료
 - 문서 정합성 확인
-- Main 독립 리뷰 통과
+- Worker 완료
+- Main 독립 Review 통과
 - PR/CI Review 통과
 - 사용자 승인
+- Merge
 - Main 반영 확인
 
 미실행 검증이나 unresolved item이 있으면 명확히 남긴다.
 
 ---
 
-# 30. 금지 사항
+# 43. 금지 사항
 
 다음을 하지 않는다.
 
-- Main worktree에서 직접 기능 구현
+- Main worktree에서 기능 구현
 - 사용자 승인 전 Worker 구현 시작
+- 사용자가 직접 Worker를 수동 관리해야 하는 것을 기본 workflow로 만들기
+- Worker isolation 없이 병렬 구현
 - 기억만으로 현재 구현 상태 단정
 - 미정 서버 계약 임의 확정
 - Linear 정책을 AI Repository에서 새로 정의
@@ -941,15 +1259,18 @@ Agent는 코드가 작성됐다는 이유만으로 작업을 완료 처리하지
 - secret 출력 또는 commit
 - 테스트 실패 은폐
 - Mock 검증을 실제 검증으로 표현
+- Worker 완료 보고만 보고 diff 없이 승인
 - Main Review 없이 Integration 완료 처리
-- PR merge 전 Worker Worktree 삭제
+- PR Merge 전 Worker Worktree 삭제
 - 안전 확인 없이 Worktree 강제 삭제
 - 사용자 승인 없이 merge
-- VS Code가 이미 제공하는 Agent Session/Worktree lifecycle을 이유 없이 자체 스크립트로 중복 구현
+- Worker가 결정해야 하지 않는 서비스 정책을 임의로 확정
+- Codex가 지원하지 않는 기능을 지원한다고 가정
+- Codex Agent/Worktree lifecycle을 이유 없이 자체 script로 재구현
 
 ---
 
-# 31. 역할 요약
+# 44. 역할 요약
 
 Human
 = Approval Gate
@@ -958,17 +1279,24 @@ Human
 Main Agent
 = Planner
 + Orchestrator
++ Worker Spawner
++ Worktree Coordinator
++ Message Router
 + Independent Reviewer
++ Integration Coordinator
 
-Worker Agent Session
-= Implementer
+Worker Agent
+= Isolated Implementer
 + Tester
 + Local Committer
 
-VS Code Agent Session / Git Worktree
-= Isolation
-+ Execution Environment
-+ Session Lifecycle
+Codex Multi-Agent Runtime
+= Agent Lifecycle
++ Agent Communication
++ Task Coordination
+
+Git Worktree
+= Code Isolation
 
 GitHub PR / CI
 = Integration Gate
@@ -981,7 +1309,7 @@ ADR
 
 ---
 
-# 32. 최종 Workflow
+# 45. 최종 Workflow
 
 사용자 요청
 ↓
@@ -995,37 +1323,54 @@ Authority 충돌 확인
 ↓
 `변경안 및 작업 예정 내용`
 ↓
+STOP
+↓
 사용자 승인
 ↓
-VS Code에서 Worker Agent Session 생성
+Main Agent가 Worker Agent 생성
 ↓
-Code Isolation: New Worktree
+Main Agent가 Worker 전용 Worktree isolation 확보
 ↓
-Worker에게 승인된 작업 명세 전달
+Main이 Worker에게 Task Package 전달
 ↓
 Worker 구현
 ↓
 Worker 테스트 / 실제 검증
 ↓
+필요 시 Worker → Main 질문/Blocker 보고
+↓
+Main이 답변 또는 Human Decision 요청
+↓
+Worker 계속 진행
+↓
 Worker local commit
 ↓
-Main Agent 독립 리뷰
+Worker 결과 Main에 반환
 ↓
-문제 발견 시 Worker Session으로 feedback
+Main 독립 Review
 ↓
-Worker 수정 / 재검증
+문제 발견
+→ Main이 Worker에게 Review Feedback 전달
+→ Worker 수정
+→ Worker 재검증
+→ Worker 추가 commit
+→ Main 재Review
 ↓
-Main 재리뷰
+Main Review 통과
 ↓
-사용자에게 구현/검증/리뷰 결과 보고
+사용자에게 구현 / 검증 / Review 결과 보고
+↓
+STOP
 ↓
 사용자 PR 승인
 ↓
-Pull Request
+Main이 PR 생성/조정
 ↓
 CI / GitHub Review
 ↓
-필요 시 Worker 수정 및 Main 재리뷰
+문제 발생 시 Worker에게 수정 요청
+↓
+Main 재Review
 ↓
 사용자 Merge 승인
 ↓
@@ -1035,8 +1380,82 @@ Main 최신화
 ↓
 Main 반영 상태 확인
 ↓
-Worker Session Mark as Done 또는 Archive
+Main이 Worker Session 종료
 ↓
-안전한 Worktree Cleanup
+안전한 Worker Worktree Cleanup
 ↓
 다음 작업
+
+---
+
+# 46. Multi-Worker Workflow
+
+독립적인 여러 작업을 병렬 처리하는 경우:
+
+사용자 요청
+↓
+Main 조사
+↓
+Main이 작업 dependency 분석
+↓
+Task A / Task B / Task C 분리
+↓
+사용자 승인
+↓
+Main
+├─ Worker A / Worktree A
+├─ Worker B / Worktree B
+└─ Worker C / Worktree C
+↓
+각 Worker 독립 작업
+↓
+각 Worker 결과 Main에 반환
+↓
+Main이 결과 통합 Review
+↓
+Worker 간 충돌/의존성 확인
+↓
+필요 시 특정 Worker에게 수정 요청
+↓
+Main 최종 Review
+↓
+Human Approval
+↓
+PR / CI / Merge
+
+Worker끼리 필요한 정보를 직접 임의 공유하는 대신 Main이 필요한 정보만 중계한다.
+
+---
+
+# 47. 핵심 원칙
+
+사용자는 Main Agent와 대화한다.
+
+Main Agent는 Worker를 관리한다.
+
+Worker는 구현에 집중한다.
+
+Main은 Worker를 신뢰만 하지 않고 검증한다.
+
+Worker는 Main의 계획을 임의로 확대하지 않는다.
+
+Main은 Human의 승인 범위를 넘지 않는다.
+
+Git Worktree는 코드 isolation을 담당한다.
+
+Codex Multi-Agent 기능은 Agent orchestration을 담당한다.
+
+GitHub PR/CI는 Integration을 검증한다.
+
+Linear와 ADR은 무엇을 왜 구현해야 하는지에 대한 Authority를 제공한다.
+
+최종 개발 흐름은 다음 한 줄로 요약한다.
+
+Human
+→ Main
+→ Worker(s)
+→ Main Review
+→ Human Approval
+→ PR/CI
+→ Human Approval
+→ Merge
