@@ -105,4 +105,4 @@ tag는 `latest`, 기존 consumer 호환용 `phase1`, `sha-<전체 commit SHA>`�
 
 dependency lock·버전 upgrade·새 모델 준비 CLI·startup preload·model readiness·production hardening은 별도 작업이다. 기존 ADR/Embedding/검색 정책·BPM/Rhythm·번역/LLM 운영 기능은 변경하지 않는다. Docker Engine 오류 시 Desktop 설정·volume을 자동 복구하거나 삭제하지 않는다.
 
-이번 구조 검증에서 기존 Git-dependent test fixture와 Linux MSCLAP source identity 문제가 관측됐다. 전체 pytest·CI 성공이나 실제 모델 추론 완료로 간주하지 않는다. 실행 명령·원본 main 비교·영향은 [검증 보고서](../validation/DOCKER_DEV_RUNTIME_CLEANUP.md)를 따른다.
+이번 구조 검증에서 기존 Git-dependent test fixture와 Linux MSCLAP source identity 문제가 관측됐다. 전체 pytest·CI 성공이나 실제 모델 추론 완료로 간주하지 않는다. 실행 명령·원본 main 비교·영향은 [검증 보고서](DOCKER_DEV_RUNTIME_VALIDATION.md)를 따른다.
