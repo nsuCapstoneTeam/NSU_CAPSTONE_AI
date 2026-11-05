@@ -20,6 +20,8 @@ from typing import Any
 import numpy as np
 import torch
 
+from app.embedding.source_identity import canonical_source_identity, package_source_files
+
 ACTIVE_COUNT = 16
 APPROVED_STATUS = "approved_for_calibration_v1_experiment"
 SEMANTIC_REVIEW_STATUS = "reviewed_for_semantic_fidelity"
@@ -511,19 +513,12 @@ def gpt2_model_weight_identity(cache_root: Path) -> dict[str, str]:
 
 def package_source_identity(package_root: Path) -> dict[str, Any]:
     """Hash installed MSCLAP Python/config sources, excluding model weights."""
-    files = sorted(
-        path for path in package_root.rglob("*")
-        if path.is_file() and path.suffix.lower() in {".py", ".yml", ".yaml"}
-    )
+    files = package_source_files(package_root)
     require(bool(files), "installed MSCLAP source/config files are missing")
-    digest = hashlib.sha256()
-    for path in files:
-        relative = path.relative_to(package_root).as_posix()
-        digest.update(relative.encode("utf-8"))
-        digest.update(b"\0")
-        digest.update(bytes.fromhex(sha256_file(path)))
-        digest.update(b"\n")
-    return {"file_count": len(files), "sha256": digest.hexdigest()}
+    source_sha256, _ = canonical_source_identity(
+        (path.relative_to(package_root), sha256_file(path)) for path in files
+    )
+    return {"file_count": len(files), "sha256": source_sha256}
 
 
 def select_approved_queries(document: dict[str, Any]) -> list[dict[str, str]]:
