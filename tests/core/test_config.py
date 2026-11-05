@@ -3,6 +3,11 @@ import pytest
 from app.core.config import DatabaseSettings
 
 
+@pytest.fixture(autouse=True)
+def explicit_database_host(monkeypatch):
+    monkeypatch.setenv("DB_HOST", "test-db")
+
+
 def test_environment_settings(monkeypatch):
     monkeypatch.setenv("DB_HOST", "test-db")
     monkeypatch.setenv("DB_PORT", "5433")
@@ -25,6 +30,23 @@ def test_missing_password(monkeypatch):
     monkeypatch.delenv("DB_PASSWORD", raising=False)
 
     with pytest.raises(KeyError):
+        DatabaseSettings.from_environment()
+
+
+def test_missing_host(monkeypatch):
+    monkeypatch.setenv("DB_PASSWORD", "test_password")
+    monkeypatch.delenv("DB_HOST", raising=False)
+
+    with pytest.raises(KeyError, match="DB_HOST"):
+        DatabaseSettings.from_environment()
+
+
+@pytest.mark.parametrize("host", ["", " ", "\t"])
+def test_blank_host(monkeypatch, host):
+    monkeypatch.setenv("DB_PASSWORD", "test_password")
+    monkeypatch.setenv("DB_HOST", host)
+
+    with pytest.raises(ValueError, match="DB_HOST"):
         DatabaseSettings.from_environment()
 
 

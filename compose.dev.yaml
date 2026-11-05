@@ -1,0 +1,19 @@
+services:
+  ai:
+    image: nsu-capstone-ai:dev
+    build:
+      context: .
+      target: dev
+    volumes:
+      - ./app:/workspace/app:ro
+      - ./scripts:/workspace/scripts:ro
+      - ./tests:/workspace/tests:ro
+      - ./pytest.ini:/workspace/pytest.ini:ro
+      - ./docs:/workspace/docs:ro
+      - ./samples:/workspace/samples:ro
+      - ./datasets:/workspace/datasets
+      - type: volume
+        source: huggingface_cache
+        target: /var/cache/huggingface
+        read_only: false
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--reload-dir", "/workspace/app"]

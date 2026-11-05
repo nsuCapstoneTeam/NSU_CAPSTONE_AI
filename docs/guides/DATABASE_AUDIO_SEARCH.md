@@ -92,23 +92,23 @@ DB가 비어 있는 경우와 모든 후보가 비호환·동일 파일인 경�
 먼저 [임베딩 저장 안내](EMBEDDING_STORAGE.md)에 따라 테이블을 생성하고 후보 음악을 저장합니다.
 
 ```powershell
-docker compose run --rm --no-deps ai python -m scripts.database.migrate_embeddings
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.embedding.store_audio_embedding --music-id dev-music-002 --audio samples/candidate.mp3
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m scripts.database.migrate_embeddings
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m scripts.embedding.store_audio_embedding --music-id dev-music-002 --audio samples/candidate.mp3
 ```
 
 검색할 음악을 `samples/reference.mp3`에 넣고 실행합니다.
 
 ```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_database_audio --audio samples/reference.mp3
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m scripts.matching.search_database_audio --audio samples/reference.mp3
 ```
 
 CLI 옵션으로 TopK(1~100, 기본 5)와 새로운 결과 파일을 지정할 수 있습니다. 검증 시 `--top-k 5`, `10`, `100` 등으로 CLI 반환 개수를 선택할 수 있습니다. 이는 개발 CLI의 조회 옵션이며 서비스 계약의 결과 상한(최대 100곡)과는 별개입니다. 서비스 정책은 최대 100곡 반환이고 CLI 옵션이 서비스의 입력 후보 상한이나 임의 결과 개수를 정하지 않습니다.
 
 ```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.matching.search_database_audio --audio samples/reference.mp3 --top-k 5 --output /workspace/datasets/audio-search-results/search-database-new.json
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m scripts.matching.search_database_audio --audio samples/reference.mp3 --top-k 5 --output /workspace/datasets/audio-search-results/search-database-new.json
 ```
 
-이 예제의 `compose.fma.yaml`은 host의 `./datasets`를 `/workspace/datasets`에 쓰기 가능하게 mount합니다.
+이 예제의 `compose.dev.yaml`은 host의 `./datasets`를 `/workspace/datasets`에 쓰기 가능하게 mount합니다.
 결과는 host의 `datasets/audio-search-results/`에 저장되어 `run --rm` 종료 후에도 남습니다.
 CLI가 결과 폴더를 생성하며, 이 로컬 결과 디렉터리는 Git에서 제외됩니다.
 
@@ -123,7 +123,7 @@ DB 검색에는 manifest가 필요 없습니다. 기존 개발 DB·pgvector와 �
 ## 테스트
 
 ```powershell
-docker compose run --rm --no-deps -e RUN_EMBEDDING_DB_TESTS=1 ai python -m pytest tests -q
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps -e RUN_EMBEDDING_DB_TESTS=1 ai python -m pytest tests -q -p no:cacheprovider
 ```
 
 현재 테스트는 DB 거리와 Python 코사인의 일치, Top5·TopK, 동점 정렬,

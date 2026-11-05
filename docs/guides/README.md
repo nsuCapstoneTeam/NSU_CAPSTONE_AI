@@ -5,6 +5,7 @@
 
 | 관심 기능 | 문서 |
 | --- | --- |
+| Docker 개발/runtime·최초 준비 | [개발 환경](DEVELOPMENT_ENVIRONMENT.md) |
 | 공통 Audio 임베딩·전처리 | [Audio 생성](AUDIO_EMBEDDING.md) |
 | 테이블 생성·음악 ID별 저장 | [임베딩 저장](EMBEDDING_STORAGE.md) |
 | 파일 목록을 이용한 후보 검색 | [Audio 검색](AUDIO_SEARCH.md) |

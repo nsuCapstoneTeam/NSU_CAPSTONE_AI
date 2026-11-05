@@ -1,7 +1,8 @@
 # 개발 도구
 
 프로젝트 루트에서 `python -m scripts.<기능>.<모듈>`로 실행합니다.
-Docker 명령에서는 `ai` 다음에 같은 Python 명령을 붙입니다.
+개발 Docker 명령은 `docker compose -f compose.yaml -f compose.dev.yaml`을 사용하고 `ai` 다음에 같은 Python 명령을 붙입니다.
+기본 runtime 이미지는 DB 확인·읽기 전용 진단·명시적 migration CLI만 포함합니다. 전체 개발 도구는 dev target에 있습니다.
 폴더 정리로 기존 `scripts.<모듈>` 실행 경로가 변경되었습니다.
 
 | 폴더 | 파일 | 역할 |
@@ -22,10 +23,11 @@ Docker 명령에서는 `ai` 다음에 같은 Python 명령을 붙입니다.
 | datasets/ | validate_audio_highlights.py | 원본/Highlight 무결성·PCM·반복 재현성 검사; 모델·DB 접근 없음 |
 
 ```powershell
-docker compose run --rm --no-deps ai python -m scripts.database.check_database
-docker compose run --rm --no-deps ai python -m scripts.database.migrate_embeddings
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.embedding.store_audio_embedding --music-id dev-music-002 --audio samples/reference.mp3
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m scripts.database.check_database
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m scripts.embedding.store_audio_embedding --music-id dev-music-002 --audio samples/reference.mp3
 ```
 
 상세 옵션과 데이터 준비 방법은 [문서 목록](../docs/README.md)을 참고하세요.
+DB migration은 대상 DB와 권한을 확인하고 별도 승인 후에만 `python -m scripts.database.migrate_embeddings`로 실행합니다. 서버 시작 시 자동 실행하지 않습니다.
+cache 준비·과거 실험 경로 호환성은 [개발 환경 가이드](../docs/guides/DEVELOPMENT_ENVIRONMENT.md)를 참고하세요.
 `demo_classification.py`는 자동 테스트가 아니며 `tests/`로 옮기지 않습니다.
