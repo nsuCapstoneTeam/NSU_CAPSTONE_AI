@@ -1,0 +1,298 @@
+openapi: 3.0.3
+info:
+  title: Spring to AI Recommend Server Contract
+  version: draft
+  description: |
+    Draft contract based on Accepted Linear server agreement 017 (2026-11-10).
+    info.version labels this document; it does not establish a deployed API version.
+
+    The recommendation operation is contract-defined but implementation pending.
+    Current FastAPI routes are GET /health/live and GET /health/ready only.
+
+    Spring validates UI selections, applies predefined mapping to create a
+    canonical English keyphrase, applies Eligibility, and sends eligible ACTIVE
+    (musicId, audioRevision) candidates. AI validates canonicalText and uses it
+    as MSCLAP Text Embedding input without translation or reinterpretation,
+    compares candidate Audio Embeddings with cosine similarity, ranks by raw
+    cosine descending, and returns up to 100 results. Spring preserves order.
+
+    Raw cosine is internal and is not exposed. musicSimilarity is a
+    candidate-independent fixed 0..100 display value; its formula and calibration
+    are TBD. BPM/Rhythm, translation, LLM, Qwen, OPUS, and M2M100 are excluded.
+
+    This applies 016 to input ownership and retains 012 policies not superseded
+    by 016. Agreement 010's 503 RECOMMENDATION_UNAVAILABLE and 504
+    RECOMMENDATION_TIMEOUT are Spring user-facing responses, not assertions
+    about this AI endpoint's HTTP status mapping. TBD wire types/schemas remain
+    unconstrained; typed recommendation JSON examples are omitted.
+  x-server-agreement:
+    id: "017"
+    status: Accepted
+    acceptedDate: "2026-11-10"
+    url: https://linear.app/nsu-capstone/document/017-spring-canonical-%EA%B2%80%EC%83%89-%EC%9E%85%EB%A0%A5-%EA%B8%B0%EB%B0%98-ai-recommend-server-%EC%9A%94%EC%B2%AD%EC%9D%91%EB%8B%B5-%EA%B3%84%EC%95%BD-f96a57425124
+  x-related-server-agreements:
+    - id: "010"
+      status: Accepted
+      url: https://linear.app/nsu-capstone/document/010-ai-%EA%B3%A1-%EA%B2%80%EC%83%89-%EC%8B%A4%ED%8C%A8%EC%8B%9C%EA%B0%84-%EC%B4%88%EA%B3%BC-%EC%8B%9C-%EC%B6%94%EC%B2%9C-api-%EC%9D%91%EB%8B%B5-46a63dece138
+    - id: "012"
+      status: Accepted
+      url: https://linear.app/nsu-capstone/document/012-clap-%EC%9D%8C%EC%95%85-%EC%9C%A0%EC%82%AC%EB%8F%84-%EA%B8%B0%EB%B0%98-%EA%B3%A1-%EC%B6%94%EC%B2%9C-%ED%9D%90%EB%A6%84-c7c809f92cba
+    - id: "016"
+      status: Accepted
+      url: https://linear.app/nsu-capstone/document/016-spring-canonical-%EA%B2%80%EC%83%89-%EC%9E%85%EB%A0%A5-%EC%83%9D%EC%84%B1-%EB%B0%8F-ai-%EC%9E%85%EB%A0%A5-%EC%B1%85%EC%9E%84-%EB%B6%84%EB%A6%AC-29ac49c33ada
+  x-implementation-status: pending
+
+paths:
+  /health/live:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      description: Implemented FastAPI endpoint; reports process liveness without querying the database.
+      operationId: getHealthLive
+      responses:
+        "200":
+          description: Process is alive.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveResponse"
+              example:
+                status: ok
+
+  /health/ready:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      description: Implemented FastAPI endpoint; checks database and pgvector readiness, not model readiness.
+      operationId: getHealthReady
+      responses:
+        "200":
+          description: Database and pgvector are ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadyResponse"
+              example:
+                status: ok
+                database: ok
+                pgvector: "<installed-extension-version>"
+        "503":
+          description: Database or pgvector dependency is not ready.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotReadyResponse"
+              example:
+                status: not_ready
+                reason: database_unavailable
+
+  /internal/v1/recommendations/search:
+    post:
+      tags: [Recommendation contract (implementation pending)]
+      summary: Search eligible candidates by canonical text
+      description: |
+        Contract defined by Accepted server agreement 017. Implementation
+        pending; this operation is not currently exposed by FastAPI.
+
+        Spring sends a canonical English keyphrase and ACTIVE candidate pairs
+        that passed Spring Eligibility. Candidate input upper bound is TBD and
+        distinct from the maximum of 100 response results. Empty-candidate,
+        duplicate-candidate, unknown-revision, and missing-embedding behavior
+        remain TBD.
+
+        AI uses canonicalText as MSCLAP Text Embedding input without translation,
+        rewriting, or semantic reinterpretation. It ranks only within candidates
+        supplied by Spring, by raw cosine descending. Spring must not reorder.
+        Raw cosine is not part of the response.
+
+        No typed request example is included because musicId and audioRevision
+        wire types are TBD. X-Request-Id format is unconstrained; behavior when
+        absent remains TBD.
+      operationId: searchRecommendationsByCanonicalText
+      parameters:
+        - name: X-Request-Id
+          in: header
+          required: false
+          description: |
+            Tracing/correlation identifier supplied or generated by Spring.
+            UUID format is not required. AI should reuse it in response/error
+            handling and logs when available. Missing-header behavior is TBD.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        description: >
+          Request contains canonicalText and candidates. Candidate identity is
+          (musicId, audioRevision). Wire types for both candidate identifiers
+          are TBD and intentionally not asserted here.
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecommendationSearchRequest"
+      responses:
+        "200":
+          description: >
+            Search completed. Returns available results in AI-assigned raw
+            cosine descending order, up to 100. Empty-candidate/result semantics
+            remain TBD.
+          headers:
+            X-Request-Id:
+              required: false
+              description: Echo the request correlation identifier when available. Whether AI generates one when the request header is absent remains TBD.
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationSearchResponse"
+        default:
+          description: >
+            AI internal API error. Exact HTTP status mapping and complete error
+            code list are TBD. Agreement 010 defines Spring user-facing 503/504
+            responses separately; this document does not assign those statuses
+            to this AI endpoint.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecommendationSearchError"
+
+components:
+  schemas:
+    LiveResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+
+    ReadyResponse:
+      type: object
+      required: [status, database, pgvector]
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        database:
+          type: string
+          enum: [ok]
+        pgvector:
+          type: string
+          description: Installed pgvector extension version.
+
+    NotReadyResponse:
+      type: object
+      required: [status, reason]
+      properties:
+        status:
+          type: string
+          enum: [not_ready]
+        reason:
+          type: string
+          description: Readiness failure reason returned by current implementation.
+
+    RecommendationSearchRequest:
+      type: object
+      description: |
+        Contract-defined request for a pending operation. Candidate wire types
+        and canonical text length/character constraints remain TBD.
+      required: [canonicalText, candidates]
+      properties:
+        canonicalText:
+          type: string
+          minLength: 1
+          pattern: '.*\S.*'
+          description: |
+            Non-empty canonical English keyphrase generated by Spring. AI uses
+            it as MSCLAP Text Embedding input without translation, rewriting,
+            or semantic reinterpretation. Maximum length and character policy
+            are TBD.
+        candidates:
+          type: array
+          description: |
+            ACTIVE candidate pairs that passed Spring Eligibility. Input maximum
+            is TBD and independent of the 100-result maximum. Empty-array,
+            duplicate, unknown-revision, and missing-embedding behavior are TBD.
+          items:
+            $ref: "#/components/schemas/RecommendationCandidate"
+
+    RecommendationCandidate:
+      type: object
+      description: Candidate identity is the pair (musicId, audioRevision).
+      required: [musicId, audioRevision]
+      properties:
+        musicId:
+          description: |
+            Music identifier supplied by Spring. Wire type is TBD. Agreement
+            015 is Proposed and is not used to assign a type here.
+          x-contract-status: TBD
+        audioRevision:
+          description: |
+            Source-audio revision identifier. Wire type is TBD. Agreement 015
+            is Proposed and is not used to assign a type here.
+          x-contract-status: TBD
+
+    RecommendationSearchResponse:
+      type: object
+      description: Result details and unresolved wire types remain TBD.
+      required: [resultVersion, results]
+      properties:
+        resultVersion:
+          description: |
+            Single version identifier for the response. Wire type/format,
+            issuance rules, and relationship to model, calibration, and
+            canonical mapping versions are TBD.
+          x-contract-status: TBD
+        results:
+          type: array
+          maxItems: 100
+          description: AI-ranked results in raw cosine descending order; Spring preserves the order.
+          items:
+            $ref: "#/components/schemas/RecommendationResult"
+
+    RecommendationResult:
+      type: object
+      required: [rank, musicId, audioRevision, musicSimilarity]
+      properties:
+        rank:
+          type: integer
+          minimum: 1
+          description: AI-assigned one-based rank.
+        musicId:
+          description: Music identifier; wire type TBD.
+          x-contract-status: TBD
+        audioRevision:
+          description: Audio revision identifier; wire type TBD.
+          x-contract-status: TBD
+        musicSimilarity:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: |
+            Candidate-independent fixed 0..100 display similarity. Not raw
+            cosine, probability, or a candidate-relative score. Formula and
+            calibration remain TBD. Numeric examples are omitted because they
+            could be mistaken for an approved score mapping.
+        details:
+          description: Structured detail schema and nullability are TBD.
+          x-contract-status: TBD
+
+    RecommendationSearchError:
+      type: object
+      description: |
+        Proposed common AI internal error body based on agreement 010.
+        Exact AI HTTP status mapping and complete code list remain TBD.
+      required: [code, message, retryable, requestId]
+      properties:
+        code:
+          type: string
+          description: AI error code; complete code list TBD.
+        message:
+          type: string
+          description: Diagnostic message; user-facing semantics TBD.
+        retryable:
+          type: boolean
+          description: Retry guidance subject to agreement 010's maximum one retry.
+        requestId:
+          type: string
+          description: Correlation identifier included in AI error responses. If X-Request-Id is absent, whether AI generates the value remains TBD.
