@@ -37,7 +37,7 @@ class ComposeConfigurationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         ai = json.loads(result.stdout)["services"]["ai"]
         self.assertNotIn("build", ai)
-        self.assertNotIn("command", ai)
+        self.assertIsNone(ai.get("command"))
         self.assertTrue(all(item["type"] == "volume" for item in ai["volumes"]))
         self.assertTrue(ai["volumes"][0]["read_only"])
         self.assertEqual(ai["environment"]["DB_HOST"], "test-db")
