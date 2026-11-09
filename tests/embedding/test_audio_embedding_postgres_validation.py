@@ -20,6 +20,32 @@ def validation_env(monkeypatch):
         monkeypatch.setenv(key, value)
 
 
+@pytest.fixture
+def isolated_git_environment(monkeypatch):
+    # Never let an invoking shell redirect these fixtures to another repository.
+    for key in ('GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE', 'GIT_COMMON_DIR'):
+        monkeypatch.delenv(key, raising=False)
+
+
+@pytest.fixture
+def git_repository_commit(tmp_path, isolated_git_environment):
+    def git(*args):
+        return subprocess.check_output(
+            ['git', '-C', str(tmp_path), *args], text=True, stderr=subprocess.PIPE
+        ).strip()
+    git('init', '--object-format=sha1')
+    git('config', 'user.name', 'Validation fixture')
+    git('config', 'user.email', 'validation-fixture@example.invalid')
+    git('config', 'commit.gpgsign', 'false')
+    hooks_directory = tmp_path / '.git/fixture-hooks'
+    hooks_directory.mkdir()
+    git('config', 'core.hooksPath', hooks_directory.as_posix())
+    (tmp_path / 'fixture.txt').write_text('isolated validation fixture\n', encoding='utf-8')
+    git('add', '--', 'fixture.txt')
+    git('commit', '-m', 'Create validation fixture')
+    return git('rev-parse', 'HEAD')
+
+
 @pytest.mark.parametrize(('phases', 'pytest_exit_code', 'expected'), [
     ([('setup', 'passed'), ('call', 'passed'), ('teardown', 'passed')], 0,
      {'passed': 1, 'failed': 0, 'skipped': 0}),
@@ -171,7 +197,7 @@ def test_unrecognized_migration_runtime_error_is_not_hidden(monkeypatch):
 
 
 def test_cli_writes_structured_migration_failure_without_credentials(
-        tmp_path, validation_env, monkeypatch, capsys):
+        tmp_path, validation_env, monkeypatch, capsys, git_repository_commit):
     monkeypatch.setattr(tool, 'ROOT', tmp_path)
     monkeypatch.setattr(tool, 'audio_file_sha256', lambda path: 'a' * 64)
     monkeypatch.setattr(tool, 'environment_evidence', lambda: {})
@@ -190,6 +216,7 @@ def test_cli_writes_structured_migration_failure_without_credentials(
     ]) == 1
 
     report = json.loads(report_path.read_text(encoding='utf-8'))
+    assert report['repository_commit'] == git_repository_commit
     output = capsys.readouterr().out
     assert report['status'] == 'FAIL'
     assert report['failure'] == {
@@ -262,7 +289,7 @@ def test_fail_dominates_review_status():
     assert tool.aggregate_status([{'status': 'FAIL'}, {'status': 'REVIEW_REQUIRED'}]) == 'FAIL'
 
 
-def test_blocked_cli_does_not_migrate_or_infer(tmp_path, monkeypatch):
+def test_blocked_cli_does_not_migrate_or_infer(tmp_path, monkeypatch, git_repository_commit):
     monkeypatch.setattr(tool, 'ROOT', tmp_path)
     monkeypatch.setattr(tool, 'audio_file_sha256', lambda path: 'a'*64)
     monkeypatch.setattr(tool, 'environment_evidence', lambda: {})
@@ -275,6 +302,7 @@ def test_blocked_cli_does_not_migrate_or_infer(tmp_path, monkeypatch):
     assert tool.main(['--expected-database', 'audio_embedding_validation', '--report', str(report)]) == 4
     execute.assert_not_called()
     data = json.loads(report.read_text(encoding='utf-8'))
+    assert data['repository_commit'] == git_repository_commit
     assert data['status'] == 'BLOCKED' and data['execution']['db_validation'] == 'NOT_EXECUTED'
     assert data['failed_count'] == 0 and data['exit_code'] == 4
 
@@ -291,7 +319,8 @@ def test_blocked_cli_does_not_migrate_or_infer(tmp_path, monkeypatch):
     ('database', True, 'integration_tests', 'FAIL', 1),
 ])
 def test_cli_db_error_status_tracks_whether_execution_started(
-        tmp_path, validation_env, monkeypatch, capsys, error_kind, started, stage, expected_status, expected_exit):
+        tmp_path, validation_env, monkeypatch, capsys, error_kind, started, stage, expected_status, expected_exit,
+        git_repository_commit):
     monkeypatch.setattr(tool, 'ROOT', tmp_path)
     monkeypatch.setattr(tool, 'audio_file_sha256', lambda path: 'a'*64)
     monkeypatch.setattr(tool, 'environment_evidence', lambda: {})
@@ -314,6 +343,7 @@ def test_cli_db_error_status_tracks_whether_execution_started(
     result = tool.main(['--expected-database', 'audio_embedding_validation', '--report', str(report_path)])
 
     data = json.loads(report_path.read_text(encoding='utf-8'))
+    assert data['repository_commit'] == git_repository_commit
     cli_output = json.loads(capsys.readouterr().out)
     assert result == expected_exit == data['exit_code']
     assert data['status'] == expected_status
@@ -356,7 +386,7 @@ def test_cli_invalid_expected_db_nonzero_and_secret_not_printed(tmp_path):
     assert not report.exists()
 
 
-def test_programming_error_not_hidden(tmp_path, validation_env, monkeypatch):
+def test_programming_error_not_hidden(tmp_path, validation_env, monkeypatch, git_repository_commit):
     monkeypatch.setattr(tool, 'ROOT', tmp_path)
     monkeypatch.setattr(tool, 'audio_file_sha256', lambda path: 'a'*64)
     monkeypatch.setattr(tool, 'environment_evidence', lambda: {})
@@ -366,6 +396,19 @@ def test_programming_error_not_hidden(tmp_path, validation_env, monkeypatch):
     monkeypatch.setattr(tool, 'execute_validation', broken)
     with pytest.raises(TypeError, match='programming defect'):
         tool.main(['--expected-database', 'audio_embedding_validation', '--report', str(tmp_path/'datasets/x.json')])
+
+
+def test_non_git_root_still_fails_before_validation(
+        tmp_path, validation_env, monkeypatch, isolated_git_environment):
+    monkeypatch.setattr(tool, 'ROOT', tmp_path)
+    execute = MagicMock()
+    monkeypatch.setattr(tool, 'execute_validation', execute)
+    output = tmp_path / 'datasets/non-git.json'
+    with pytest.raises(subprocess.CalledProcessError) as error:
+        tool.main(['--expected-database', 'audio_embedding_validation', '--report', str(output)])
+    assert error.value.returncode != 0
+    execute.assert_not_called()
+    assert not output.exists()
 
 def test_live_mismatch_blocks_migration_and_generator(validation_env, monkeypatch):
     connection = MagicMock()

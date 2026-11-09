@@ -165,14 +165,16 @@ AudioCaps Multilingual test split에서 같은 오디오를 대상으로 영어 
 
 ## 설치·서버 실행
 
-Docker Desktop을 켜고 기존 PostgreSQL + pgvector DB를 별도로 실행합니다.
-처음 설정할 때만 아래처럼 복사합니다. 기존 `.env`는 덮어쓰지 마세요.
+개발 기준은 React·Spring Local, Backend PostgreSQL/pgvector·Redis Docker, AI Docker입니다.
+최초 DB/Redis·모델 cache 준비와 일상 실행은 [개발 환경 가이드](docs/guides/DEVELOPMENT_ENVIRONMENT.md)를 따릅니다.
+DB/Redis는 `NSU_CAPSTONE/backend/compose.yaml`에서 관리하며 AI Compose에는 중복 DB를 만들지 않습니다.
+아래 명령은 `NSU_CAPSTONE_AI` 루트 기준입니다. 기존 `.env`는 덮어쓰지 마세요.
 
 ```powershell
 Copy-Item .env.example .env
 notepad .env
-docker compose config --quiet
-docker compose up -d
+docker compose -f compose.yaml -f compose.dev.yaml config --quiet
+docker compose -f compose.yaml -f compose.dev.yaml up -d --build
 ```
 
 `DB_PASSWORD`, `DB_USER`, `DB_NAME`, `DB_PORT`는 기존 DB 설정과 맞춥니다.
@@ -180,24 +182,27 @@ Windows Docker Desktop에서 호스트 DB에 연결할 때 `DB_HOST=host.docker.
 
 | 설정 | 기본값 | 용도 |
 | --- | --- | --- |
-| DB_HOST / DB_PORT | host.docker.internal / 5432 | PostgreSQL 연결 |
+| DB_HOST / DB_PORT | 명시 필수 / 5432 | PostgreSQL 연결; `.env.example`은 Windows Docker Desktop 예시 |
 | DB_NAME / DB_USER | capstone_db / capstone | DB 이름·사용자 |
 | DB_PASSWORD | 필수 | DB 비밀번호 |
 | DB_CONNECT_TIMEOUT | 3 | 연결 제한 시간(초) |
 | AI_PORT | 8000 | 로컬 서버 포트 |
+| AI_IMAGE | GHCR phase1 | 기본 Compose runtime 이미지; dev는 로컬 dev 이미지 사용 |
+| HF_HOME | /var/cache/huggingface | Compose의 외부 named volume; dev는 쓰기 가능, runtime은 읽기 전용 |
 
-Compose는 GHCR 이미지를 사용하므로 `up --build`만으로 로컬 Dockerfile을 빌드하지 않습니다.
-로컬 변경으로 개발 이미지를 다시 만들 때는 다음 명령을 사용합니다.
+`compose.yaml`은 source mount·reload·테스트 도구가 없는 runtime 실행 기준입니다.
+`compose.dev.yaml`을 명시적으로 합치면 `dev` target을 로컬 build하고 소스를 읽기 전용 mount합니다.
+모델 파일은 이미지에 포함하지 않습니다. 모델 추론 전에는 가이드의 cache 준비가 필요합니다.
+runtime 이미지만 검증하려면 다음처럼 명시적으로 build할 수 있습니다(실제 운영은 검증된 SHA tag/digest 사용).
 
 ```powershell
-docker build -t ghcr.io/nsucapstoneteam/nsu-capstone-ai:phase1 .
-docker compose up -d --force-recreate
+docker build --target runtime -t nsu-capstone-ai:runtime .
 ```
 
 ```powershell
 Invoke-RestMethod http://localhost:8000/health/live
 Invoke-RestMethod http://localhost:8000/health/ready
-docker compose exec -T ai python -m scripts.database.check_database
+docker compose -f compose.yaml -f compose.dev.yaml exec -T ai python -m scripts.database.check_database
 ```
 
 `live`는 서버 응답, `ready`는 DB 연결·vector 확장을 확인합니다.
@@ -207,17 +212,18 @@ API 문서는 `http://localhost:8000/docs`에서 확인합니다.
 ## FMA Historical 근거
 
 [FMA Historical 안내](docs/guides/FMA_VALIDATION.md)에서 보존된 실험 보고서와 현재 Phase A 경로를 확인합니다.
-다운로드·측정 코드와 모델 캐시 연결은 유지하지만 삭제한 입력을 사용하는 실행 예제는 제공하지 않습니다.
+다운로드·측정 코드와 과거 evidence는 보존합니다. 공용 모델 cache·datasets 연결은 `compose.dev.yaml`로 통합했습니다.
+삭제한 입력을 사용하는 재현 예제는 제공하지 않습니다.
 
 ## 자동 테스트
 
 ```powershell
-docker compose run --rm --no-deps ai python -m pytest tests -q
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m pytest tests -q -p no:cacheprovider
 ```
 
 설정·Health Check·FMA 표본 선정·검증 입력 처리를 검사합니다.
 모델 가중치·음원·실DB는 필요하지 않으며 실제 추론 실험과 구분합니다.
-공통 Audio 생성·음악 검색·임시 정규화·저장과 실제 DB 검사까지 포함해
+다음은 과거 검증 기록이며 현재 전체 suite의 실행 결과가 아닙니다. 공통 Audio 생성·음악 검색·임시 정규화·저장과 실제 DB 검사까지 포함해
 `RUN_EMBEDDING_DB_TESTS=1`로 **98개 통과**, Starlette TestClient deprecation 경고 1개를 확인했습니다.
 기본 실행에서는 실제 DB 테스트 16개를 건너뜁니다.
 
@@ -258,8 +264,8 @@ py -3.11 -m venv .venv
 | docs/experiments/fma-phase2/ | 공유용 실험 근거, 음원 제외 |
 | docs/experiments/audio-search-phase2/ | 정규화·음악 검색의 공유용 근거, 음원 제외 |
 | docs/adr/ | 기술 결정·미확정 사항 |
-| compose.fma.yaml | FMA 데이터·모델 캐시 연결 |
-| datasets/fma/huggingface/ | 공유 MSCLAP/GPT-2 모델 캐시, Git 제외 |
+| compose.dev.yaml | 개발 소스·데이터·공용 모델 cache 연결 |
+| datasets/fma/huggingface/ | 과거 실험 cache 경로; 기존 데이터·evidence 보존 |
 
 ## 관련 자료와 다음 작업
 

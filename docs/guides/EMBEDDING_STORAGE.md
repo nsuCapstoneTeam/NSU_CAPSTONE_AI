@@ -123,7 +123,7 @@ ON CONFLICT (music_id) DO NOTHING RETURNING music_id;
 ## 테이블 생성과 Git 관리
 
 ```powershell
-docker compose run --rm --no-deps ai python -m scripts.database.migrate_embeddings
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m scripts.database.migrate_embeddings
 ```
 
 SQL migration은 `app/repository/migrations/`의 번호가 붙은 파일로 관리하며 Git에 포함합니다.
@@ -143,27 +143,27 @@ checkpoint revision/SHA-256, MSCLAP package version, pinned implementation/confi
 ## 실제 파일 저장
 
 ```powershell
-docker compose -f compose.yaml -f compose.fma.yaml run --rm --no-deps ai python -m scripts.embedding.store_audio_embedding --music-id dev-reference-001 --audio samples/reference.mp3
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m scripts.embedding.store_audio_embedding --music-id dev-reference-001 --audio samples/reference.mp3
 ```
 
 성공 결과는 `status`, `music_id`, `created`, `source_sha256`, `dimension`을 반환합니다.
 첫 저장은 `created=true`, 같은 결과의 재요청은 `false`입니다.
 현재 파일 경로는 AI 실행 환경에서 읽을 수 있어야 합니다. 파일 업로드·객체 스토리지 다운로드
-기능을 구현한 것은 아닙니다. 모델 캐시는 `compose.fma.yaml`로 연결합니다.
+기능을 구현한 것은 아닙니다. 모델 cache는 `compose.dev.yaml`의 외부 named volume으로 연결합니다. 준비는 [개발 환경 가이드](DEVELOPMENT_ENVIRONMENT.md)를 따릅니다.
 
 ## 테스트
 
 일반 테스트는 실제 DB 없이 실행하며 DB 테스트는 건너뜁니다.
 
 ```powershell
-docker compose run --rm --no-deps ai python -m pytest tests -q
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m pytest tests -q -p no:cacheprovider
 ```
 
 테이블을 적용한 개발 DB에서만 아래 명령을 실행합니다. 테스트 행은 롤백하거나
 테스트가 생성한 ID만 삭제합니다. 기존 행은 수정하지 않습니다.
 
 ```powershell
-docker compose run --rm --no-deps -e RUN_EMBEDDING_DB_TESTS=1 ai python -m pytest tests -q
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps -e RUN_EMBEDDING_DB_TESTS=1 ai python -m pytest tests -q -p no:cacheprovider
 ```
 
 벡터·메타데이터 오류, 생성 실패 시 DB 미접속, 저장 실패 전달, 재요청,

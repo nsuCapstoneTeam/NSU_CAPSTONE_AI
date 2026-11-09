@@ -2,41 +2,60 @@ name: Docker Publish
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
   push:
     branches:
       - main
     paths:
       - "Dockerfile"
+      - ".dockerignore"
       - "requirements.txt"
       - "requirements-dev.txt"
+      - "app/**"
+      - "scripts/**"
+      - "tests/**"
+      - "docs/experiments/**"
+      - "pytest.ini"
+      - "compose.yaml"
+      - "compose.dev.yaml"
       - ".github/workflows/docker-publish.yml"
 
 permissions:
   contents: read
 
 jobs:
-  validate:
+  test-and-build:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Build Docker image
-        run: docker build --tag nsu-capstone-ai:ci .
+      - name: Validate Compose configuration without a database or Docker Engine
+        run: python tests/core/test_compose_config.py
 
-      - name: Run API and core tests
+      - name: Build development target
+        run: docker build --target dev --tag nsu-capstone-ai:ci-dev .
+
+      - name: Run tests without model downloads or a live database
         run: |
           docker run --rm \
-            --mount type=bind,source="${{ github.workspace }}/tests",target=/workspace/tests,readonly \
-            nsu-capstone-ai:ci python -m pytest tests/api tests/core -q
+            --mount type=bind,source="${{ github.workspace }}/.git",target=/workspace/.git,readonly \
+            nsu-capstone-ai:ci-dev sh -c 'git config --global --add safe.directory /workspace && python -m pytest tests -q'
+
+      - name: Build runtime target
+        run: docker build --target runtime --tag nsu-capstone-ai:ci-runtime .
+
+      - name: Validate runtime imports and dependencies
+        run: |
+          docker run --rm nsu-capstone-ai:ci-runtime python -m pip check
+          docker run --rm nsu-capstone-ai:ci-runtime python -c "import torch, torchaudio, torchvision; from msclap import CLAP; from app.main import app; from scripts.database import check_database, inspect_embedding_database, migrate_embeddings"
 
   build-and-push:
-    needs: validate
+    needs: test-and-build
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -58,7 +77,12 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
+          target: runtime
           push: true
           tags: |
             ghcr.io/nsucapstoneteam/nsu-capstone-ai:latest
             ghcr.io/nsucapstoneteam/nsu-capstone-ai:phase1
+            ghcr.io/nsucapstoneteam/nsu-capstone-ai:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}

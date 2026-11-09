@@ -20,6 +20,18 @@ DATA_PATH = Path(__file__).parents[2] / "docs/experiments/audio-similarity-calib
 REPOSITORY_ROOT = Path(__file__).parents[2]
 
 
+def test_installed_package_source_identity_matches_runtime_verifier():
+    import importlib
+    from app.embedding.text_embedding import _verify_msclap_implementation_identity
+
+    root = Path(importlib.import_module('msclap.CLAPWrapper').__file__).resolve().parent
+    runtime_identity = _verify_msclap_implementation_identity(root)
+    assert tool.package_source_identity(root) == {
+        'file_count': runtime_identity['source_file_count'],
+        'sha256': runtime_identity['source_sha256'],
+    }
+
+
 def _run_cache_resolution_probe(tmp_path, *, mode, cache_environment):
     env = os.environ.copy()
     for name in (

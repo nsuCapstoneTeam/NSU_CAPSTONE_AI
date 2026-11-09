@@ -32,9 +32,9 @@ FMA Historical 집계는 과거 의사결정 설명용이며 향후 calibration 
 
 ## 유지하는 코드와 공유 캐시
 
-`datasets/fma/huggingface/`는 공유 MSCLAP/GPT-2 캐시이므로 유지합니다.
+`datasets/fma/huggingface/`의 기존 cache는 보존합니다. 일반 개발 cache는 [개발 환경 가이드](DEVELOPMENT_ENVIRONMENT.md)의 외부 named volume으로 분리했으며 기존 파일을 자동 이동하거나 삭제하지 않습니다.
 `scripts/fma/validate_fma.py`와 helper, `scripts/matching/validate_audio_similarity.py`, 관련 synthetic tests는 유지합니다.
-`scripts/fma/download_fma.ps1`와 `compose.fma.yaml`도 이번 단계에서는 유지합니다. 코드 퇴역·공용 helper 분리는 별도 작업입니다.
+`scripts/fma/download_fma.ps1`은 유지합니다. 과거 FMA Compose의 데이터·cache 기능은 `compose.dev.yaml`로 통합했습니다. 코드 퇴역·공용 helper 분리는 별도 작업입니다.
 삭제한 입력·상세 결과를 사용하는 재현 명령은 제공하지 않습니다.
 
 데이터·모델 다운로드 없이 확인할 수 있는 명령:

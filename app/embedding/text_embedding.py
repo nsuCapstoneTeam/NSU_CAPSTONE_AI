@@ -11,6 +11,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.embedding.source_identity import canonical_source_identity, package_source_files
+
 
 MODEL_VERSION = "2023"
 TEXT_EMBEDDING_DIMENSION = 1024
@@ -78,29 +80,18 @@ def _verify_msclap_implementation_identity(package_root: Path | None = None) -> 
 
         if not package_root.is_dir():
             raise TextEmbeddingError("MSCLAP package source directory is unavailable")
-        source_files = sorted(
-            path for path in package_root.rglob("*")
-            if path.is_file() and path.suffix.lower() in {".py", ".yml", ".yaml"}
-        )
+        source_files = package_source_files(package_root)
         if len(source_files) != CALIBRATION_MSCLAP_SOURCE_FILE_COUNT:
             raise TextEmbeddingError("MSCLAP source/config file set differs from calibration")
-        digest = hashlib.sha256()
-        source_hashes = {}
-        for path in source_files:
-            relative = path.relative_to(package_root).as_posix()
-            file_sha256 = _sha256_file(path)
-            source_hashes[relative] = file_sha256
-            digest.update(relative.encode("utf-8"))
-            digest.update(b"\0")
-            digest.update(bytes.fromhex(file_sha256))
-            digest.update(b"\n")
+        source_sha256, source_hashes = canonical_source_identity(
+            (path.relative_to(package_root), _sha256_file(path)) for path in source_files
+        )
         config_relative = Path("configs") / f"config_{MODEL_VERSION}.yml"
         config_sha256 = source_hashes.get(config_relative.as_posix())
         if config_sha256 is None:
             raise TextEmbeddingError("calibration-pinned MSCLAP configuration is missing")
         if config_sha256 != CALIBRATION_MSCLAP_CONFIG_SHA256:
             raise TextEmbeddingError("MSCLAP configuration differs from the validated calibration identity")
-        source_sha256 = digest.hexdigest()
         if source_sha256 != CALIBRATION_MSCLAP_SOURCE_SHA256:
             raise TextEmbeddingError("MSCLAP implementation source differs from the validated calibration identity")
         return {
