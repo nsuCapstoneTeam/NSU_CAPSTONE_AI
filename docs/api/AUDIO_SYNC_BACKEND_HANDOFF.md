@@ -1,5 +1,7 @@
 # 백엔드 전달용 Audio 동기 연동 계약
 
+> 현행 원본 버전 명칭은 `audioRevision`이며 과거 `source_version` 제안과 같은 개념이다. 별도 runtime 필드로 유지하지 않는다. 아래 과거 제안의 HTTP 경로·상태 흐름은 구현 완료를 뜻하지 않으며 최신 017의 계약과 구분한다. 내부 UUIDv7 PK는 Backend wire 필드가 아니다.
+
 > 2026-10-10 현재 서버 간 계약은 [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)다. 아래 추천 검색은 합의된 기준이며 업무 API 구현 완료를 뜻하지 않는다.
 
 
@@ -20,7 +22,7 @@ AI는 임베딩·처리 상태·생성 조건을 관리한다. 개인정보를 �
 | 식별 정보 | 의미 |
 | --- | --- |
 | music_id | 백엔드 Sample ID의 문자열 표현. 현재 코드의 1~200자·앞뒤 공백 금지 규칙 유지 |
-| source_version | 백엔드 audioRevision. JPA @Version과 분리하며 원본 Audio 변경·삭제에만 증가 |
+| audioRevision | 백엔드 audioRevision. JPA @Version과 분리하며 원본 Audio 변경·삭제에만 증가 |
 | source_sha256 | 원본 바이트의 SHA-256. 백엔드 계산·AI 재계산 검증은 연동 제안 |
 | generation_version | 모델·checkpoint·전처리·출력 영향 설정의 식별값. 구체 형식은 AI 후속 설계 |
 | attempt_id | stale 재처리 시 이전 시도의 결과 반영을 막기 위한 처리 소유권 식별값 제안 |
@@ -95,8 +97,8 @@ ID 집합과 revision 집합을 각각 비교하면 잘못된 쌍이 포함될 �
 
 ```json
 [
-  {"music_id": "123", "source_version": 1},
-  {"music_id": "456", "source_version": 3}
+  {"music_id": "music-example-001", "audioRevision": 1},
+  {"music_id": "music-example-002", "audioRevision": 3}
 ]
 ```
 
@@ -117,10 +119,10 @@ AI 결과의 music_id·audioRevision·rank·resultVersion 및 상세 정보는 �
 
 | API 제안 | 목적 |
 | --- | --- |
-| PUT /internal/v1/audio-embeddings/{music_id} | 파일·source_version·source_sha256 전달, revision별 생성·저장 |
-| GET /internal/v1/audio-embeddings/{music_id}?source_version=2 | 특정 revision 처리 상태 확인 |
+| PUT /internal/v1/audio-embeddings/{music_id} | 파일·audioRevision·source_sha256 전달, revision별 생성·저장 |
+| GET /internal/v1/audio-embeddings/{music_id}?audioRevision=2 | 특정 revision 처리 상태 확인 |
 | POST /internal/v1/audio-search | Spring이 구성한 canonical English input과 모든 ACTIVE 후보 쌍 전달, raw cosine 정렬한 최대 100곡 및 구조화된 상세 정보 반환; 입력 최대치·세부 DTO 미정 |
-| DELETE /internal/v1/audio-embeddings/{music_id}?source_version=3 | 음악 자체 삭제와 삭제 기록 유지 |
+| DELETE /internal/v1/audio-embeddings/{music_id}?audioRevision=3 | 음악 자체 삭제와 삭제 기록 유지 |
 | 활성 전환 확인·이전 revision 정리 | 신규 계약 필요. 위 음악 삭제 API를 재사용하지 않음 |
 
 신규 revision 저장은 201, 동일 결과 재사용은 200을 제안하며 DB 커밋 이후 응답한다.

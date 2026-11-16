@@ -14,9 +14,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--music-id', required=True)
     parser.add_argument('--audio', required=True)
+    parser.add_argument('--audio-revision', required=True, type=int)
     args = parser.parse_args()
     try:
-        saved = AudioEmbeddingStorage().store(args.music_id, args.audio)
+        saved = AudioEmbeddingStorage().store(args.music_id, args.audio, audio_revision=args.audio_revision)
     except AudioEmbeddingError as error:
         print(json.dumps({'status': 'error', 'reason': error.reason}))
         return 1

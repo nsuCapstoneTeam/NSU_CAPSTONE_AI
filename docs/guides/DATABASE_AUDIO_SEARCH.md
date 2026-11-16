@@ -22,7 +22,7 @@ MSCLAP batch Embedding → Chunk L2 → Mean Pooling(N=8) → Final L2 순서로
 현행 서비스 정책은 [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)를 따른다.
 Spring은 통과한 전체 ACTIVE `(music_id, audioRevision)` 후보를 AI에 입력하고, AI는 호환 후보를 유사도순으로 정렬해 최대 100곡을 반환한다.
 Spring은 순서를 유지한다. 후보 입력 상한은 아직 미정이며 NSUAI-15의 성능·메모리·동시성 실측 후 정한다. 입력 후보 전체 전달과 결과 최대 100곡 반환은 별개의 기준이다.
-revision 후보 제한·결과 revision 반환과 업무 HTTP 흐름은 아직 미구현이다.
+revision 저장 identity와 정확 조회는 제공하지만, 요청 후보 쌍 제한·ACTIVE 선택·운영 결과 revision 연결과 업무 HTTP 흐름은 아직 미구현이다.
 현재 기본 Top5·실험 수치는 변경하지 않는다. [연동 계약](../api/AUDIO_SYNC_BACKEND_HANDOFF.md)을 참고한다.
 
 음악 파일을 입력으로 받아 PostgreSQL에 저장된 Audio 임베딩 후보와 비교합니다.
@@ -93,7 +93,7 @@ DB가 비어 있는 경우와 모든 후보가 비호환·동일 파일인 경�
 
 ```powershell
 docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m scripts.database.migrate_embeddings
-docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m scripts.embedding.store_audio_embedding --music-id dev-music-002 --audio samples/candidate.mp3
+docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python -m scripts.embedding.store_audio_embedding --music-id dev-music-002 --audio-revision 1 --audio samples/candidate.mp3
 ```
 
 검색할 음악을 `samples/reference.mp3`에 넣고 실행합니다.
@@ -152,3 +152,7 @@ FMA 상세 track 목록·pairwise raw cosine·파일 hash·개별 rating·과거
 FMA Historical 집계는 과거 의사결정 설명용이며 향후 calibration input으로 사용하지 않습니다. 향후 calibration은 ADR-0007 generation policy에 따라 새로 생성한 Embedding·새 similarity distribution·새 evaluation evidence를 기반으로 수행하고, 해당 evidence는 별도로 생성·보존합니다.
 
 구현 근거: [pgvector 공식 문서](https://github.com/pgvector/pgvector)의 코사인 거리·정확 검색 규칙.
+
+## NSUAI-43 저장 구조와 검색 경계
+
+현재 저장소는 같은 music_id의 여러 audio_revision과 generation profile을 보존한다. 기존 개발용 Audio/Text 검색은 호환 profile의 저장 행을 조회하므로 같은 music_id가 여러 번 나타날 수 있다. 이를 운영 후보 정책으로 사용하지 않는다. 정확한 쌍·profile 조회는 repository의 get()으로 제공한다. NSUAI-30은 후보/profile 호환성을 결정하고 NSUAI-31은 후보 쌍으로 제한된 순위를 구현해야 한다. 이번 저장 변경은 최신 revision 자동 선택·ACTIVE filtering·profile fallback·raw cosine 순위 변경을 하지 않는다.

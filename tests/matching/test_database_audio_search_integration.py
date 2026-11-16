@@ -67,7 +67,7 @@ def test_database_rank_matches_torch_and_returns_top_five(connection, make_resul
     prefix = 'test-' + uuid.uuid4().hex + '-'
     repository = AudioEmbeddingRepository()
     for index, vector in enumerate(values):
-        repository.save(connection, prefix + str(index), make_result(vector))
+        repository.save(connection, prefix + str(index), 1, make_result(vector))
     cosines = audio_cosine_similarities(query.vector, torch.tensor(values)).tolist()
     expected = sorted(range(len(values)), key=lambda index: (-cosines[index], prefix + str(index)))[:5]
     found = repository.search(connection, query)
@@ -89,7 +89,7 @@ def test_incompatible_embedding_excluded_before_distance(connection, make_result
         candidate.metadata['packages']['torch'] = 'other'
     if mismatch == 'revision':
         candidate.metadata['checkpoint_revision'] = MISMATCH_CHECKPOINT_REVISION
-    AudioEmbeddingRepository().save(connection, 'test-' + uuid.uuid4().hex, candidate)
+    AudioEmbeddingRepository().save(connection, 'test-' + uuid.uuid4().hex, 1, candidate)
     assert AudioEmbeddingRepository().search(connection, query) == {'candidate_count': 0, 'results': []}
 
 
@@ -97,7 +97,7 @@ def test_all_identical_file_copies_are_excluded(connection, make_result):
     query = make_result([1, 0, 0])
     repository = AudioEmbeddingRepository()
     for _ in range(2):
-        repository.save(connection, 'test-' + uuid.uuid4().hex, make_result([1, 0, 0]))
+        repository.save(connection, 'test-' + uuid.uuid4().hex, 1, make_result([1, 0, 0]))
     assert repository.search(connection, query) == {'candidate_count': 0, 'results': []}
 
 
@@ -105,6 +105,6 @@ def test_fewer_than_five_candidates_are_returned_without_padding(connection, mak
     query = make_result([1, 0, 0], file_hash='b' * 64)
     music_id = 'test-' + uuid.uuid4().hex
     repository = AudioEmbeddingRepository()
-    repository.save(connection, music_id, make_result([0, 1, 0]))
+    repository.save(connection, music_id, 1, make_result([0, 1, 0]))
     found = repository.search(connection, query)
     assert found == {'candidate_count': 1, 'results': [{'music_id': music_id, 'cosine_similarity': 0.0}]}

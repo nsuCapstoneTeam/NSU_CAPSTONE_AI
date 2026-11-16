@@ -1,4 +1,4 @@
-"""음악 ID별 최초 저장과 동일 결과의 재요청만 허용하는 임시 저장 계약이다."""
+"""원본 revision과 생성 profile별 embedding identity를 보존한다."""
 
 import hashlib
 import json
@@ -35,7 +35,10 @@ class EmbeddingConflict(ValueError):
 
 @dataclass(frozen=True)
 class EmbeddingSaveResult:
+    id: str
     music_id: str
+    audio_revision: int
+    generation_profile_sha256: str
     created: bool
     source_sha256: str
     dimension: int
@@ -44,6 +47,17 @@ class EmbeddingSaveResult:
 def validate_music_id(music_id):
     if not isinstance(music_id, str) or not music_id.strip() or len(music_id) > 200 or music_id != music_id.strip():
         raise ValueError('music_id must be a nonblank string of at most 200 characters without surrounding whitespace')
+
+
+def validate_audio_revision(audio_revision):
+    if type(audio_revision) is not int or not 1 <= audio_revision <= 9223372036854775807:
+        raise ValueError('audio_revision must be an integer between 1 and 9223372036854775807')
+
+
+def generation_profile_sha256(profile):
+    """Text와 Audio가 동일한 canonical JSON bytes 규칙을 사용한다."""
+    serialized = json.dumps(profile, sort_keys=True, separators=(',', ':'), allow_nan=False)
+    return hashlib.sha256(serialized.encode('utf-8')).hexdigest()
 
 
 def prepare_embedding(result):
@@ -134,32 +148,79 @@ class AudioEmbeddingRepository:
             'results': results,
         }
 
-    def save(self, connection, music_id, result):
-        """같은 ID의 동시 등록을 DB 제약으로 처리하고 동일한 결과만 재사용한다.
-
-        호출자가 트랜잭션을 관리하며 충돌이나 SQL 실패 시 전체를 롤백해야 한다.
-        """
+    def save(self, connection, music_id, audio_revision, result):
+        """외부 트랜잭션을 commit하지 않고 source와 embedding을 원자적으로 저장한다."""
         validate_music_id(music_id)
+        validate_audio_revision(audio_revision)
         metadata, profile, vector = prepare_embedding(result)
+        profile_sha = generation_profile_sha256(profile)
         with connection.cursor() as cursor:
-            # 사전 조회만으로 동시 등록을 막을 수 없어 기본키 제약을 최종 판단에 사용한다.
-            cursor.execute('''INSERT INTO ai_embeddings.audio_embeddings
-                (music_id, source_sha256, model, model_version, preprocessing_version,
-                 dimension, embedding, generation_profile, metadata)
-                VALUES (%s, %s, %s, %s, %s, %s, %s::vector, %s, %s)
-                ON CONFLICT (music_id) DO NOTHING RETURNING music_id''',
-                (music_id, metadata['source_sha256'], metadata['model'], metadata['model_version'],
-                 metadata['preprocessing_version'], metadata['dimension'], vector, Jsonb(profile), Jsonb(metadata)))
-            created = cursor.fetchone() is not None
-            if not created:
-                cursor.execute('''SELECT source_sha256 = %s AND generation_profile = %s
-                    AND embedding = %s::vector FROM ai_embeddings.audio_embeddings
-                    WHERE music_id = %s FOR UPDATE''',
-                    (metadata['source_sha256'], Jsonb(profile), vector, music_id))
-                row = cursor.fetchone()
-                if row is None or not row[0]:
-                    raise EmbeddingConflict('music_id_already_has_different_embedding')
-        return EmbeddingSaveResult(music_id, created, metadata['source_sha256'], metadata['dimension'])
+            cursor.execute('SAVEPOINT audio_embedding_save')
+            try:
+                cursor.execute('''INSERT INTO ai_embeddings.audio_sources
+                    (music_id, audio_revision, source_sha256) VALUES (%s, %s, %s)
+                    ON CONFLICT (music_id, audio_revision) DO NOTHING''',
+                    (music_id, audio_revision, metadata['source_sha256']))
+                cursor.execute('''SELECT source_sha256 FROM ai_embeddings.audio_sources
+                    WHERE music_id = %s AND audio_revision = %s FOR UPDATE''',
+                    (music_id, audio_revision))
+                source = cursor.fetchone()
+                if source is None or source[0] != metadata['source_sha256']:
+                    raise EmbeddingConflict('audio_revision_has_different_source')
+                cursor.execute('''INSERT INTO ai_embeddings.audio_embeddings
+                    (music_id, audio_revision, source_sha256, model, model_version,
+                     preprocessing_version, dimension, embedding, generation_profile,
+                     generation_profile_sha256, metadata)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s::vector, %s, %s, %s)
+                    ON CONFLICT (music_id, audio_revision, generation_profile_sha256)
+                    DO NOTHING RETURNING id''',
+                    (music_id, audio_revision, metadata['source_sha256'], metadata['model'],
+                     metadata['model_version'], metadata['preprocessing_version'],
+                     metadata['dimension'], vector, Jsonb(profile), profile_sha, Jsonb(metadata)))
+                inserted = cursor.fetchone()
+                created = inserted is not None
+                if created:
+                    embedding_id = inserted[0]
+                else:
+                    cursor.execute('''SELECT id, source_sha256 = %s
+                        AND generation_profile = %s AND embedding = %s::vector
+                        FROM ai_embeddings.audio_embeddings
+                        WHERE music_id = %s AND audio_revision = %s
+                          AND generation_profile_sha256 = %s FOR UPDATE''',
+                        (metadata['source_sha256'], Jsonb(profile), vector,
+                         music_id, audio_revision, profile_sha))
+                    existing = cursor.fetchone()
+                    if existing is None or not existing[1]:
+                        raise EmbeddingConflict('embedding_identity_has_different_vector_or_profile')
+                    embedding_id = existing[0]
+            except Exception:
+                cursor.execute('ROLLBACK TO SAVEPOINT audio_embedding_save')
+                cursor.execute('RELEASE SAVEPOINT audio_embedding_save')
+                raise
+            cursor.execute('RELEASE SAVEPOINT audio_embedding_save')
+        return EmbeddingSaveResult(str(embedding_id), music_id, audio_revision, profile_sha,
+                                   created, metadata['source_sha256'], metadata['dimension'])
+
+    def get(self, connection, music_id, audio_revision, profile_sha256):
+        """정확한 revision과 profile만 조회하며 최신값이나 대체값을 선택하지 않는다."""
+        validate_music_id(music_id)
+        validate_audio_revision(audio_revision)
+        if not isinstance(profile_sha256, str) or not re.fullmatch('[0-9a-f]{64}', profile_sha256):
+            raise ValueError('invalid_generation_profile_sha256')
+        with connection.cursor() as cursor:
+            cursor.execute('''SELECT id, source_sha256, dimension, embedding::text,
+                generation_profile, metadata, created_at
+                FROM ai_embeddings.audio_embeddings
+                WHERE music_id = %s AND audio_revision = %s
+                  AND generation_profile_sha256 = %s''',
+                (music_id, audio_revision, profile_sha256))
+            row = cursor.fetchone()
+        if row is None:
+            return None
+        return dict(id=str(row[0]), music_id=music_id, audio_revision=audio_revision,
+                    generation_profile_sha256=profile_sha256, source_sha256=row[1],
+                    dimension=row[2], embedding=row[3], generation_profile=row[4],
+                    metadata=row[5], created_at=row[6])
 
 
 @dataclass(frozen=True)
@@ -254,7 +315,6 @@ def prepare_text_embedding(result):
             ) if key in metadata
         }
         profile['text_preprocessing'] = input_independent_preprocessing
-        profile_json = json.dumps(profile, sort_keys=True, separators=(',', ':'), allow_nan=False)
         json.dumps(metadata, sort_keys=True, separators=(',', ':'), allow_nan=False)
         import torch
         vector = vector_tensor.detach().cpu().to(dtype=torch.float32)
@@ -264,7 +324,7 @@ def prepare_text_embedding(result):
         raise ValueError('invalid_text_embedding_vector') from exc
     except (AttributeError, TypeError) as exc:
         raise ValueError('invalid_text_embedding_result') from exc
-    profile_sha256 = hashlib.sha256(profile_json.encode('utf-8')).hexdigest()
+    profile_sha256 = generation_profile_sha256(profile)
     return metadata, profile, profile_sha256, vector_json
 
 
