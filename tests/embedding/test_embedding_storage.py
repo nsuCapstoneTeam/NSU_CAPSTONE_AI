@@ -90,7 +90,7 @@ def test_generation_failure_does_not_open_database(monkeypatch):
     generator = Mock()
     generator.generate.side_effect = AudioEmbeddingError('audio_embedding_failed', 'file')
     with pytest.raises(AudioEmbeddingError):
-        AudioEmbeddingStorage(generator=generator).store('music-1', 'file')
+        AudioEmbeddingStorage(generator=generator).store('music-1', 'file', audio_revision=1)
     connect.assert_not_called()
 
 
@@ -105,5 +105,72 @@ def test_database_context_receives_save_failure(monkeypatch):
     context.__enter__ = Mock(return_value=Mock())
     context.__exit__ = Mock(return_value=False)
     with pytest.raises(RuntimeError, match='save failed'):
-        AudioEmbeddingStorage(generator, repository).store('music-1', 'file')
+        AudioEmbeddingStorage(generator, repository).store('music-1', 'file', audio_revision=1)
     assert context.__exit__.call_args.args[0] is RuntimeError
+
+
+@pytest.mark.parametrize('revision', [None, True, False, 1.0, '1', 0, -1, 9223372036854775808])
+def test_invalid_revision_is_rejected_before_inference(revision):
+    generator = Mock()
+    with pytest.raises(ValueError):
+        AudioEmbeddingStorage(generator=generator).store('music-1', 'file', audio_revision=revision)
+    generator.generate.assert_not_called()
+
+
+def test_missing_revision_is_rejected():
+    with pytest.raises(TypeError):
+        AudioEmbeddingStorage(generator=Mock()).store('music-1', 'file')
+
+
+def test_revision_bigint_boundaries_and_profile_hash():
+    import hashlib
+    import json
+    from app.repository.embedding_repository import validate_audio_revision, generation_profile_sha256
+    for revision in (1, 9223372036854775807):
+        validate_audio_revision(revision)
+    profile = prepare_embedding(make_result())[1]
+    expected = hashlib.sha256(json.dumps(profile, sort_keys=True, separators=(',', ':'),
+                                         allow_nan=False).encode('utf-8')).hexdigest()
+    assert generation_profile_sha256(profile) == expected
+    assert generation_profile_sha256(dict(reversed(list(profile.items())))) == expected
+    assert 'device' in profile
+    with pytest.raises(ValueError):
+        generation_profile_sha256({'invalid': float('nan')})
+
+
+def test_storage_passes_revision_and_saved_identity(monkeypatch):
+    from unittest.mock import MagicMock
+    context = MagicMock()
+    monkeypatch.setattr('app.embedding.storage.connect_database', lambda: context)
+    generator, repository = Mock(), Mock()
+    result = make_result()
+    generator.generate.return_value = result
+    saved = AudioEmbeddingStorage(generator, repository).store('music-1', 'file', audio_revision=7)
+    assert saved is repository.save.return_value
+    repository.save.assert_called_once_with(context.__enter__.return_value, 'music-1', 7, result)
+
+
+def test_store_cli_requires_revision_before_creating_storage(monkeypatch):
+    from scripts.embedding import store_audio_embedding as cli
+    constructor = Mock()
+    monkeypatch.setattr(cli, 'AudioEmbeddingStorage', constructor)
+    monkeypatch.setattr('sys.argv', ['store-audio', '--music-id', 'music-1', '--audio', 'file'])
+    with pytest.raises(SystemExit) as error:
+        cli.main()
+    assert error.value.code == 2
+    constructor.assert_not_called()
+
+
+def test_store_cli_returns_persisted_identity(monkeypatch, capsys):
+    import json
+    from app.repository.embedding_repository import EmbeddingSaveResult
+    from scripts.embedding import store_audio_embedding as cli
+    storage = Mock()
+    storage.store.return_value = EmbeddingSaveResult('stored-uuid', 'music-1', 7, 'a' * 64, False, 'b' * 64, 4)
+    monkeypatch.setattr(cli, 'AudioEmbeddingStorage', lambda: storage)
+    monkeypatch.setattr('sys.argv', ['store-audio', '--music-id', 'music-1', '--audio', 'file', '--audio-revision', '7'])
+    assert cli.main() == 0
+    storage.store.assert_called_once_with('music-1', 'file', audio_revision=7)
+    output = json.loads(capsys.readouterr().out)
+    assert output['id'] == 'stored-uuid' and output['created'] is False
+    assert output['audio_revision'] == 7 and output['generation_profile_sha256'] == 'a' * 64

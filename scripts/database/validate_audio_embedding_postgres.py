@@ -28,7 +28,7 @@ from app.embedding.audio_embedding import (
 )
 from app.matching.audio_search import audio_cosine_similarities
 from app.repository.embedding_repository import (
-    AudioEmbeddingRepository, EmbeddingConflict, prepare_embedding,
+    AudioEmbeddingRepository, EmbeddingConflict, prepare_embedding, generation_profile_sha256,
 )
 from scripts.datasets.highlight_dataset import DatasetError, load_manifest
 from scripts.embedding.validate_audio_highlight_msclap import (
@@ -159,11 +159,17 @@ def schema_evidence(connection):
     require(columns == {'music_id': 'text', 'source_sha256': 'text', 'model': 'text',
         'model_version': 'text', 'preprocessing_version': 'text', 'dimension': 'int4',
         'embedding': 'vector', 'generation_profile': 'jsonb', 'metadata': 'jsonb',
-        'created_at': 'timestamptz'}, 'production table column 구조 불일치')
+        'created_at': 'timestamptz', 'id': 'uuid', 'audio_revision': 'int8',
+        'generation_profile_sha256': 'text'}, 'production table column 구조 불일치')
     constraints = [r[0] for r in connection.execute("""SELECT pg_get_constraintdef(oid)
         FROM pg_constraint WHERE conrelid='ai_embeddings.audio_embeddings'::regclass ORDER BY conname""").fetchall()]
     require(any('vector_dims(embedding) = dimension' in c for c in constraints), 'dimension constraint 누락')
     require(any('vector_norm(embedding)' in c for c in constraints), 'nonzero constraint 누락')
+    require(any('PRIMARY KEY (id)' in c for c in constraints), 'UUID PK 누락')
+    require(any('UNIQUE (music_id, audio_revision, generation_profile_sha256)' in c for c in constraints),
+            'embedding identity UNIQUE 누락')
+    require(any('FOREIGN KEY (music_id, audio_revision, source_sha256)' in c for c in constraints),
+            'source identity FK 누락')
     return {'pgvector_version': extension[0], 'migration_history': history,
             'columns': columns, 'constraints': constraints, 'status': 'PASS'}
 
@@ -182,9 +188,9 @@ def roundtrip_metrics(before, after):
             'status': 'PASS' if exact and digest(before) == digest(after) else 'REVIEW_REQUIRED'}
 
 
-def read_vector(connection, music_id):
-    row = connection.execute('SELECT embedding::text, dimension FROM ai_embeddings.audio_embeddings WHERE music_id=%s',
-                             (music_id,)).fetchone()
+def read_vector(connection, music_id, profile_sha256):
+    row = connection.execute('SELECT embedding::text, dimension FROM ai_embeddings.audio_embeddings WHERE music_id=%s AND audio_revision=1 AND generation_profile_sha256=%s',
+                             (music_id, profile_sha256)).fetchone()
     require(row is not None, '저장한 representative row 누락')
     vector = torch.tensor([json.loads(row[0])], dtype=torch.float32)
     validate_audio_embedding(vector, expected_dimension=row[1])
@@ -252,8 +258,8 @@ def synthetic_checks(connection, repository, prefix):
         for name, values, similarity in [('same', [1, 0, 0], 1.0), ('orthogonal', [0, 1, 0], 0.0),
                                           ('opposite', [-1, 0, 0], -1.0)]:
             music_id = prefix + name
-            repository.save(connection, music_id, synthetic_result(values, name, fixture_profile))
-            distance = connection.execute('SELECT embedding <=> %s::vector FROM ai_embeddings.audio_embeddings WHERE music_id=%s',
+            repository.save(connection, music_id, 1, synthetic_result(values, name, fixture_profile))
+            distance = connection.execute('SELECT embedding <=> %s::vector FROM ai_embeddings.audio_embeddings WHERE music_id=%s AND audio_revision=1',
                 (prepare_embedding(query)[2], music_id)).fetchone()[0]
             ids.append(music_id)
             evidence.append({'case': name, 'distance': distance, 'similarity': 1-distance,
@@ -269,7 +275,7 @@ def synthetic_checks(connection, repository, prefix):
         for group, order in [('first', ['z', '2', '10', 'A']), ('second', ['A', '10', '2', 'z'])]:
             connection.execute('SAVEPOINT insertion_order')
             for suffix in order:
-                repository.save(connection, prefix+'tie-'+suffix, candidate)
+                repository.save(connection, prefix+'tie-'+suffix, 1, candidate)
             found = repository.search(connection, query, top_k=100)
             actual = [r['music_id'] for r in found['results']]
             expected = sorted([prefix+'tie-'+s for s in order], key=lambda x: x.encode('utf-8'))
@@ -294,14 +300,16 @@ def synthetic_checks(connection, repository, prefix):
             if name == 'dimension':
                 candidate.metadata.update(dimension=4, shape=[1, 4])
                 candidate = AudioEmbeddingResult(torch.ones(1, 4), candidate.metadata)
+            elif field == 'checkpoint_revision':
+                candidate.metadata[field] = 'b' * 40
             elif field == 'packages':
                 candidate.metadata[field]['fixture'] = 'different'
             elif field == 'preprocessing':
                 candidate.metadata[field][name] = 'different'
             else:
                 candidate.metadata[field] = 'different'
-            repository.save(connection, prefix+'control', control)
-            repository.save(connection, prefix+'mismatch', candidate)
+            repository.save(connection, prefix+'control', 1, control)
+            repository.save(connection, prefix+'mismatch', 1, candidate)
             found = repository.search(connection, query, top_k=100)
             ok = found == {'candidate_count': 1, 'results': [{'music_id': prefix+'control', 'cosine_similarity': 1.0}]}
             evidence.append({'case': 'mismatch_'+name, 'query_sha': query.metadata['source_sha256'],
@@ -312,9 +320,9 @@ def synthetic_checks(connection, repository, prefix):
             connection.execute('RELEASE SAVEPOINT mismatch_fixture')
     original = synthetic_result([1, 0, 0], 'duplicate', 'duplicate-v1')
     music_id = prefix+'duplicate'
-    require(repository.save(connection, music_id, original).created, '최초 저장 실패')
-    reused = not repository.save(connection, music_id, original).created
-    for field in ['source_sha256', 'preprocessing_version', 'vector']:
+    require(repository.save(connection, music_id, 1, original).created, '최초 저장 실패')
+    reused = not repository.save(connection, music_id, 1, original).created
+    for field in ['source_sha256', 'vector']:
         changed = copy.deepcopy(original)
         if field == 'vector':
             changed = AudioEmbeddingResult(torch.tensor([[0.0, 1.0, 0.0]]), changed.metadata)
@@ -322,12 +330,20 @@ def synthetic_checks(connection, repository, prefix):
             changed.metadata[field] = 'b'*64 if field == 'source_sha256' else 'different'
         conflict = False
         try:
-            repository.save(connection, music_id, changed)
+            repository.save(connection, music_id, 1, changed)
         except EmbeddingConflict:
             conflict = True
-        preserved = torch.equal(read_vector(connection, music_id), original.vector)
+        preserved = torch.equal(read_vector(connection, music_id, generation_profile_sha256(prepare_embedding(original)[1])), original.vector)
         evidence.append({'case': 'conflict_'+field, 'conflict': conflict, 'original_preserved': preserved,
                          'status': 'PASS' if conflict and preserved and reused else 'FAIL'})
+    different_profile = copy.deepcopy(original)
+    different_profile.metadata['preprocessing_version'] = 'duplicate-v2'
+    added = repository.save(connection, music_id, 1, different_profile)
+    preserved = torch.equal(read_vector(connection, music_id,
+        generation_profile_sha256(prepare_embedding(original)[1])), original.vector)
+    evidence.append({'case': 'different_profile', 'created': added.created,
+                     'original_preserved': preserved,
+                     'status': 'PASS' if added.created and preserved else 'FAIL'})
     evidence.append({'case': 'duplicate_reuse', 'created_false': reused, 'status': 'PASS' if reused else 'FAIL'})
     return evidence
 
@@ -337,8 +353,8 @@ def measure_transaction(connection, embeddings, prefix):
     ids = [prefix+row['track_id'] for row, _ in embeddings]
     reread, roundtrips, pairs, rankings = {}, [], [], []
     for (row, result), music_id in zip(embeddings, ids):
-        require(repository.save(connection, music_id, result).created, 'validation row ID가 이미 존재합니다')
-        reread[music_id] = read_vector(connection, music_id)
+        require(repository.save(connection, music_id, 1, result).created, 'validation row ID가 이미 존재합니다')
+        reread[music_id] = read_vector(connection, music_id, generation_profile_sha256(prepare_embedding(result)[1]))
         roundtrips.append(dict(roundtrip_metrics(result.vector, reread[music_id]), music_id=music_id))
     for (input_row, query), query_id in zip(embeddings, ids):
         candidates = [(music_id, result) for (_, result), music_id in zip(embeddings, ids)
@@ -358,7 +374,7 @@ def measure_transaction(connection, embeddings, prefix):
             ranking['top_k_checks'].append({'top_k': k, 'status': 'PASS' if ok else 'FAIL'})
         for key, a, b in zip(candidate_ids, before, after):
             distance, similarity = connection.execute('''SELECT embedding <=> %s::vector,
-                1 - (embedding <=> %s::vector) FROM ai_embeddings.audio_embeddings WHERE music_id=%s''',
+                1 - (embedding <=> %s::vector) FROM ai_embeddings.audio_embeddings WHERE music_id=%s AND audio_revision=1''',
                 (prepare_embedding(query)[2], prepare_embedding(query)[2], key)).fetchone()
             pairs.append(dict(cosine_record(a, b, distance, similarity, scores[key]), query_id=query_id, candidate_id=key))
         ranking['scores'] = [{'music_id': key, 'python': a, 'postgresql': scores[key],
