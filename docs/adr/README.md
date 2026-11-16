@@ -19,6 +19,7 @@ Python AI/Matching Server 및 AI Matching 시스템에 영향을 주는
 | [ADR-0007](./ADR-0007-audio-highlight-embedding-strategy.md) | NSUAI-25 관련, 외부 이슈 동기화 대기 | AI 저장소 입력 56~60초(경계 포함)·처음 56초/고정 8 non-overlap Chunk·L2/Mean(N=8)·개발 벡터 재생성 | Accepted, generation policy 및 실제 6곡 MSCLAP/전용 PostgreSQL 검증 완료; Backend/Frontend 입력 연동과 dev/test 벡터 재생성 미완료 |
 | [ADR-0008](./ADR-0008-music-similarity-transformation-and-ranking.md) | 외부 이슈 변경 없음 | raw cosine ranking·후보 독립 transformation·calibration 및 버전 추적 원칙 | Accepted (AI 원칙 사용자 승인), 최종 calibration·버전 체계 구현 전 |
 | [ADR-0009](./ADR-0009-spring-canonical-search-input-mapping.md) | 서버 협의 012 입력 책임 대체 | Spring predefined mapping으로 canonical English 검색 입력 생성; AI는 번역/LLM 해석 없이 MSCLAP 입력으로 사용 | 결정됨, mapping·AI 업무 API 구현 전 |
+| [ADR-0010](./ADR-0010-audio-revision-and-embedding-generation-identity.md) | NSUAI-43 | 원본 Audio revision과 AI embedding generation identity 분리 및 내부 저장 구조 | Accepted, PR #82 merge 완료 |
 
 ADR-0005는 개발용 임시 표시 점수 기준과 초기 실험 근거를 보존한다.
 ADR-0008은 그 후속·확장으로 원본 cosine ranking, 후보 독립 transformation, calibration·버전 추적 원칙을 정한다.
