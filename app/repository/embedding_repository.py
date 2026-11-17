@@ -6,6 +6,7 @@ import math
 import re
 from dataclasses import dataclass
 from enum import Enum
+from uuid import UUID
 
 from psycopg.types.json import Jsonb
 
@@ -61,6 +62,16 @@ class CompatibleCandidate:
     audio_revision: int
     embedding_id: str
     generation_profile_sha256: str
+
+
+@dataclass(frozen=True)
+class CandidateRankingResult:
+    rank: int
+    music_id: str
+    audio_revision: int
+    embedding_id: str
+    generation_profile_sha256: str
+    raw_cosine: float
 
 
 @dataclass(frozen=True)
@@ -140,6 +151,51 @@ def prepare_embedding(result):
 
 
 class AudioEmbeddingRepository:
+    def rank_candidates(self, connection, candidates, text_embedding_result):
+        """호환 판정을 통과한 정확한 identity만 DB에서 raw cosine 순으로 정렬한다."""
+        if not isinstance(candidates, (list, tuple)):
+            raise TypeError('candidates must be a list or tuple of CompatibleCandidate identities')
+        if not candidates:
+            return []
+        params = []
+        for candidate in candidates:
+            if not isinstance(candidate, CompatibleCandidate):
+                raise TypeError('candidate must be a CompatibleCandidate identity')
+            validate_music_id(candidate.music_id)
+            validate_audio_revision(candidate.audio_revision)
+            embedding_id = str(UUID(candidate.embedding_id))
+            if not isinstance(candidate.generation_profile_sha256, str) or not re.fullmatch(
+                '[0-9a-f]{64}', candidate.generation_profile_sha256
+            ):
+                raise ValueError('invalid_generation_profile_sha256')
+            params.extend((embedding_id, candidate.music_id, candidate.audio_revision,
+                           candidate.generation_profile_sha256))
+        metadata, _, _, vector = prepare_text_embedding(text_embedding_result)
+        values = ', '.join('(%s::uuid, %s::text, %s::bigint, %s::text)' for _ in candidates)
+        with connection.cursor() as cursor:
+            cursor.execute(f'''WITH requested(id, music_id, audio_revision, profile_sha) AS (
+                VALUES {values}
+            ), unique_requested AS (
+                SELECT DISTINCT id, music_id, audio_revision, profile_sha FROM requested
+            ), eligible AS MATERIALIZED (
+                SELECT e.id, e.music_id, e.audio_revision,
+                       e.generation_profile_sha256, e.embedding
+                FROM unique_requested r
+                JOIN ai_embeddings.audio_embeddings e
+                  ON e.id = r.id AND e.music_id = r.music_id
+                 AND e.audio_revision = r.audio_revision
+                 AND e.generation_profile_sha256 = r.profile_sha
+                WHERE e.dimension = %s
+            )
+            SELECT music_id, audio_revision, id, generation_profile_sha256,
+                   1 - (embedding <=> %s::vector) AS raw_cosine
+            FROM eligible
+            ORDER BY raw_cosine DESC, music_id COLLATE "C", audio_revision, id
+            LIMIT 100''', (*params, metadata['dimension'], vector))
+            rows = cursor.fetchall()
+        return [CandidateRankingResult(rank, row[0], row[1], str(row[2]), row[3], row[4])
+                for rank, row in enumerate(rows, start=1)]
+
     def check_candidate_compatibility(self, connection, candidates, text_embedding_result):
         """정확한 후보 pair를 한 번에 조회하고 검색용 embedding identity를 진단한다."""
         if not isinstance(candidates, (list, tuple)):

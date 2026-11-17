@@ -22,7 +22,7 @@ MSCLAP batch Embedding → Chunk L2 → Mean Pooling(N=8) → Final L2 순서로
 현행 서비스 정책은 [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)를 따른다.
 Spring은 통과한 전체 ACTIVE `(music_id, audioRevision)` 후보를 AI에 입력하고, AI는 호환 후보를 유사도순으로 정렬해 최대 100곡을 반환한다.
 Spring은 순서를 유지한다. 후보 입력 상한은 아직 미정이며 NSUAI-15의 성능·메모리·동시성 실측 후 정한다. 입력 후보 전체 전달과 결과 최대 100곡 반환은 별개의 기준이다.
-revision 저장 identity와 정확 조회는 제공하지만, 요청 후보 쌍 제한·ACTIVE 선택·운영 결과 revision 연결과 업무 HTTP 흐름은 아직 미구현이다.
+revision 저장 identity, 후보 호환성 판정과 후보 제한 내부 검색을 제공한다. ACTIVE 선택과 업무 HTTP 흐름은 아직 미구현이다.
 현재 기본 Top5·실험 수치는 변경하지 않는다. [연동 계약](../api/AUDIO_SYNC_BACKEND_HANDOFF.md)을 참고한다.
 
 음악 파일을 입력으로 받아 PostgreSQL에 저장된 Audio 임베딩 후보와 비교합니다.
@@ -64,6 +64,27 @@ NSUAI-30은 요청된 `(music_id, audio_revision)` pair를 한 번의 batch quer
 호환 profile이 하나인 후보는 `(music_id, audio_revision, embedding_id, generation_profile_sha256)`로
 전달하고, 누락·비호환·복수 profile 및 입력 중복은 내부 진단 상태로 돌려줍니다.
 이 검사는 Spring이 보낸 ACTIVE 후보를 새로 판정하거나 최신 revision을 선택하지 않습니다.
+
+### 추천 후보 제한 검색
+
+NSUAI-31의 `AudioEmbeddingRepository.rank_candidates(connection, candidates, text_embedding_result)`는
+NSUAI-30이 반환한 `CompatibleCandidate` 목록과 기존 MSCLAP Text Embedding 결과를 받습니다.
+개발용 전체 Audio 검색 `search()` 및 Text 전체 검색 `search_audio()`와 별도 내부 경로입니다.
+
+SQL은 `embedding_id`, `music_id`, `audio_revision`, `generation_profile_sha256` 네 값을 모두 JOIN하고,
+차원이 일치하는 행만 `MATERIALIZED` 후보 집합으로 확정한 뒤 pgvector `<=>`로 계산합니다.
+정확한 identity가 사라지거나 일치하지 않으면 대체 revision/profile을 선택하지 않습니다.
+전체 profile 호환성 판정은 NSUAI-30 책임이며 여기서 반복하지 않습니다.
+
+`raw_cosine = 1 - cosine distance`를 변환·클램프 없이 내부 순위 값으로 보존합니다.
+`raw_cosine DESC`, `music_id COLLATE "C" ASC`, `audio_revision ASC`, `embedding_id ASC` 순으로 정렬합니다.
+동점 기준은 결과 재현성을 위한 내부 정렬이며 음악 선호를 추가하지 않습니다.
+최대 100개를 반환하고 `rank`는 1부터 연속 부여합니다. 요청별 `limit`은 받지 않습니다.
+결과에는 네 identity와 `rank`, `raw_cosine`만 포함하며 외부 응답 DTO는 만들지 않습니다.
+
+입력 후보가 비면 DB 조회 없이 빈 목록을 반환하고, 중복 identity는 SQL에서 결과를 증식시키지 않습니다.
+벡터를 Python으로 가져오지 않으며 거리 계산·정렬·반환 상한은 한 번의 DB query로 처리합니다.
+아래 개발용 검색의 동일 파일 제외 및 임시 표시 점수 처리는 이 추천 경로에 적용하지 않습니다.
 
 SQL은 호환 후보를 `MATERIALIZED` CTE로 먼저 확정합니다. 차원이 다른 벡터가
 거리 계산에 들어오는 것을 막기 위해서입니다. 후보 수와 순위도 한 SQL 스냅샷에서 계산합니다.
