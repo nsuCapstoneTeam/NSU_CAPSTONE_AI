@@ -10,8 +10,9 @@ info:
     Current FastAPI routes are GET /health/live and GET /health/ready only.
 
     Spring validates UI selections, applies predefined mapping to create a
-    canonical English keyphrase, applies Eligibility, and sends eligible ACTIVE
-    (musicId, audioRevision) candidates. AI validates canonicalText and uses it
+    canonical English keyphrase, collects ACTIVE (musicId, audioRevision) pairs,
+    applies Eligibility, and sends the final passed pairs. AI validates
+    canonicalText and uses it
     as MSCLAP Text Embedding input without translation or reinterpretation,
     compares candidate Audio Embeddings with cosine similarity, ranks by raw
     cosine descending, and returns up to 100 results. Spring preserves order.
@@ -94,11 +95,20 @@ paths:
         Contract defined by Accepted server agreement 017. Implementation
         pending; this operation is not currently exposed by FastAPI.
 
-        Spring sends a canonical English keyphrase and ACTIVE candidate pairs
-        that passed Spring Eligibility. Candidate input upper bound is TBD and
-        distinct from the maximum of 100 response results. Empty-candidate,
-        duplicate-candidate, unknown-revision, and missing-embedding behavior
-        remain TBD.
+        Spring collects ACTIVE candidate pairs, applies Eligibility, and sends
+        the final passed pairs together with a canonical English keyphrase.
+        Candidate input upper bound is TBD and distinct from the maximum of
+        100 response results. Every supplied candidate must pass validation
+        before ranking. A missing or incompatible candidate fails the whole
+        request; partial success is not allowed. Neither 97 successful results
+        from 100 candidates with 3 invalid candidates nor Top100 from the valid
+        remainder of 500 candidates with any invalid candidates is a success.
+        Successful result count is min(supplied candidate pair count, 100).
+        AI must not substitute another audioRevision of the same musicId or
+        fall back to an incompatible generation profile or replace a validated
+        embedding identity with another row. Empty-candidate behavior, detailed
+        duplicate input validation, AI HTTP status/code, retryable values, and
+        external invalid pair/reason schemas remain TBD.
 
         AI uses canonicalText as MSCLAP Text Embedding input without translation,
         rewriting, or semantic reinterpretation. It ranks only within candidates
@@ -132,9 +142,10 @@ paths:
       responses:
         "200":
           description: >
-            Search completed. Returns available results in AI-assigned raw
-            cosine descending order, up to 100. Empty-candidate/result semantics
-            remain TBD.
+            Search completed only after all supplied candidates pass validation.
+            Returns min(supplied candidate pair count, 100) results in AI-assigned
+            raw cosine descending order. Partial success and revision/profile
+            fallback are not allowed. Empty-candidate semantics remain TBD.
           headers:
             X-Request-Id:
               required: false
@@ -210,9 +221,13 @@ components:
         candidates:
           type: array
           description: |
-            ACTIVE candidate pairs that passed Spring Eligibility. Input maximum
-            is TBD and independent of the 100-result maximum. Empty-array,
-            duplicate, unknown-revision, and missing-embedding behavior are TBD.
+            ACTIVE candidate pairs collected by Spring, then filtered by Spring
+            Eligibility. Every candidate must pass existence and embedding/profile
+            compatibility validation before ranking; one invalid candidate fails
+            the whole request without revision/profile fallback or partial success.
+            Input maximum is TBD and independent of the 100-result maximum.
+            Empty-array behavior, detailed duplicate input validation, and the
+            HTTP/code/retryable/external diagnostic mapping for failures are TBD.
           items:
             $ref: "#/components/schemas/RecommendationCandidate"
 
@@ -246,7 +261,11 @@ components:
         results:
           type: array
           maxItems: 100
-          description: AI-ranked results in raw cosine descending order; Spring preserves the order.
+          description: >
+            AI-ranked results after every supplied candidate passes validation.
+            Count is min(supplied candidate pair count, 100); Spring preserves
+            raw cosine order. Partial success is not allowed. Empty-input policy
+            remains TBD.
           items:
             $ref: "#/components/schemas/RecommendationResult"
 

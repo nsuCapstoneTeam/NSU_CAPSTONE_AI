@@ -20,7 +20,7 @@ MSCLAP batch Embedding → Chunk L2 → Mean Pooling(N=8) → Final L2 순서로
 단일 대표 벡터를 만듭니다. 아래 실제 검증 결과와 저장된 개발 벡터는 이전 generation의 historical 기록입니다.
 
 현행 서비스 정책은 [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)를 따른다.
-Spring은 통과한 전체 ACTIVE `(music_id, audioRevision)` 후보를 AI에 입력하고, AI는 호환 후보를 유사도순으로 정렬해 최대 100곡을 반환한다.
+Spring은 ACTIVE `(musicId, audioRevision)` pair를 수집한 뒤 Eligibility로 필터링하고 최종 통과 pair를 AI에 전달한다. AI는 모든 후보 검증이 성공한 경우에만 raw cosine 순으로 최대 100곡을 반환한다.
 Spring은 순서를 유지한다. 후보 입력 상한은 아직 미정이며 NSUAI-15의 성능·메모리·동시성 실측 후 정한다. 입력 후보 전체 전달과 결과 최대 100곡 반환은 별개의 기준이다.
 revision 저장 identity, 후보 호환성 판정과 후보 제한 내부 검색을 제공한다. ACTIVE 선택과 업무 HTTP 흐름은 아직 미구현이다.
 현재 기본 Top5·실험 수치는 변경하지 않는다. [연동 계약](../api/AUDIO_SYNC_BACKEND_HANDOFF.md)을 참고한다.
@@ -64,6 +64,9 @@ NSUAI-30은 요청된 `(music_id, audio_revision)` pair를 한 번의 batch quer
 호환 profile이 하나인 후보는 `(music_id, audio_revision, embedding_id, generation_profile_sha256)`로
 전달하고, 누락·비호환·복수 profile 및 입력 중복은 내부 진단 상태로 돌려줍니다.
 이 검사는 Spring이 보낸 ACTIVE 후보를 새로 판정하거나 최신 revision을 선택하지 않습니다.
+NSUAI-30은 전체 요청의 성공/실패를 결정하지 않습니다. [Accepted 017](https://linear.app/nsu-capstone/document/017-spring-canonical-검색-입력-기반-ai-recommend-server-요청응답-계약-f96a57425124)에 따라 NSUAI-48 orchestration이 모든 진단을 확인하고, 하나라도 COMPATIBLE이 아니면 ranking을 호출하지 않고 전체 요청을 실패시켜야 합니다. 이 orchestration은 아직 구현 전입니다.
+100개 중 3개 invalid인 경우 97개 반환, 500개 중 일부 invalid인 경우 나머지에서 Top100 반환 모두 정상 부분 응답으로 허용하지 않습니다. 성공 응답 수는 min(전달 후보 pair 수, 100)이며 개수 검사로 전체 후보 검증을 대신하지 않습니다.
+AI HTTP status/code, retryable 값 및 invalid pair/reason의 외부 schema는 미확정입니다. Spring 사용자용 503과 AI 내부 오류 mapping을 구분합니다.
 
 ### 추천 후보 제한 검색
 
@@ -75,6 +78,7 @@ SQL은 `embedding_id`, `music_id`, `audio_revision`, `generation_profile_sha256`
 차원이 일치하는 행만 `MATERIALIZED` 후보 집합으로 확정한 뒤 pgvector `<=>`로 계산합니다.
 정확한 identity가 사라지거나 일치하지 않으면 대체 revision/profile을 선택하지 않습니다.
 전체 profile 호환성 판정은 NSUAI-30 책임이며 여기서 반복하지 않습니다.
+NSUAI-48에서 전체 후보 진단이 성공한 경우에만 이 ranking을 호출합니다. 검증 이후 identity 소실이나 차원 변경으로 행이 SQL 결과에서 빠져도 정상 부분 응답으로 취급하지 않도록 일관된 조회 전략과 최종 검사를 후속 구현에서 적용합니다. 구체 transaction/snapshot 구현은 이 문서에서 정하지 않습니다.
 
 `raw_cosine = 1 - cosine distance`를 변환·클램프 없이 내부 순위 값으로 보존합니다.
 `raw_cosine DESC`, `music_id COLLATE "C" ASC`, `audio_revision ASC`, `embedding_id ASC` 순으로 정렬합니다.
@@ -183,4 +187,4 @@ FMA Historical 집계는 과거 의사결정 설명용이며 향후 calibration 
 
 ## NSUAI-43 저장 구조와 검색 경계
 
-현재 저장소는 같은 music_id의 여러 audio_revision과 generation profile을 보존한다. 기존 개발용 Audio/Text 검색은 호환 profile의 저장 행을 조회하므로 같은 music_id가 여러 번 나타날 수 있다. 이를 운영 후보 정책으로 사용하지 않는다. 정확한 쌍·profile 조회는 repository의 get()으로 제공한다. NSUAI-30은 후보/profile 호환성을 결정하고 NSUAI-31은 후보 쌍으로 제한된 순위를 구현해야 한다. 이번 저장 변경은 최신 revision 자동 선택·ACTIVE filtering·profile fallback·raw cosine 순위 변경을 하지 않는다.
+현재 저장소는 같은 music_id의 여러 audio_revision과 generation profile을 보존한다. 기존 개발용 Audio/Text 검색은 호환 profile의 저장 행을 조회하므로 같은 music_id가 여러 번 나타날 수 있다. 이를 운영 후보 정책으로 사용하지 않는다. 정확한 쌍·profile 조회는 repository의 get()으로 제공한다. NSUAI-30의 후보/profile 진단과 NSUAI-31의 정확한 embedding identity 제한 순위는 구현됐으며, 전체 후보 검증 성공을 전제로 연결하는 NSUAI-48 orchestration은 후속 범위다. 최신 revision 자동 선택·ACTIVE filtering·profile fallback은 하지 않는다.
