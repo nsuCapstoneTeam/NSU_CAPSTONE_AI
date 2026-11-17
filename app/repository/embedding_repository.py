@@ -159,7 +159,7 @@ class AudioEmbeddingRepository:
             try:
                 cursor.execute('''INSERT INTO ai_embeddings.audio_sources
                     (music_id, audio_revision, source_sha256) VALUES (%s, %s, %s)
-                    ON CONFLICT (music_id, audio_revision) DO NOTHING''',
+                    ON CONFLICT DO NOTHING''',
                     (music_id, audio_revision, metadata['source_sha256']))
                 cursor.execute('''SELECT source_sha256 FROM ai_embeddings.audio_sources
                     WHERE music_id = %s AND audio_revision = %s FOR UPDATE''',

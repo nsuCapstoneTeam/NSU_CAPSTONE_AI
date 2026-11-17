@@ -161,6 +161,13 @@ def test_concurrent_identical_requests_create_one_row():
         with connect_database() as connection:
             assert connection.execute('SELECT count(*) FROM ai_embeddings.audio_embeddings WHERE music_id = %s',
                                       (music_id,)).fetchone()[0] == 1
+            assert connection.execute('SELECT count(*) FROM ai_embeddings.audio_sources WHERE music_id = %s',
+                                      (music_id,)).fetchone()[0] == 1
+            assert connection.execute('''SELECT count(*) FROM ai_embeddings.audio_embeddings e
+                LEFT JOIN ai_embeddings.audio_sources s
+                  ON s.music_id = e.music_id AND s.audio_revision = e.audio_revision
+                 AND s.source_sha256 = e.source_sha256
+                WHERE e.music_id = %s AND s.music_id IS NULL''', (music_id,)).fetchone()[0] == 0
     finally:
         with connect_database() as connection:
             connection.execute('DELETE FROM ai_embeddings.audio_embeddings WHERE music_id = %s', (music_id,))
@@ -284,6 +291,11 @@ def test_concurrent_different_sources_preserve_one_identity():
             assert len(rows) == 1 and rows[0][0] in outcomes
             assert connection.execute('SELECT count(*) FROM ai_embeddings.audio_embeddings WHERE music_id=%s',
                                       (music_id,)).fetchone()[0] == 1
+            assert connection.execute('''SELECT count(*) FROM ai_embeddings.audio_embeddings e
+                LEFT JOIN ai_embeddings.audio_sources s
+                  ON s.music_id = e.music_id AND s.audio_revision = e.audio_revision
+                 AND s.source_sha256 = e.source_sha256
+                WHERE e.music_id = %s AND s.music_id IS NULL''', (music_id,)).fetchone()[0] == 0
     finally:
         with connect_database() as connection:
             connection.execute('DELETE FROM ai_embeddings.audio_embeddings WHERE music_id=%s', (music_id,))
