@@ -50,13 +50,20 @@ revision 저장 identity와 정확 조회는 제공하지만, 요청 후보 쌍 
 
 ### 후보의 생성 조건 확인
 
-저장과 검색에서 모델, 모델 버전, checkpoint revision, 패키지 버전,
-전처리 버전·내용, dimension, dtype, device가 일치해야 합니다.
-동일 차원이라고 해서 다른 모델의 벡터를 비교하지 않습니다.
-generation profile은 모든 고정 생성 조건을 그대로 비교합니다. source SHA-256과 원본 길이는
+현재 개발용 Audio-to-Audio `search()`는 입력 Audio와 저장 Audio의 전체 생성 profile을 비교합니다.
+운영 후보를 Text 검색 공간과 대조하는 NSUAI-30은 `text_audio_profiles_compatible()`를 사용해
+공유 MSCLAP 모델·버전, checkpoint revision·SHA, implementation/config, dimension,
+패키지 및 허용된 Audio `preprocessing_version`을 확인합니다. `device`는 generation profile과
+그 SHA에 provenance로 보존하지만 Text↔Audio 호환 조건에서는 비교하지 않습니다.
+동일 차원만으로 다른 모델의 벡터를 비교하지 않습니다. source SHA-256과 원본 길이는
 파일별 metadata이며 공통 profile 호환 조건이 아닙니다.
 revision이 확인되지 않은 체크포인트는 기존 생성기의 한계가 그대로 적용됩니다.
 파일 경로나 원본 음악 파일의 존재 여부는 DB 후보 검색에 필요하지 않습니다.
+
+NSUAI-30은 요청된 `(music_id, audio_revision)` pair를 한 번의 batch query로 확인합니다.
+호환 profile이 하나인 후보는 `(music_id, audio_revision, embedding_id, generation_profile_sha256)`로
+전달하고, 누락·비호환·복수 profile 및 입력 중복은 내부 진단 상태로 돌려줍니다.
+이 검사는 Spring이 보낸 ACTIVE 후보를 새로 판정하거나 최신 revision을 선택하지 않습니다.
 
 SQL은 호환 후보를 `MATERIALIZED` CTE로 먼저 확정합니다. 차원이 다른 벡터가
 거리 계산에 들어오는 것을 막기 위해서입니다. 후보 수와 순위도 한 SQL 스냅샷에서 계산합니다.

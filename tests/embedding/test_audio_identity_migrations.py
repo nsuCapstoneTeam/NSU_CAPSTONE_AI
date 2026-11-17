@@ -7,10 +7,32 @@ import uuid
 import psycopg
 from psycopg import sql
 import pytest
+import json
 
 from app.core import migrations
 from app.core.config import DatabaseSettings
 from app.core.database import connect_database
+from app.embedding.audio_embedding import PREPROCESSING_VERSION
+from app.embedding.text_embedding import (
+    CALIBRATION_CHECKPOINT_REVISION,
+    CALIBRATION_CHECKPOINT_SHA256,
+    CALIBRATION_MSCLAP_CONFIG_SHA256,
+    CALIBRATION_MSCLAP_PACKAGE_VERSION,
+    CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+    CALIBRATION_MSCLAP_SOURCE_SHA256,
+    GENERATION_PROFILE,
+    GENERATION_VERSION,
+    MODEL_VERSION,
+    TEXT_EMBEDDING_DIMENSION,
+    TEXT_ENCODER_MODEL_ID,
+    TEXT_ENCODER_MODEL_SHA256,
+    TEXT_ENCODER_REVISION,
+    TEXT_ENCODER_TOKENIZER_FILE_SHA256,
+)
+from app.repository.embedding_repository import (
+    AudioEmbeddingRepository,
+    generation_profile_sha256,
+)
 
 
 pytestmark = pytest.mark.skipif(os.environ.get('RUN_IDENTITY_MIGRATION_TESTS') != '1',
@@ -135,4 +157,101 @@ def test_validation_helpers_roundtrip_new_identity_schema(migration_database):
         measurement = tool.measure_transaction(connection, inputs, 'identity-measure-')
         assert measurement['status'] == 'PASS'
         assert len(measurement['cosine_comparisons']) == 6
+        connection.rollback()
+
+
+def test_candidate_compatibility_batch_uses_exact_pairs_and_profile_count(migration_database, monkeypatch):
+    migrations.apply_migrations()
+    implementation = {
+        'package_version': CALIBRATION_MSCLAP_PACKAGE_VERSION,
+        'source_file_count': CALIBRATION_MSCLAP_SOURCE_FILE_COUNT,
+        'source_sha256': CALIBRATION_MSCLAP_SOURCE_SHA256,
+        'config_file': 'configs/config_2023.yml',
+        'config_sha256': CALIBRATION_MSCLAP_CONFIG_SHA256,
+    }
+    text_profile = {
+        'generation_version': GENERATION_VERSION,
+        'embedding_generation_profile': GENERATION_PROFILE,
+        'model': 'MSCLAP', 'model_version': MODEL_VERSION,
+        'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
+        'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
+        'msclap_implementation': implementation,
+        'text_encoder': {
+            'model_id': TEXT_ENCODER_MODEL_ID, 'revision': TEXT_ENCODER_REVISION,
+            'config_sha256': TEXT_ENCODER_TOKENIZER_FILE_SHA256['config.json'],
+            'model_file': 'model.safetensors', 'model_file_sha256': TEXT_ENCODER_MODEL_SHA256,
+            'tokenizer_id': TEXT_ENCODER_MODEL_ID, 'tokenizer_revision': TEXT_ENCODER_REVISION,
+            'tokenizer_files_sha256': TEXT_ENCODER_TOKENIZER_FILE_SHA256,
+            'tokenizer_runtime_sha256': '1' * 64,
+        },
+        'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION},
+        'dimension': TEXT_EMBEDDING_DIMENSION, 'dtype': 'torch.float32',
+        'text_preprocessing': {
+            'encoder_api': 'CLAP.get_text_embeddings', 'text_model': TEXT_ENCODER_MODEL_ID,
+            'text_model_revision': TEXT_ENCODER_REVISION, 'token_limit': 77,
+            'truncation': 'rejected', 'normalization': 'none; raw MSCLAP Text Embedding',
+        },
+    }
+    monkeypatch.setattr('app.repository.embedding_repository.prepare_text_embedding',
+                        lambda _: (None, text_profile, None, None))
+
+    def audio_profile(**changes):
+        profile = {
+            'model': 'MSCLAP', 'model_version': MODEL_VERSION,
+            'checkpoint_revision': CALIBRATION_CHECKPOINT_REVISION,
+            'checkpoint_sha256': CALIBRATION_CHECKPOINT_SHA256,
+            'msclap_implementation': implementation,
+            'packages': {'msclap': CALIBRATION_MSCLAP_PACKAGE_VERSION, 'torch': 'test'},
+            'preprocessing_version': PREPROCESSING_VERSION,
+            'preprocessing': {'analysis_duration_seconds': 56},
+            'dimension': TEXT_EMBEDDING_DIMENSION, 'dtype': 'torch.float32',
+            'device': 'cpu',
+        }
+        profile.update(changes)
+        return profile
+
+    music_ids = {key: 'compat-' + uuid.uuid4().hex for key in ('one', 'ambiguous', 'incompatible', 'source_only')}
+    with connect_database() as connection:
+        def insert_source(music_id, revision):
+            connection.execute('''INSERT INTO ai_embeddings.audio_sources VALUES (%s, %s, %s)
+                ON CONFLICT (music_id, audio_revision) DO NOTHING''',
+                               (music_id, revision, 'a' * 64))
+
+        def insert_embedding(music_id, revision, profile):
+            insert_source(music_id, revision)
+            connection.execute('''INSERT INTO ai_embeddings.audio_embeddings
+                (music_id, audio_revision, source_sha256, model, model_version,
+                 preprocessing_version, dimension, embedding, generation_profile,
+                 generation_profile_sha256, metadata)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s::vector, %s, %s, '{}'::jsonb)''',
+                (music_id, revision, 'a' * 64, profile['model'], profile['model_version'],
+                 profile['preprocessing_version'], TEXT_EMBEDDING_DIMENSION,
+                 json.dumps([1.0] + [0.0] * (TEXT_EMBEDDING_DIMENSION - 1)),
+                 json.dumps(profile), generation_profile_sha256(profile)))
+
+        insert_embedding(music_ids['one'], 1, audio_profile())
+        insert_embedding(music_ids['ambiguous'], 3, audio_profile(device='cpu'))
+        insert_embedding(music_ids['ambiguous'], 3, audio_profile(device='cuda'))
+        insert_embedding(music_ids['incompatible'], 2, audio_profile(model='OTHER'))
+        insert_source(music_ids['source_only'], 5)
+
+        candidates = [
+            (music_ids['one'], 1),
+            (music_ids['ambiguous'], 3),
+            (music_ids['incompatible'], 2),
+            (music_ids['source_only'], 5),
+            ('unknown-' + uuid.uuid4().hex, 1),
+            (music_ids['one'], 2),
+            (music_ids['one'], 1),
+        ]
+        results = AudioEmbeddingRepository().check_candidate_compatibility(
+            connection, candidates, object())
+        assert [result.status.value for result in results] == [
+            'COMPATIBLE', 'AMBIGUOUS_PROFILE', 'INCOMPATIBLE_PROFILE',
+            'MISSING_EMBEDDING', 'MISSING_SOURCE', 'MISSING_SOURCE', 'DUPLICATE',
+        ]
+        assert results[0].compatible_candidate.music_id == music_ids['one']
+        assert results[0].compatible_candidate.audio_revision == 1
+        assert results[0].compatible_candidate.embedding_id
+        assert results[0].compatible_candidate.generation_profile_sha256
         connection.rollback()

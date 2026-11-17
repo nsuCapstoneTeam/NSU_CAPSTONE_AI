@@ -5,6 +5,7 @@ import json
 import math
 import re
 from dataclasses import dataclass
+from enum import Enum
 
 from psycopg.types.json import Jsonb
 
@@ -42,6 +43,33 @@ class EmbeddingSaveResult:
     created: bool
     source_sha256: str
     dimension: int
+
+
+class CandidateCompatibilityStatus(str, Enum):
+    COMPATIBLE = 'COMPATIBLE'
+    MISSING_SOURCE = 'MISSING_SOURCE'
+    MISSING_EMBEDDING = 'MISSING_EMBEDDING'
+    INCOMPATIBLE_PROFILE = 'INCOMPATIBLE_PROFILE'
+    INVALID_DIMENSION = 'INVALID_DIMENSION'
+    AMBIGUOUS_PROFILE = 'AMBIGUOUS_PROFILE'
+    DUPLICATE = 'DUPLICATE'
+
+
+@dataclass(frozen=True)
+class CompatibleCandidate:
+    music_id: str
+    audio_revision: int
+    embedding_id: str
+    generation_profile_sha256: str
+
+
+@dataclass(frozen=True)
+class CandidateCompatibilityResult:
+    ordinal: int
+    music_id: str
+    audio_revision: int
+    status: CandidateCompatibilityStatus
+    compatible_candidate: CompatibleCandidate | None = None
 
 
 def validate_music_id(music_id):
@@ -112,6 +140,107 @@ def prepare_embedding(result):
 
 
 class AudioEmbeddingRepository:
+    def check_candidate_compatibility(self, connection, candidates, text_embedding_result):
+        """정확한 후보 pair를 한 번에 조회하고 검색용 embedding identity를 진단한다."""
+        if not isinstance(candidates, (list, tuple)):
+            raise TypeError('candidates must be a list or tuple of (music_id, audio_revision) pairs')
+        normalized = []
+        seen = set()
+        unique_candidates = []
+        for ordinal, candidate in enumerate(candidates):
+            if not isinstance(candidate, (list, tuple)) or len(candidate) != 2:
+                raise ValueError('candidate must contain music_id and audio_revision')
+            music_id, audio_revision = candidate
+            validate_music_id(music_id)
+            validate_audio_revision(audio_revision)
+            pair = (music_id, audio_revision)
+            duplicate = pair in seen
+            normalized.append((ordinal, music_id, audio_revision, duplicate))
+            if not duplicate:
+                seen.add(pair)
+                unique_candidates.append(pair)
+        if not unique_candidates:
+            return []
+
+        _, text_profile, _, _ = prepare_text_embedding(text_embedding_result)
+        values = ', '.join('(%s::text, %s::bigint)' for _ in unique_candidates)
+        params = tuple(value for pair in unique_candidates for value in pair)
+        with connection.cursor() as cursor:
+            cursor.execute(f'''WITH requested(music_id, audio_revision) AS (
+                VALUES {values}
+            ), exact_candidates AS (
+                SELECT DISTINCT music_id, audio_revision FROM requested
+            )
+            SELECT c.music_id, c.audio_revision, s.music_id IS NOT NULL,
+                   e.id, e.generation_profile_sha256, e.dimension, e.generation_profile
+            FROM exact_candidates c
+            LEFT JOIN ai_embeddings.audio_sources s
+              ON s.music_id = c.music_id AND s.audio_revision = c.audio_revision
+            LEFT JOIN ai_embeddings.audio_embeddings e
+              ON e.music_id = c.music_id AND e.audio_revision = c.audio_revision
+            ORDER BY c.music_id COLLATE "C", c.audio_revision''', params)
+            rows = cursor.fetchall()
+
+        rows_by_pair = {pair: [] for pair in unique_candidates}
+        for music_id, audio_revision, source_exists, embedding_id, profile_sha, dimension, profile in rows:
+            rows_by_pair[(music_id, audio_revision)].append(
+                (source_exists, embedding_id, profile_sha, dimension, profile))
+
+        results = []
+        for ordinal, music_id, audio_revision, duplicate in normalized:
+            if duplicate:
+                results.append(CandidateCompatibilityResult(
+                    ordinal, music_id, audio_revision, CandidateCompatibilityStatus.DUPLICATE))
+                continue
+            pair_rows = rows_by_pair[(music_id, audio_revision)]
+            if not pair_rows or not pair_rows[0][0]:
+                status = CandidateCompatibilityStatus.MISSING_SOURCE
+                results.append(CandidateCompatibilityResult(ordinal, music_id, audio_revision, status))
+                continue
+            embeddings = [row for row in pair_rows if row[1] is not None]
+            if not embeddings:
+                status = CandidateCompatibilityStatus.MISSING_EMBEDDING
+                results.append(CandidateCompatibilityResult(ordinal, music_id, audio_revision, status))
+                continue
+
+            compatible = []
+            invalid_dimension = False
+            for embedding_id, profile_sha, dimension, audio_profile in (
+                (row[1], row[2], row[3], row[4]) for row in embeddings
+            ):
+                if type(dimension) is not int or dimension != TEXT_EMBEDDING_DIMENSION:
+                    invalid_dimension = True
+                    continue
+                if not isinstance(audio_profile, dict):
+                    continue
+                if (type(audio_profile.get('dimension')) is not int
+                        or audio_profile['dimension'] != dimension):
+                    invalid_dimension = True
+                    continue
+                try:
+                    hash_matches = generation_profile_sha256(audio_profile) == profile_sha
+                except (TypeError, ValueError):
+                    hash_matches = False
+                if hash_matches and text_audio_profiles_compatible(text_profile, audio_profile):
+                    compatible.append(CompatibleCandidate(
+                        music_id, audio_revision, str(embedding_id), profile_sha))
+
+            if len(compatible) > 1:
+                status = CandidateCompatibilityStatus.AMBIGUOUS_PROFILE
+                identity = None
+            elif len(compatible) == 1:
+                status = CandidateCompatibilityStatus.COMPATIBLE
+                identity = compatible[0]
+            elif invalid_dimension:
+                status = CandidateCompatibilityStatus.INVALID_DIMENSION
+                identity = None
+            else:
+                status = CandidateCompatibilityStatus.INCOMPATIBLE_PROFILE
+                identity = None
+            results.append(CandidateCompatibilityResult(
+                ordinal, music_id, audio_revision, status, identity))
+        return results
+
     def search(self, connection, query_result, *, top_k=5):
         """호환되는 저장 벡터만 pgvector 코사인 거리로 비교하고 동일 파일은 제외한다."""
         if type(top_k) is not int or not 1 <= top_k <= 100:
