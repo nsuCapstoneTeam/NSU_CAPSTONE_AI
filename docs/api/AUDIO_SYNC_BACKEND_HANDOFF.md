@@ -2,10 +2,10 @@
 
 > 현행 원본 버전 명칭은 `audioRevision`이며 과거 `source_version` 제안과 같은 개념이다. 별도 runtime 필드로 유지하지 않는다. 아래 과거 제안의 HTTP 경로·상태 흐름은 구현 완료를 뜻하지 않으며 최신 017의 계약과 구분한다. 내부 UUIDv7 PK는 Backend wire 필드가 아니다.
 
-> 2026-10-10 현재 서버 간 계약은 [Accepted 012](https://linear.app/nsu-capstone/document/012-clap-음악-유사도-기반-곡-추천-흐름-c7c809f92cba)다. 아래 추천 검색은 합의된 기준이며 업무 API 구현 완료를 뜻하지 않는다.
+> 현행 추천 HTTP 계약은 [Accepted 017](https://linear.app/nsu-capstone/document/017-spring-canonical-검색-입력-기반-ai-recommend-server-요청응답-계약-f96a57425124)을 따른다. 012의 ranking 원칙과 016의 Spring canonical 입력 책임을 유지하며, 업무 HTTP 구현 완료를 뜻하지 않는다.
 
 
-상태: **사용자 전달 백엔드 확인·후속 결정 반영, 구현 전**. 2026-10-04.
+상태: **NSUAI-43 저장 identity·NSUAI-30 후보 진단·NSUAI-31 내부 ranking 구현 완료. 업무 HTTP와 ACTIVE lifecycle은 후속 구현**.
 기존 벡터 단일 교체안은 revision별 보관·ACTIVE 전환 확인 후 정리 방식으로 대체한다.
 아래 처리 원칙과 미정인 API 세부 제안을 구분한다. 현재 CLI가 이 계약을 구현한 것은 아니다.
 
@@ -21,10 +21,10 @@ AI는 임베딩·처리 상태·생성 조건을 관리한다. 개인정보를 �
 
 | 식별 정보 | 의미 |
 | --- | --- |
-| music_id | 백엔드 Sample ID의 문자열 표현. 현재 코드의 1~200자·앞뒤 공백 금지 규칙 유지 |
-| audioRevision | 백엔드 audioRevision. JPA @Version과 분리하며 원본 Audio 변경·삭제에만 증가 |
-| source_sha256 | 원본 바이트의 SHA-256. 백엔드 계산·AI 재계산 검증은 연동 제안 |
-| generation_version | 모델·checkpoint·전처리·출력 영향 설정의 식별값. 구체 형식은 AI 후속 설계 |
+| musicId / music_id | API/JSON은 musicId, DB는 music_id. AI 내부 저장은 text이며 1~200자·앞뒤 공백 금지 규칙 유지. wire type은 017의 미확정 범위와 구분 |
+| audioRevision / audio_revision | API/JSON은 audioRevision, DB는 audio_revision. Backend가 발급하는 1 이상의 원본 Audio revision이며 AI는 발급·증가시키지 않음 |
+| source_sha256 | 정확한 source 파일 bytes의 SHA-256. 전역 unique가 아니며 같은 music_id + audio_revision의 SHA 불일치는 conflict |
+| generation_profile / generation_profile_sha256 | model·checkpoint·전처리·생성 조건 JSON과 결정적인 SHA-256. audioRevision과 독립이며 같은 revision에 여러 profile 보존 가능 |
 | attempt_id | stale 재처리 시 이전 시도의 결과 반영을 막기 위한 처리 소유권 식별값 제안 |
 
 모델 변경은 model_version·checkpoint revision, 전처리 변경은 preprocessing_version으로 관리한다.
@@ -47,8 +47,9 @@ v2 ready는 백엔드 ACTIVE와 다르다. AI 생성 성공만으로 v1을 덮�
 새 생성 실패 시 기존 ACTIVE를 유지한다. 최초 등록 실패에는 기존 ACTIVE가 없다.
 원본 보관과 두 DB의 처리는 분산 트랜잭션이며 Spring @Transactional로 AI 작업이 묶이지 않는다.
 
-저장은 music_id + audioRevision 단위로 revision별 벡터를 보관하는 구조로 변경해야 한다.
-처리 상태와 기존 검색 벡터 상태를 분리한다. 모델 재생성을 위한 generation 단위 저장 정책은 추가 설계한다.
+저장 identity는 NSUAI-43에서 이미 구현했다. `audio_sources`의 PK는 `(music_id, audio_revision)`, UNIQUE는 `(music_id, audio_revision, source_sha256)`이다.
+`audio_embeddings`는 내부 UUIDv7 PK와 `(music_id, audio_revision, generation_profile_sha256)` UNIQUE를 가지며, source의 세 컬럼을 복합 FK로 참조한다.
+원본 revision과 generation 저장 모델의 근거는 [ADR-0010](../adr/ADR-0010-audio-revision-and-embedding-generation-identity.md)이다. 처리 상태와 ACTIVE 전환·기존 revision 보존 lifecycle은 NSUAI-44/45/46의 후속 범위이며 아래 상태·attempt 처리 흐름은 아직 구현되지 않았다.
 모델 실행은 DB 트랜잭션 밖에서 수행하고, 최신 revision·삭제·attempt 재검증과 결과 저장은 같은 트랜잭션에서 수행한다.
 이미 저장된 이전 ACTIVE 벡터는 신규 생성 요청이 더 최신이라는 이유만으로 검색에서 제외하지 않는다.
 
@@ -87,24 +88,30 @@ stale 임계 시간·상태 조회 간격·재시도 횟수는 측정 후 확정
 
 ## 5. 검색과 최종 추천 책임
 
-백엔드는 Eligibility Filter 이후 현재 ACTIVE인 (music_id, audioRevision) 쌍을 전달한다.
+Spring은 ACTIVE `(musicId, audioRevision)` pair를 먼저 수집하고 Eligibility로 필터링한 뒤 최종 통과 pair를 AI에 전달한다. Eligibility가 ACTIVE revision을 확정하지 않는다.
 AI는 두 값이 모두 일치하고 생성 조건이 호환되는 벡터만 **유사도 계산·정렬 전에** 검색 후보로 제한한다.
 ID 집합과 revision 집합을 각각 비교하면 잘못된 쌍이 포함될 수 있으므로 쌍 자체를 검사한다.
-빈 후보 배열은 빈 결과이며 실제 추천 경로에서 후보 제한을 생략하지 않는다.
-검색 후 백엔드는 현재 ACTIVE·Eligibility를 재검증한다. 재검증 중 제외된 결과의 표현·재요청 계약은 별도 정합화한다.
+AI는 요청 revision이 없거나 사용할 수 없어도 같은 musicId의 다른 audioRevision으로 대체하지 않는다. 현재 검색 조건과 비호환인 generation profile로 fallback하거나 검증에서 선택한 embedding identity를 다른 profile/row로 임의 대체하지 않는다.
 
-후보 필드 형식 제안 (`candidates`를 multipart JSON 배열 문자열로 전달):
+NSUAI-30은 모든 입력 후보의 상태를 진단한다. 전체 요청 성공/실패는 NSUAI-48 orchestration의 책임이며, 하나라도 정상 진단이 아니면 NSUAI-31 ranking을 호출하지 않고 전체 요청을 실패시킨다. invalid 후보만 제외한 정상 부분 응답은 허용하지 않는다.
+100개 중 3개 invalid일 때 97개 정상 반환, 500개 중 3개 invalid일 때 나머지의 Top100 정상 반환 모두 금지한다.
+성공 응답 수는 `min(전달 후보 pair 수, 100)`이다. 검증과 ranking 사이 변경으로 partial success가 생기지 않도록 일관된 조회 전략을 후속 구현에서 적용하며 구체 transaction/snapshot 방식은 아직 정하지 않는다.
+AI 후보 오류의 HTTP status/code·retryable 값·invalid pair 및 reason의 외부 schema는 TBD다. Spring 사용자 응답의 `503 RECOMMENDATION_UNAVAILABLE`을 AI 내부 오류 mapping으로 간주하지 않는다.
+내부 primitive는 빈 후보에 빈 목록을 반환하지만 HTTP 빈 후보 정책은 017의 TBD로 유지한다. 후보 제한을 생략하거나 전체 DB 검색으로 fallback하지 않는다.
+Spring의 호출 중 ACTIVE 변경 등 사후 재검증은 AI 응답 자체의 후보 범위·개수 검사 이후 수행하는 책임과 구분한다.
+
+현행 추천 요청의 후보 field 이름은 017을 따른다. 아래 식별자 값은 구조 설명용이며 wire type 확정을 뜻하지 않는다. multipart 후보 전달은 과거 제안이다.
 
 ```json
 [
-  {"music_id": "music-example-001", "audioRevision": 1},
-  {"music_id": "music-example-002", "audioRevision": 3}
+  {"musicId": "music-example-001", "audioRevision": 1},
+  {"musicId": "music-example-002", "audioRevision": 3}
 ]
 ```
 
 기존 CLI Top5는 Audio 연동 확인용이다. Accepted 012에 따라 Spring은 통과한 모든 ACTIVE 후보 쌍을 AI에 전달하고, AI는 raw cosine 순위로 최대 100곡을 반환한다. 입력 후보 최대치는 NSUAI-15에서 성능·메모리·동시성 실측 후 결정하며 결과 반환 상한 100곡과 구분한다. Spring은 응답 순서를 재정렬하지 않는다.
 AI의 raw cosine 순위는 AI 측에서 검증한다. Spring은 rank/order 연속성, 중복, 후보 범위, 결과 개수, 0~100 점수 유효성 및 표시 점수의 단조성을 확인하며 raw cosine은 Spring 계약에 포함하지 않는다.
-AI 결과의 music_id·audioRevision·rank·resultVersion 및 상세 정보는 계약 구현 시 확정할 field/schema다. 외부 `resultVersion`은 하나이며 AI 내부 model/checkpoint, Embedding generation/preprocessing, transformation/calibration 및 상세 분석 정보와 구분한다. 검색 입력 의미와 predefined mapping은 Spring 책임이며 정확한 DTO와 mapping version 처리는 후속 계약에서 정한다.
+AI 추천 결과의 API field는 017의 musicId·audioRevision·rank·resultVersion을 따르며 미확정 wire type·상세 schema는 그대로 남긴다. 외부 `resultVersion`은 하나이며 AI 내부 model/checkpoint, Embedding generation/preprocessing, transformation/calibration 및 상세 분석 정보와 구분한다. 검색 입력 의미와 predefined mapping은 Spring 책임이다.
 005의 retrieval 50~100/Backend Top10, 009의 의미/BPM/Rhythm 평균 음악 순위, 008의 별도 AI Explanation API 호출은 Accepted 012의 범위로 대체됐다. BPM/Rhythm 측정과 요청 비교는 순위에 반영하지 않는 상세 정보다.
 점수는 후보 독립 고정 0~100 음악 유사도이며 확률·적합 가능성이 아니다. 구체 변환/calibration은 NSUAI-12에서 정한다. 장애/timeout은 Accepted 010을 따른다.
 **Reliability는 최종 추천 순위에 반영하지 않는다.** Risk Signal과 함께 별도 결과 정보로 표시한다.
@@ -121,7 +128,7 @@ AI 결과의 music_id·audioRevision·rank·resultVersion 및 상세 정보는 �
 | --- | --- |
 | PUT /internal/v1/audio-embeddings/{music_id} | 파일·audioRevision·source_sha256 전달, revision별 생성·저장 |
 | GET /internal/v1/audio-embeddings/{music_id}?audioRevision=2 | 특정 revision 처리 상태 확인 |
-| POST /internal/v1/audio-search | Spring이 구성한 canonical English input과 모든 ACTIVE 후보 쌍 전달, raw cosine 정렬한 최대 100곡 및 구조화된 상세 정보 반환; 입력 최대치·세부 DTO 미정 |
+| POST /internal/v1/recommendations/search | 017의 현행 계약. canonicalText와 최종 후보 pair 전달, 전체 후보 검증 성공 후 raw cosine 상위 최대 100곡 반환. HTTP 구현은 후속 범위 |
 | DELETE /internal/v1/audio-embeddings/{music_id}?audioRevision=3 | 음악 자체 삭제와 삭제 기록 유지 |
 | 활성 전환 확인·이전 revision 정리 | 신규 계약 필요. 위 음악 삭제 API를 재사용하지 않음 |
 
@@ -133,21 +140,23 @@ AI 결과의 music_id·audioRevision·rank·resultVersion 및 상세 정보는 �
 
 ## 7. 구현 순서와 이슈
 
-1. revision별 벡터·처리 상태·시도 소유권·삭제 기록의 추가 마이그레이션
-2. revision별 저장·조회·음악 삭제와 ACTIVE 확인·이전 revision 정리 서비스
-3. 후보 쌍 검색·revision 반환·동기 업무 API
+1. NSUAI-43: revision/source/profile 저장 identity와 정확 조회 완료. 이후 처리 상태·시도 소유권·삭제 기록은 후속 lifecycle 범위
+2. NSUAI-44/45/46: ACTIVE 확인·기존 revision 보존·재시도·음악 삭제·이전 revision 정리
+3. NSUAI-30 진단·NSUAI-31 ranking은 완료. NSUAI-48 전체 성공/실패 제어와 동기 업무 API는 후속 범위
 4. 동시 갱신/삭제·stale·timeout·전환 확인 실패·검색 중 정리 테스트
 5. 실제 등록→v2 ready→ACTIVE 커밋 확인→검색→v1 정리→음악 삭제 통합 검증
 
 기존 `0001_audio_embeddings.sql` 체크섬은 유지하고 추가 마이그레이션으로 변경한다.
-기존 CLI 데이터의 초기 revision 부여와 CLI의 검증 우회 방지도 함께 설계한다.
-현재 구현은 음악 ID당 벡터 하나의 최초 저장/동일 결과 재사용이며 위 기능은 미구현이다.
+기존 row의 revision은 추정 backfill하지 않는다. 0003은 Backend revision 매핑이 없는 기존 Audio row가 있으면 안전하게 차단하며 데이터를 삭제하지 않는다.
+현재 저장소는 동일 music_id의 여러 revision과 동일 revision의 여러 generation profile을 보존한다. 업무 HTTP·ACTIVE lifecycle이 완료됐다는 뜻은 아니다.
 Text Embedding 생성·저장 기반(NSUAI-41·42)은 구현됐지만 Spring predefined mapping, canonical input 업무 API 연동은 후속 작업이다. Spring은 UI/요청 값을 검증하고 사전 정의 mapping으로 canonical 의미를 만든다. AI는 전달된 canonical text를 Text Embedding에 사용하며 OPUS-MT/M2M100/Qwen/LLM으로 번역하거나 의미를 재해석하지 않는다. BPM/Rhythm은 측정값과 요청 비교 상세 정보로 다루며 0~100 순위 점수가 아니다. Spring의 추천 이유 템플릿과 미래 LLM 가능성은 별도 범위이며 [설명 계약 문서](RECOMMENDATION_EXPLANATION_CONTRACT.md)를 참조한다.
 
 2026-10-04 Linear NSUAI-25·26·27, NSU-63과 연결 GitHub AI #18·19·20, Backend #68에 이 기준을 반영했다.
 기존 단일 벡터 교체안은 더 이상 현재 구현 목표로 사용하지 않는다.
 
 ## 변경 이력 — 현행 목표와 이전 계약의 차이
+
+과거 구현 기준에는 "현재 구현은 음악 ID당 벡터 하나의 최초 저장/동일 결과 재사용" 및 `POST /internal/v1/audio-search`·multipart 후보 전달 제안이 있었다. 이는 NSUAI-43/30/31 및 017 이전 이력으로 보존하며 현행 저장·추천 계약이 아니다.
 
 2026-10-04의 retrieval 50~100 → Backend Ranker Top10과 아티스트 집계 계획은 당시 기록이다.
 2026-10-07 제안 방향은 2026-10-10 Accepted 서버 협의 012에 따라 동기화했다. 결과 최대 100곡, 모든 ACTIVE 후보 쌍 전달, raw cosine 순위 유지, Spring의 순서 재정렬 금지, Spring 템플릿 설명을 반영했다. API 구현은 별도 상태다.
