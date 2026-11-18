@@ -1,0 +1,6040 @@
+{
+  "metadata": {
+    "synthetic": true,
+    "model_inference": false,
+    "http_orchestration": false,
+    "harness_sha256": "4cb99b1acf2bf2e8ce3d6a7814c4e9bb984d38931eccd78149cb21b5468b659b",
+    "source_state": "uncommitted benchmark source over repository_commit"
+  },
+  "repository_commit": "39ee7efab045a06d785bd6e1f0db3a9656a9b085",
+  "dataset": {
+    "seed": 320,
+    "dimension": 1024,
+    "dtype": "float32",
+    "l2_normalized_audio": true,
+    "row_counts": [
+      5002,
+      9002
+    ],
+    "profile": {
+      "model": "MSCLAP",
+      "model_version": "2023",
+      "checkpoint_revision": "c47d441165daa21986ead0850660917636a81775",
+      "checkpoint_sha256": "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6",
+      "msclap_implementation": {
+        "package_version": "1.3.3",
+        "source_file_count": 13,
+        "source_sha256": "e867cdbb71f7bcee529afb92a096578faab46c69feb35d8192d4f220de56c181",
+        "config_file": "configs/config_2023.yml",
+        "config_sha256": "41fbc893997f75fe144d93bf2ec44d5ca27fe61beb8870dd815a53c064cb030f"
+      },
+      "packages": {
+        "msclap": "1.3.3",
+        "torch": "2.1.2+cpu"
+      },
+      "preprocessing_version": "msclap2023-audio-first56s-8x7s-nonoverlap-chunk-l2-mean-final-l2-v2",
+      "preprocessing": {
+        "analysis_duration_seconds": 56,
+        "chunk_duration_seconds": 7,
+        "chunk_count": 8,
+        "chunk_overlap_seconds": 0,
+        "chunk_normalization": "l2",
+        "aggregation": "mean",
+        "final_normalization": "l2",
+        "channel_policy": "arithmetic_mean_downmix_to_mono"
+      },
+      "dimension": 1024,
+      "dtype": "torch.float32",
+      "device": "cpu"
+    }
+  },
+  "scenarios": [
+    {
+      "candidate_count": 10,
+      "mode": "reuse",
+      "parameters": [
+        20,
+        42
+      ],
+      "sql_bytes": [
+        958,
+        1412
+      ]
+    },
+    {
+      "candidate_count": 10,
+      "mode": "included",
+      "parameters": [
+        20,
+        42
+      ],
+      "sql_bytes": [
+        958,
+        1412
+      ]
+    },
+    {
+      "candidate_count": 50,
+      "mode": "reuse",
+      "parameters": [
+        100,
+        202
+      ],
+      "sql_bytes": [
+        1918,
+        3172
+      ]
+    },
+    {
+      "candidate_count": 50,
+      "mode": "included",
+      "parameters": [
+        100,
+        202
+      ],
+      "sql_bytes": [
+        1918,
+        3172
+      ]
+    },
+    {
+      "candidate_count": 100,
+      "mode": "reuse",
+      "parameters": [
+        200,
+        402
+      ],
+      "sql_bytes": [
+        3118,
+        5372
+      ]
+    },
+    {
+      "candidate_count": 100,
+      "mode": "included",
+      "parameters": [
+        200,
+        402
+      ],
+      "sql_bytes": [
+        3118,
+        5372
+      ]
+    },
+    {
+      "candidate_count": 500,
+      "mode": "reuse",
+      "parameters": [
+        1000,
+        2002
+      ],
+      "sql_bytes": [
+        12718,
+        22972
+      ]
+    },
+    {
+      "candidate_count": 500,
+      "mode": "included",
+      "parameters": [
+        1000,
+        2002
+      ],
+      "sql_bytes": [
+        12718,
+        22972
+      ]
+    },
+    {
+      "candidate_count": 1000,
+      "mode": "reuse",
+      "parameters": [
+        2000,
+        4002
+      ],
+      "sql_bytes": [
+        24718,
+        44972
+      ]
+    },
+    {
+      "candidate_count": 1000,
+      "mode": "included",
+      "parameters": [
+        2000,
+        4002
+      ],
+      "sql_bytes": [
+        24718,
+        44972
+      ]
+    },
+    {
+      "candidate_count": 2000,
+      "mode": "reuse",
+      "parameters": [
+        4000,
+        8002
+      ],
+      "sql_bytes": [
+        48718,
+        88972
+      ]
+    },
+    {
+      "candidate_count": 2000,
+      "mode": "included",
+      "parameters": [
+        4000,
+        8002
+      ],
+      "sql_bytes": [
+        48718,
+        88972
+      ]
+    },
+    {
+      "candidate_count": 5000,
+      "mode": "reuse",
+      "parameters": [
+        10000,
+        20002
+      ],
+      "sql_bytes": [
+        120718,
+        220972
+      ]
+    },
+    {
+      "candidate_count": 5000,
+      "mode": "included",
+      "parameters": [
+        10000,
+        20002
+      ],
+      "sql_bytes": [
+        120718,
+        220972
+      ]
+    }
+  ],
+  "latency": [
+    {
+      "candidate_count": 10,
+      "profile_count": 1,
+      "mode": "reuse",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 130106.46666666666,
+          "min_ns": 107271,
+          "max_ns": 221024,
+          "p50_ns": 116692.0,
+          "p95_ns": 208815.49999999994,
+          "p99_ns": 219878.21,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 1024280.3333333334,
+          "min_ns": 860722,
+          "max_ns": 1645919,
+          "p50_ns": 954894.5,
+          "p95_ns": 1288895.3999999997,
+          "p99_ns": 1554047.2900000003,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 465018.63333333336,
+          "min_ns": 362219,
+          "max_ns": 750637,
+          "p50_ns": 416040.0,
+          "p95_ns": 707747.7999999998,
+          "p99_ns": 744950.68,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 74845.1,
+          "min_ns": 65525,
+          "max_ns": 93904,
+          "p50_ns": 72594.5,
+          "p95_ns": 88921.2,
+          "p99_ns": 92516.93000000001,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 484416.6,
+          "min_ns": 420479,
+          "max_ns": 801378,
+          "p50_ns": 475995.0,
+          "p95_ns": 528477.35,
+          "p99_ns": 723904.2100000002,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 687183.5333333333,
+          "min_ns": 563847,
+          "max_ns": 1018026,
+          "p50_ns": 637745.5,
+          "p95_ns": 974262.9499999998,
+          "p99_ns": 1012343.74,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 347227.56666666665,
+          "min_ns": 266346,
+          "max_ns": 664343,
+          "p50_ns": 305385.5,
+          "p95_ns": 550212.7999999999,
+          "p99_ns": 635230.1900000001,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 9637.766666666666,
+          "min_ns": 7984,
+          "max_ns": 20560,
+          "p50_ns": 8851.5,
+          "p95_ns": 13224.649999999994,
+          "p99_ns": 18704.580000000005,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 330318.2,
+          "min_ns": 289517,
+          "max_ns": 444454,
+          "p50_ns": 311753.0,
+          "p95_ns": 403378.55,
+          "p99_ns": 432709.29000000004,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 1711463.8666666667,
+          "min_ns": 1442094,
+          "max_ns": 2375994,
+          "p50_ns": 1609170.5,
+          "p95_ns": 2231311.0499999993,
+          "p99_ns": 2367628.08,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 1841570.3333333333,
+          "min_ns": 1561171,
+          "max_ns": 2511997,
+          "p50_ns": 1755721.5,
+          "p95_ns": 2383278.0499999993,
+          "p99_ns": 2499310.95,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 273879040,
+        "peak_rss_bytes": 285745152,
+        "resource_maxrss_bytes": 285745152
+      }
+    },
+    {
+      "candidate_count": 10,
+      "profile_count": 1,
+      "mode": "included",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 55409.8,
+          "min_ns": 41070,
+          "max_ns": 98035,
+          "p50_ns": 51375.5,
+          "p95_ns": 70947.09999999999,
+          "p99_ns": 90675.67000000001,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 173478.4,
+          "min_ns": 140863,
+          "max_ns": 293814,
+          "p50_ns": 160070.0,
+          "p95_ns": 234994.54999999993,
+          "p99_ns": 279303.85000000003,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 2828270.1666666665,
+          "min_ns": 2425784,
+          "max_ns": 3568284,
+          "p50_ns": 2669695.0,
+          "p95_ns": 3506875.3,
+          "p99_ns": 3552953.15,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 1931342.9666666666,
+          "min_ns": 1656182,
+          "max_ns": 2449960,
+          "p50_ns": 1822918.5,
+          "p95_ns": 2403733.6999999997,
+          "p99_ns": 2440246.74,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 106896.46666666666,
+          "min_ns": 88968,
+          "max_ns": 228916,
+          "p50_ns": 101581.5,
+          "p95_ns": 126939.59999999998,
+          "p99_ns": 200508.4700000001,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 790030.7333333333,
+          "min_ns": 648162,
+          "max_ns": 1121432,
+          "p50_ns": 751495.0,
+          "p95_ns": 1017031.1999999997,
+          "p99_ns": 1102520.23,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 5794951.533333333,
+          "min_ns": 5279450,
+          "max_ns": 6793394,
+          "p50_ns": 5770729.5,
+          "p95_ns": 6331257.9,
+          "p99_ns": 6663299.71,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 2157105,
+          "min_ns": 1795902,
+          "max_ns": 3185060,
+          "p50_ns": 2040056.0,
+          "p95_ns": 3036476.75,
+          "p99_ns": 3145985.69,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 1641031.4,
+          "min_ns": 1370490,
+          "max_ns": 2509221,
+          "p50_ns": 1559926.5,
+          "p95_ns": 2168912.9499999997,
+          "p99_ns": 2431050.0500000003,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 15581.3,
+          "min_ns": 11234,
+          "max_ns": 36357,
+          "p50_ns": 14609.5,
+          "p95_ns": 24007.549999999977,
+          "p99_ns": 33814.57000000001,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 500492.3,
+          "min_ns": 372555,
+          "max_ns": 1075033,
+          "p50_ns": 441761.5,
+          "p95_ns": 705572.0499999997,
+          "p99_ns": 983749.1200000002,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 4985375.166666667,
+          "min_ns": 4238560,
+          "max_ns": 6753344,
+          "p50_ns": 4783373.0,
+          "p95_ns": 5967714.249999999,
+          "p99_ns": 6557629.380000001,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 11009214.9,
+          "min_ns": 10007421,
+          "max_ns": 12925215,
+          "p50_ns": 10815277.0,
+          "p95_ns": 12385173.549999999,
+          "p99_ns": 12831814.700000001,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 273879040,
+        "peak_rss_bytes": 285745152,
+        "resource_maxrss_bytes": 285745152
+      }
+    },
+    {
+      "candidate_count": 50,
+      "profile_count": 1,
+      "mode": "reuse",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 151965.73333333334,
+          "min_ns": 111172,
+          "max_ns": 215033,
+          "p50_ns": 147154.0,
+          "p95_ns": 204781.99999999997,
+          "p99_ns": 213023.30000000002,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 2665062.533333333,
+          "min_ns": 2286383,
+          "max_ns": 3500697,
+          "p50_ns": 2624758.0,
+          "p95_ns": 3277710.649999999,
+          "p99_ns": 3473944.21,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 1209930.9666666666,
+          "min_ns": 1021722,
+          "max_ns": 1729368,
+          "p50_ns": 1131568.0,
+          "p95_ns": 1573237.9,
+          "p99_ns": 1685034.83,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 331374.76666666666,
+          "min_ns": 274536,
+          "max_ns": 523113,
+          "p50_ns": 304872.0,
+          "p95_ns": 451969.44999999984,
+          "p99_ns": 511303.04000000004,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 1123756.8,
+          "min_ns": 959291,
+          "max_ns": 1544892,
+          "p50_ns": 1068651.5,
+          "p95_ns": 1470576.5499999996,
+          "p99_ns": 1538110.6400000001,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 1542270.3,
+          "min_ns": 1283818,
+          "max_ns": 2178314,
+          "p50_ns": 1502607.0,
+          "p95_ns": 2108790.9,
+          "p99_ns": 2168336.2600000002,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 943334.3666666667,
+          "min_ns": 735149,
+          "max_ns": 1364917,
+          "p50_ns": 906415.5,
+          "p95_ns": 1279282.3499999999,
+          "p99_ns": 1348322.33,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 31684.233333333334,
+          "min_ns": 25965,
+          "max_ns": 63023,
+          "p50_ns": 28906.5,
+          "p95_ns": 48062.59999999997,
+          "p99_ns": 60168.530000000006,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 567251.7,
+          "min_ns": 448715,
+          "max_ns": 904999,
+          "p50_ns": 520072.0,
+          "p95_ns": 834169.0999999996,
+          "p99_ns": 899306.88,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 4207332.833333333,
+          "min_ns": 3583018,
+          "max_ns": 5566567,
+          "p50_ns": 4119842.0,
+          "p95_ns": 5271767.299999998,
+          "p99_ns": 5562445.23,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 4359298.566666666,
+          "min_ns": 3698014,
+          "max_ns": 5725871,
+          "p50_ns": 4283054.0,
+          "p95_ns": 5449108.349999998,
+          "p99_ns": 5725611.16,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 275558400,
+        "peak_rss_bytes": 285745152,
+        "resource_maxrss_bytes": 285745152
+      }
+    },
+    {
+      "candidate_count": 50,
+      "profile_count": 1,
+      "mode": "included",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 62414.76666666667,
+          "min_ns": 44799,
+          "max_ns": 112597,
+          "p50_ns": 56571.0,
+          "p95_ns": 96232.7,
+          "p99_ns": 108283.83000000002,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 180918.76666666666,
+          "min_ns": 135281,
+          "max_ns": 296880,
+          "p50_ns": 161505.5,
+          "p95_ns": 285297.7,
+          "p99_ns": 294222.44,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 4651494.566666666,
+          "min_ns": 4156079,
+          "max_ns": 6889932,
+          "p50_ns": 4475364.0,
+          "p95_ns": 5545613.599999999,
+          "p99_ns": 6544064.950000001,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 2873143.3,
+          "min_ns": 2512161,
+          "max_ns": 4387583,
+          "p50_ns": 2767489.5,
+          "p95_ns": 3408173.6499999994,
+          "p99_ns": 4124672.190000001,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 370246.1,
+          "min_ns": 326781,
+          "max_ns": 576940,
+          "p50_ns": 342326.5,
+          "p95_ns": 484138.3499999999,
+          "p99_ns": 552994.7000000001,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 1408105.1666666667,
+          "min_ns": 1222070,
+          "max_ns": 1925409,
+          "p50_ns": 1350363.5,
+          "p95_ns": 1788147.0999999994,
+          "p99_ns": 1913326.73,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 5825111.166666667,
+          "min_ns": 5318783,
+          "max_ns": 6942050,
+          "p50_ns": 5768497.0,
+          "p95_ns": 6879176.15,
+          "p99_ns": 6924170.63,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 3248183.2333333334,
+          "min_ns": 2780791,
+          "max_ns": 4419961,
+          "p50_ns": 3115478.5,
+          "p95_ns": 4167735.099999999,
+          "p99_ns": 4394223.79,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 2506556.3333333335,
+          "min_ns": 2081401,
+          "max_ns": 3490048,
+          "p50_ns": 2430601.5,
+          "p95_ns": 3230711.649999999,
+          "p99_ns": 3453035.5900000003,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 42528.566666666666,
+          "min_ns": 32428,
+          "max_ns": 89060,
+          "p50_ns": 37068.5,
+          "p95_ns": 74692.09999999995,
+          "p99_ns": 87106.85,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 699098.3333333334,
+          "min_ns": 569644,
+          "max_ns": 996529,
+          "p50_ns": 687666.0,
+          "p95_ns": 921966.6999999997,
+          "p99_ns": 990348.52,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 7899677.8,
+          "min_ns": 7097797,
+          "max_ns": 10114687,
+          "p50_ns": 7715785.5,
+          "p95_ns": 9176768.45,
+          "p99_ns": 9911015.07,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 13968122.5,
+          "min_ns": 12976553,
+          "max_ns": 16173111,
+          "p50_ns": 13766135.5,
+          "p95_ns": 15389166.1,
+          "p99_ns": 15972149.120000001,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 275558400,
+        "peak_rss_bytes": 285745152,
+        "resource_maxrss_bytes": 285745152
+      }
+    },
+    {
+      "candidate_count": 100,
+      "profile_count": 1,
+      "mode": "reuse",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 168867.83333333334,
+          "min_ns": 123230,
+          "max_ns": 364428,
+          "p50_ns": 153520.5,
+          "p95_ns": 240202.84999999998,
+          "p99_ns": 329340.6100000001,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 4428011.466666667,
+          "min_ns": 3870776,
+          "max_ns": 5752701,
+          "p50_ns": 4316819.0,
+          "p95_ns": 5184662.899999999,
+          "p99_ns": 5616797.140000001,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 1773215.6333333333,
+          "min_ns": 1494481,
+          "max_ns": 2370919,
+          "p50_ns": 1736884.0,
+          "p95_ns": 2123200.1499999994,
+          "p99_ns": 2320311.97,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 647435.5666666667,
+          "min_ns": 531749,
+          "max_ns": 950846,
+          "p50_ns": 613938.0,
+          "p95_ns": 872447.1499999998,
+          "p99_ns": 939593.42,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 2007360.2666666666,
+          "min_ns": 1726889,
+          "max_ns": 3052769,
+          "p50_ns": 1962586.5,
+          "p95_ns": 2485661.999999999,
+          "p99_ns": 2923044.4600000004,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 2508356.033333333,
+          "min_ns": 2027395,
+          "max_ns": 3809194,
+          "p50_ns": 2305229.5,
+          "p95_ns": 3510578.699999999,
+          "p99_ns": 3774773.9,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 1665369.1666666667,
+          "min_ns": 1315965,
+          "max_ns": 2736944,
+          "p50_ns": 1490372.0,
+          "p95_ns": 2585445.5499999993,
+          "p99_ns": 2726480.22,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 59974.23333333333,
+          "min_ns": 47810,
+          "max_ns": 98324,
+          "p50_ns": 52661.0,
+          "p95_ns": 95317.34999999999,
+          "p99_ns": 97597.84,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 783012.6333333333,
+          "min_ns": 650781,
+          "max_ns": 1166226,
+          "p50_ns": 740282.5,
+          "p95_ns": 1040880.2999999999,
+          "p99_ns": 1132142.01,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 6936367.5,
+          "min_ns": 5967238,
+          "max_ns": 9561895,
+          "p50_ns": 6584252.5,
+          "p95_ns": 8153848.9,
+          "p99_ns": 9155414.47,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 7105235.333333333,
+          "min_ns": 6091421,
+          "max_ns": 9732207,
+          "p50_ns": 6773272.5,
+          "p95_ns": 8368709.95,
+          "p99_ns": 9342815.3,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 276185088,
+        "peak_rss_bytes": 285745152,
+        "resource_maxrss_bytes": 285745152
+      }
+    },
+    {
+      "candidate_count": 100,
+      "profile_count": 1,
+      "mode": "included",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 58998.23333333333,
+          "min_ns": 48272,
+          "max_ns": 82659,
+          "p50_ns": 53962.0,
+          "p95_ns": 74332.65,
+          "p99_ns": 80599.71,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 189302.86666666667,
+          "min_ns": 151456,
+          "max_ns": 339587,
+          "p50_ns": 176224.0,
+          "p95_ns": 238919.54999999996,
+          "p99_ns": 311818.63000000006,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 6706294.866666666,
+          "min_ns": 6040913,
+          "max_ns": 8076358,
+          "p50_ns": 6549686.5,
+          "p95_ns": 7588420.399999999,
+          "p99_ns": 7960732.680000001,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 3684580.3333333335,
+          "min_ns": 3283817,
+          "max_ns": 5291763,
+          "p50_ns": 3559755.5,
+          "p95_ns": 4240537.6,
+          "p99_ns": 4992476.330000001,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 722194.8666666667,
+          "min_ns": 618056,
+          "max_ns": 1120600,
+          "p50_ns": 672614.5,
+          "p95_ns": 976394.8499999997,
+          "p99_ns": 1088874.29,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 2299519.6666666665,
+          "min_ns": 2035482,
+          "max_ns": 3030708,
+          "p50_ns": 2198697.0,
+          "p95_ns": 2938598.4499999997,
+          "p99_ns": 3006279.85,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 5848413.866666666,
+          "min_ns": 5357483,
+          "max_ns": 7848679,
+          "p50_ns": 5736513.0,
+          "p95_ns": 6502734.45,
+          "p99_ns": 7470334.8500000015,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 4365355.233333333,
+          "min_ns": 3894332,
+          "max_ns": 5430040,
+          "p50_ns": 4268068.0,
+          "p95_ns": 5187880.199999998,
+          "p99_ns": 5424834.5,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 3370340.6333333333,
+          "min_ns": 3009666,
+          "max_ns": 4538235,
+          "p50_ns": 3281473.5,
+          "p95_ns": 3963492.3999999985,
+          "p99_ns": 4429928.12,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 67899.83333333333,
+          "min_ns": 55801,
+          "max_ns": 104712,
+          "p50_ns": 60811.0,
+          "p95_ns": 103302.65,
+          "p99_ns": 104483.77,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 927114.7666666667,
+          "min_ns": 808305,
+          "max_ns": 1179744,
+          "p50_ns": 913107.0,
+          "p95_ns": 1117059.3999999997,
+          "p99_ns": 1177111.67,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 11071650.1,
+          "min_ns": 10074416,
+          "max_ns": 12471984,
+          "p50_ns": 10977888.5,
+          "p95_ns": 12279020.35,
+          "p99_ns": 12454735.67,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 17168365.066666666,
+          "min_ns": 16092143,
+          "max_ns": 18804109,
+          "p50_ns": 16828240.5,
+          "p95_ns": 18476012.45,
+          "p99_ns": 18783823.5,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 276185088,
+        "peak_rss_bytes": 285745152,
+        "resource_maxrss_bytes": 285745152
+      }
+    },
+    {
+      "candidate_count": 500,
+      "profile_count": 1,
+      "mode": "reuse",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 234599.7,
+          "min_ns": 180006,
+          "max_ns": 350484,
+          "p50_ns": 215942.0,
+          "p95_ns": 344369.3,
+          "p99_ns": 349280.5,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 22131000.933333334,
+          "min_ns": 18043562,
+          "max_ns": 62261032,
+          "p50_ns": 18740597.5,
+          "p95_ns": 44275202.2999999,
+          "p99_ns": 61662200.85,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 7259002.566666666,
+          "min_ns": 6322490,
+          "max_ns": 10072657,
+          "p50_ns": 6980381.5,
+          "p95_ns": 8687140.499999998,
+          "p99_ns": 9774921.83,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 6208932.733333333,
+          "min_ns": 2933337,
+          "max_ns": 46472572,
+          "p50_ns": 3295806.5,
+          "p95_ns": 26691753.24999989,
+          "p99_ns": 45782811.64,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 8663065.633333333,
+          "min_ns": 7657315,
+          "max_ns": 11748362,
+          "p50_ns": 8297429.5,
+          "p95_ns": 10570196.949999997,
+          "p99_ns": 11485026.63,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 10075009.6,
+          "min_ns": 8986751,
+          "max_ns": 13025337,
+          "p50_ns": 9889390.0,
+          "p95_ns": 11427541.799999999,
+          "p99_ns": 12599037.870000001,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 8015478.633333334,
+          "min_ns": 7117920,
+          "max_ns": 10927831,
+          "p50_ns": 7807558.5,
+          "p95_ns": 9372401.6,
+          "p99_ns": 10515469.56,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 72879.96666666666,
+          "min_ns": 54181,
+          "max_ns": 179338,
+          "p50_ns": 62522.5,
+          "p95_ns": 139704.99999999988,
+          "p99_ns": 172495.45,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 1986651,
+          "min_ns": 1812162,
+          "max_ns": 2757369,
+          "p50_ns": 1943930.0,
+          "p95_ns": 2213617.5,
+          "p99_ns": 2603417.2800000003,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 32206010.533333335,
+          "min_ns": 27540556,
+          "max_ns": 71247783,
+          "p50_ns": 28715339.0,
+          "p95_ns": 54374328.499999896,
+          "p99_ns": 70927515.7,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 32440610.233333334,
+          "min_ns": 27742466,
+          "max_ns": 71478354,
+          "p50_ns": 28903783.5,
+          "p95_ns": 54662222.249999896,
+          "p99_ns": 71160844.02,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 279019520,
+        "peak_rss_bytes": 285745152,
+        "resource_maxrss_bytes": 285745152
+      }
+    },
+    {
+      "candidate_count": 500,
+      "profile_count": 1,
+      "mode": "included",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 66964.26666666666,
+          "min_ns": 54186,
+          "max_ns": 103725,
+          "p50_ns": 62363.0,
+          "p95_ns": 97488.09999999999,
+          "p99_ns": 102407.24,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 423791.6,
+          "min_ns": 291391,
+          "max_ns": 697998,
+          "p50_ns": 420871.0,
+          "p95_ns": 619179.9999999997,
+          "p99_ns": 689072.9600000001,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 24689953.833333332,
+          "min_ns": 21707551,
+          "max_ns": 72774048,
+          "p50_ns": 22995284.5,
+          "p95_ns": 24661763.4,
+          "p99_ns": 58906491.60000004,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 12381145.5,
+          "min_ns": 9944449,
+          "max_ns": 61704650,
+          "p50_ns": 10601542.5,
+          "p95_ns": 11644546.7,
+          "p99_ns": 47190727.100000046,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 3433989.1333333333,
+          "min_ns": 3048195,
+          "max_ns": 4499091,
+          "p50_ns": 3342708.0,
+          "p95_ns": 4013542.6999999997,
+          "p99_ns": 4364331.19,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 8874819.2,
+          "min_ns": 7953218,
+          "max_ns": 10557113,
+          "p50_ns": 8855640.0,
+          "p95_ns": 9940662.749999998,
+          "p99_ns": 10461573.370000001,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 5975736.9,
+          "min_ns": 5413875,
+          "max_ns": 8129375,
+          "p50_ns": 5835563.5,
+          "p95_ns": 6526380.05,
+          "p99_ns": 7674214.490000001,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 15527408.9,
+          "min_ns": 13311216,
+          "max_ns": 55881475,
+          "p50_ns": 14119395.0,
+          "p95_ns": 15606554.549999997,
+          "p99_ns": 44335043.510000035,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 13275440.4,
+          "min_ns": 11031177,
+          "max_ns": 53588189,
+          "p50_ns": 11913789.0,
+          "p95_ns": 13108220.749999998,
+          "p99_ns": 41967625.97000003,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 72244.23333333334,
+          "min_ns": 61652,
+          "max_ns": 123714,
+          "p50_ns": 67295.0,
+          "p95_ns": 105655.34999999995,
+          "p99_ns": 120588.09000000001,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 2179724.2666666666,
+          "min_ns": 1927910,
+          "max_ns": 2924813,
+          "p50_ns": 2141766.0,
+          "p95_ns": 2565410.0499999993,
+          "p99_ns": 2853854.64,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 40217362.733333334,
+          "min_ns": 35459499,
+          "max_ns": 86895633,
+          "p50_ns": 37174722.0,
+          "p95_ns": 61756069.64999989,
+          "p99_ns": 84949542.18,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 46683855.5,
+          "min_ns": 42225368,
+          "max_ns": 93922060,
+          "p50_ns": 43634504.5,
+          "p95_ns": 68351273.19999988,
+          "p99_ns": 91898379.97,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 279265280,
+        "peak_rss_bytes": 285745152,
+        "resource_maxrss_bytes": 285745152
+      }
+    },
+    {
+      "candidate_count": 1000,
+      "profile_count": 1,
+      "mode": "reuse",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 295947.7,
+          "min_ns": 187584,
+          "max_ns": 468270,
+          "p50_ns": 275009.5,
+          "p95_ns": 435397.5,
+          "p99_ns": 459046.26,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 36266637.03333333,
+          "min_ns": 33566571,
+          "max_ns": 58636299,
+          "p50_ns": 35527805.0,
+          "p95_ns": 37991719.85,
+          "p99_ns": 52678648.33000001,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 11632829.166666666,
+          "min_ns": 10469860,
+          "max_ns": 14719918,
+          "p50_ns": 11356985.0,
+          "p95_ns": 13224532.2,
+          "p99_ns": 14350700.15,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 6671434.966666667,
+          "min_ns": 5942809,
+          "max_ns": 7631989,
+          "p50_ns": 6583690.5,
+          "p95_ns": 7422993.65,
+          "p99_ns": 7574225.640000001,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 17962372.9,
+          "min_ns": 16078075,
+          "max_ns": 39695935,
+          "p50_ns": 17212256.5,
+          "p95_ns": 18576237.0,
+          "p99_ns": 33595827.05000002,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 28139081.066666666,
+          "min_ns": 16639307,
+          "max_ns": 64814465,
+          "p50_ns": 17995661.0,
+          "p95_ns": 60698646.05,
+          "p99_ns": 63843329.24,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 24511191.933333334,
+          "min_ns": 12945887,
+          "max_ns": 60956784,
+          "p50_ns": 14551429.5,
+          "p95_ns": 57122226.49999999,
+          "p99_ns": 60046589.71,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 74200.93333333333,
+          "min_ns": 60031,
+          "max_ns": 125267,
+          "p50_ns": 65631.0,
+          "p95_ns": 115399.69999999995,
+          "p99_ns": 124636.25,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 3553688.2,
+          "min_ns": 3073459,
+          "max_ns": 4593181,
+          "p50_ns": 3444129.0,
+          "p95_ns": 4221301.449999999,
+          "p99_ns": 4522804.96,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 64405718.1,
+          "min_ns": 50530965,
+          "max_ns": 101367166,
+          "p50_ns": 54192733.0,
+          "p95_ns": 96483506.0,
+          "p99_ns": 100198123.8,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 64701665.8,
+          "min_ns": 50880285,
+          "max_ns": 101622168,
+          "p50_ns": 54466950.5,
+          "p95_ns": 96830819.19999999,
+          "p99_ns": 100499346.29,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 288321536,
+        "peak_rss_bytes": 288321536,
+        "resource_maxrss_bytes": 287784960
+      }
+    },
+    {
+      "candidate_count": 1000,
+      "profile_count": 1,
+      "mode": "included",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 82173.03333333334,
+          "min_ns": 53991,
+          "max_ns": 238554,
+          "p50_ns": 72761.0,
+          "p95_ns": 145585.39999999982,
+          "p99_ns": 219559.87000000005,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 468987.9666666667,
+          "min_ns": 344450,
+          "max_ns": 804723,
+          "p50_ns": 441735.5,
+          "p95_ns": 701893.6,
+          "p99_ns": 776042.0000000001,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 41558642.5,
+          "min_ns": 39508932,
+          "max_ns": 44584071,
+          "p50_ns": 41558814.5,
+          "p95_ns": 43575978.75,
+          "p99_ns": 44346589.71,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 17484398.533333335,
+          "min_ns": 15887894,
+          "max_ns": 20245535,
+          "p50_ns": 17035971.5,
+          "p95_ns": 19750897.299999997,
+          "p99_ns": 20171503.8,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 6676406.233333333,
+          "min_ns": 6115662,
+          "max_ns": 8003484,
+          "p50_ns": 6613409.0,
+          "p95_ns": 7332291.95,
+          "p99_ns": 7814547.550000001,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 17397837.733333334,
+          "min_ns": 15639280,
+          "max_ns": 20039532,
+          "p50_ns": 17247015.5,
+          "p95_ns": 18652418.65,
+          "p99_ns": 19651911.62,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 6000045.7,
+          "min_ns": 5445531,
+          "max_ns": 7865103,
+          "p50_ns": 5899935.5,
+          "p95_ns": 6844040.15,
+          "p99_ns": 7572138.910000001,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 34186081.2,
+          "min_ns": 22802440,
+          "max_ns": 69756156,
+          "p50_ns": 24555338.0,
+          "p95_ns": 67096240.949999996,
+          "p99_ns": 69229743.36,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 30428926.766666666,
+          "min_ns": 19191774,
+          "max_ns": 66122982,
+          "p50_ns": 20763028.5,
+          "p95_ns": 63588683.74999999,
+          "p99_ns": 65610577.81,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 80214.23333333334,
+          "min_ns": 63494,
+          "max_ns": 217598,
+          "p50_ns": 68082.5,
+          "p95_ns": 150494.59999999992,
+          "p99_ns": 202495.67000000004,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 3676940.2,
+          "min_ns": 3346182,
+          "max_ns": 4366833,
+          "p50_ns": 3634348.0,
+          "p95_ns": 4135186.2499999995,
+          "p99_ns": 4311324.100000001,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 75744723.7,
+          "min_ns": 63696562,
+          "max_ns": 110871788,
+          "p50_ns": 66135760.0,
+          "p95_ns": 109591298.25,
+          "p99_ns": 110728984.75,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 82295930.4,
+          "min_ns": 70075773,
+          "max_ns": 116855692,
+          "p50_ns": 73032347.5,
+          "p95_ns": 115857731.8,
+          "p99_ns": 116793820.21,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 288436224,
+        "peak_rss_bytes": 288436224,
+        "resource_maxrss_bytes": 287916032
+      }
+    },
+    {
+      "candidate_count": 2000,
+      "profile_count": 1,
+      "mode": "reuse",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 375006.9,
+          "min_ns": 283771,
+          "max_ns": 555756,
+          "p50_ns": 340248.5,
+          "p95_ns": 502808.54999999993,
+          "p99_ns": 544063.2000000001,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 83060044.26666667,
+          "min_ns": 64765126,
+          "max_ns": 115463178,
+          "p50_ns": 68766363.5,
+          "p95_ns": 113716303.6,
+          "p99_ns": 115017947.09,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 24262651.233333334,
+          "min_ns": 18363683,
+          "max_ns": 62847158,
+          "p50_ns": 19986589.5,
+          "p95_ns": 61914438.05,
+          "p99_ns": 62756055.95,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 20818524.266666666,
+          "min_ns": 12395677,
+          "max_ns": 60302296,
+          "p50_ns": 13361442.0,
+          "p95_ns": 59095953.5,
+          "p99_ns": 60098740.65,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 37978868.766666666,
+          "min_ns": 30919519,
+          "max_ns": 81421166,
+          "p50_ns": 34075586.0,
+          "p95_ns": 72862820.74999994,
+          "p99_ns": 81387162.92,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 41509094.666666664,
+          "min_ns": 30044434,
+          "max_ns": 80219897,
+          "p50_ns": 32484089.5,
+          "p95_ns": 78255575.64999999,
+          "p99_ns": 79744684.44,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 35202206.3,
+          "min_ns": 23779431,
+          "max_ns": 72986364,
+          "p50_ns": 26190563.0,
+          "p95_ns": 72047348.64999999,
+          "p99_ns": 72933537.89,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 77116.23333333334,
+          "min_ns": 65897,
+          "max_ns": 132305,
+          "p50_ns": 69174.0,
+          "p95_ns": 118357.24999999996,
+          "p99_ns": 130329.23000000001,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 6229772.133333334,
+          "min_ns": 5526585,
+          "max_ns": 7319189,
+          "p50_ns": 6079711.0,
+          "p95_ns": 7196982.8,
+          "p99_ns": 7299246.86,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 124569138.93333334,
+          "min_ns": 96733083,
+          "max_ns": 150570463,
+          "p50_ns": 139879889.5,
+          "p95_ns": 148029916.29999998,
+          "p99_ns": 149997203.47,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 124944145.83333333,
+          "min_ns": 97059798,
+          "max_ns": 150901662,
+          "p50_ns": 140215414.5,
+          "p95_ns": 148386506.5,
+          "p99_ns": 150327255.23,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 305156096,
+        "peak_rss_bytes": 305156096,
+        "resource_maxrss_bytes": 304562176
+      }
+    },
+    {
+      "candidate_count": 2000,
+      "profile_count": 1,
+      "mode": "included",
+      "iterations": 30,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 85412.53333333334,
+          "min_ns": 62675,
+          "max_ns": 122130,
+          "p50_ns": 80273.5,
+          "p95_ns": 107612.09999999999,
+          "p99_ns": 118491.66,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 666488.8666666667,
+          "min_ns": 495060,
+          "max_ns": 898593,
+          "p50_ns": 645530.0,
+          "p95_ns": 862915.6499999999,
+          "p99_ns": 890716.02,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 95002183.3,
+          "min_ns": 76713822,
+          "max_ns": 128827786,
+          "p50_ns": 80970730.0,
+          "p95_ns": 127305465.95,
+          "p99_ns": 128473556.22,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 35258296.86666667,
+          "min_ns": 28586215,
+          "max_ns": 76956174,
+          "p50_ns": 30517853.5,
+          "p95_ns": 74992466.14999999,
+          "p99_ns": 76497515.8,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 20426295.066666666,
+          "min_ns": 13070577,
+          "max_ns": 61242009,
+          "p50_ns": 14431993.5,
+          "p95_ns": 59976438.74999999,
+          "p99_ns": 61077488.52,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 39317591.36666667,
+          "min_ns": 32562194,
+          "max_ns": 84027399,
+          "p50_ns": 34680793.0,
+          "p95_ns": 81878151.25,
+          "p99_ns": 83559338.42,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 6467614.166666667,
+          "min_ns": 5483603,
+          "max_ns": 21215180,
+          "p50_ns": 5960454.5,
+          "p95_ns": 6643132.099999999,
+          "p99_ns": 17028543.38000001,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 53152485.9,
+          "min_ns": 42348080,
+          "max_ns": 91477445,
+          "p50_ns": 44153878.0,
+          "p95_ns": 90350902.05,
+          "p99_ns": 91301304.22,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 46222490.666666664,
+          "min_ns": 35527425,
+          "max_ns": 84627797,
+          "p50_ns": 37141716.0,
+          "p95_ns": 83944534.6,
+          "p99_ns": 84612566.49,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 81188.16666666667,
+          "min_ns": 65469,
+          "max_ns": 159024,
+          "p50_ns": 71396.5,
+          "p95_ns": 131550.09999999998,
+          "p99_ns": 151510.97000000003,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 6848807.066666666,
+          "min_ns": 6172592,
+          "max_ns": 9023337,
+          "p50_ns": 6721784.5,
+          "p95_ns": 7727987.649999999,
+          "p99_ns": 8666138.780000001,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 148154669.2,
+          "min_ns": 120729638,
+          "max_ns": 172923923,
+          "p50_ns": 165028565.0,
+          "p95_ns": 171941651.5,
+          "p99_ns": 172715301.06,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 155374184.76666668,
+          "min_ns": 127409677,
+          "max_ns": 180203401,
+          "p50_ns": 171372635.5,
+          "p95_ns": 178578361.5,
+          "p99_ns": 179742374.66,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 305303552,
+        "peak_rss_bytes": 305303552,
+        "resource_maxrss_bytes": 304693248
+      }
+    },
+    {
+      "candidate_count": 5000,
+      "profile_count": 1,
+      "mode": "reuse",
+      "iterations": 10,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 10,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 10,
+          "mean_ns": 514602.1,
+          "min_ns": 425192,
+          "max_ns": 763188,
+          "p50_ns": 462143.5,
+          "p95_ns": 756538.35,
+          "p99_ns": 761858.07,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 10,
+          "mean_ns": 218950880,
+          "min_ns": 176801052,
+          "max_ns": 245685661,
+          "p50_ns": 216223474.0,
+          "p95_ns": 245683166.65,
+          "p99_ns": 245685162.13,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 10,
+          "mean_ns": 69281458.8,
+          "min_ns": 47483291,
+          "max_ns": 120434371,
+          "p50_ns": 55154671.5,
+          "p95_ns": 116113940.79999998,
+          "p99_ns": 119570284.96000001,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 10,
+          "mean_ns": 48278486.1,
+          "min_ns": 32831450,
+          "max_ns": 82755937,
+          "p50_ns": 35491239.5,
+          "p95_ns": 80599473.1,
+          "p99_ns": 82324644.22,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 10,
+          "mean_ns": 101390935.1,
+          "min_ns": 82067719,
+          "max_ns": 135991243,
+          "p50_ns": 87980694.5,
+          "p95_ns": 135005728.6,
+          "p99_ns": 135794140.12,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 10,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 10,
+          "mean_ns": 115523732.7,
+          "min_ns": 74208101,
+          "max_ns": 148971838,
+          "p50_ns": 124656266.5,
+          "p95_ns": 146387689.6,
+          "p99_ns": 148455008.32,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 10,
+          "mean_ns": 100320224.3,
+          "min_ns": 59588579,
+          "max_ns": 134078543,
+          "p50_ns": 110700628.0,
+          "p95_ns": 129265122.94999999,
+          "p99_ns": 133115858.99000001,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 10,
+          "mean_ns": 72485,
+          "min_ns": 67492,
+          "max_ns": 79453,
+          "p50_ns": 71779.5,
+          "p95_ns": 78678.09999999999,
+          "p99_ns": 79298.02,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 10,
+          "mean_ns": 15131023.4,
+          "min_ns": 13648212,
+          "max_ns": 21319304,
+          "p50_ns": 14609130.0,
+          "p95_ns": 18780992.149999995,
+          "p99_ns": 20811641.630000003,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 10,
+          "mean_ns": 334474612.7,
+          "min_ns": 288821232,
+          "max_ns": 394657499,
+          "p50_ns": 345983427.5,
+          "p95_ns": 382394122.84999996,
+          "p99_ns": 392204823.77,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 10,
+          "mean_ns": 334989214.8,
+          "min_ns": 289246424,
+          "max_ns": 395109313,
+          "p50_ns": 346441012.0,
+          "p95_ns": 382853190.4,
+          "p99_ns": 392658088.48,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 340697088,
+        "peak_rss_bytes": 342179840,
+        "resource_maxrss_bytes": 342179840
+      }
+    },
+    {
+      "candidate_count": 5000,
+      "profile_count": 1,
+      "mode": "included",
+      "iterations": 10,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 10,
+          "mean_ns": 89010.4,
+          "min_ns": 75431,
+          "max_ns": 111154,
+          "p50_ns": 83627.5,
+          "p95_ns": 107405.49999999999,
+          "p99_ns": 110404.3,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 10,
+          "mean_ns": 1655076.4,
+          "min_ns": 1377367,
+          "max_ns": 2100593,
+          "p50_ns": 1597961.5,
+          "p95_ns": 2002683.3499999999,
+          "p99_ns": 2081011.07,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 10,
+          "mean_ns": 259444290.1,
+          "min_ns": 204964780,
+          "max_ns": 334603254,
+          "p50_ns": 249398598.0,
+          "p95_ns": 312669833.6999999,
+          "p99_ns": 330216569.94,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 10,
+          "mean_ns": 94344528.2,
+          "min_ns": 70506315,
+          "max_ns": 127287325,
+          "p50_ns": 84879877.5,
+          "p95_ns": 123833875.6,
+          "p99_ns": 126596635.12,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 10,
+          "mean_ns": 48730634.2,
+          "min_ns": 32998551,
+          "max_ns": 113095987,
+          "p50_ns": 35545125.5,
+          "p95_ns": 99290674.14999998,
+          "p99_ns": 110334924.43,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 10,
+          "mean_ns": 116369127.7,
+          "min_ns": 83218936,
+          "max_ns": 150118772,
+          "p50_ns": 121558427.5,
+          "p95_ns": 146837750.0,
+          "p99_ns": 149462567.6,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 10,
+          "mean_ns": 6095784.5,
+          "min_ns": 5597896,
+          "max_ns": 6826559,
+          "p50_ns": 6037655.0,
+          "p95_ns": 6743502.05,
+          "p99_ns": 6809947.61,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 10,
+          "mean_ns": 155318016.1,
+          "min_ns": 104574828,
+          "max_ns": 267558018,
+          "p50_ns": 156676753.0,
+          "p95_ns": 236284757.69999993,
+          "p99_ns": 261303365.94,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 10,
+          "mean_ns": 137888562.1,
+          "min_ns": 87674808,
+          "max_ns": 246698477,
+          "p50_ns": 140077366.0,
+          "p95_ns": 216772215.19999993,
+          "p99_ns": 240713224.64000002,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 10,
+          "mean_ns": 70003.7,
+          "min_ns": 63112,
+          "max_ns": 99204,
+          "p50_ns": 66431.0,
+          "p95_ns": 87350.09999999998,
+          "p99_ns": 96833.22,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 10,
+          "mean_ns": 17359450.3,
+          "min_ns": 15639532,
+          "max_ns": 20760337,
+          "p50_ns": 16805490.5,
+          "p95_ns": 20248883.2,
+          "p99_ns": 20658046.24,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 10,
+          "mean_ns": 414762306.2,
+          "min_ns": 349305319,
+          "max_ns": 551015961,
+          "p50_ns": 398904750.0,
+          "p95_ns": 520824670.3499999,
+          "p99_ns": 544977702.87,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 10,
+          "mean_ns": 422602177.5,
+          "min_ns": 356444459,
+          "max_ns": 558931075,
+          "p50_ns": 406696243.0,
+          "p95_ns": 528537797.79999995,
+          "p99_ns": 552852419.5600001,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 340709376,
+        "peak_rss_bytes": 343224320,
+        "resource_maxrss_bytes": 343224320
+      }
+    }
+  ],
+  "memory": [
+    {
+      "candidate_count": 10,
+      "snapshots": [
+        {
+          "phase": "baseline",
+          "rss_bytes": 275537920,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "candidate_created",
+          "rss_bytes": 275537920,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "before_compatibility",
+          "rss_bytes": 275537920,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "after_compatibility",
+          "rss_bytes": 275537920,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "before_ranking",
+          "rss_bytes": 275537920,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "after_ranking",
+          "rss_bytes": 275537920,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        }
+      ],
+      "python_allocation_current_bytes": 23049,
+      "python_allocation_peak_bytes": 120445
+    },
+    {
+      "candidate_count": 50,
+      "snapshots": [
+        {
+          "phase": "baseline",
+          "rss_bytes": 276172800,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "candidate_created",
+          "rss_bytes": 276172800,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "before_compatibility",
+          "rss_bytes": 276172800,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "after_compatibility",
+          "rss_bytes": 276172800,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "before_ranking",
+          "rss_bytes": 276172800,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "after_ranking",
+          "rss_bytes": 276172800,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        }
+      ],
+      "python_allocation_current_bytes": 66920,
+      "python_allocation_peak_bytes": 251956
+    },
+    {
+      "candidate_count": 100,
+      "snapshots": [
+        {
+          "phase": "baseline",
+          "rss_bytes": 276799488,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "candidate_created",
+          "rss_bytes": 276799488,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "before_compatibility",
+          "rss_bytes": 276799488,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "after_compatibility",
+          "rss_bytes": 276799488,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "before_ranking",
+          "rss_bytes": 276799488,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "after_ranking",
+          "rss_bytes": 276799488,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        }
+      ],
+      "python_allocation_current_bytes": 122485,
+      "python_allocation_peak_bytes": 505008
+    },
+    {
+      "candidate_count": 500,
+      "snapshots": [
+        {
+          "phase": "baseline",
+          "rss_bytes": 284565504,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "candidate_created",
+          "rss_bytes": 284565504,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "before_compatibility",
+          "rss_bytes": 284565504,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "after_compatibility",
+          "rss_bytes": 284565504,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "before_ranking",
+          "rss_bytes": 284565504,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        },
+        {
+          "phase": "after_ranking",
+          "rss_bytes": 284565504,
+          "peak_rss_bytes": 285745152,
+          "resource_maxrss_bytes": 285745152
+        }
+      ],
+      "python_allocation_current_bytes": 535250,
+      "python_allocation_peak_bytes": 2604581
+    },
+    {
+      "candidate_count": 1000,
+      "snapshots": [
+        {
+          "phase": "baseline",
+          "rss_bytes": 298033152,
+          "peak_rss_bytes": 298033152,
+          "resource_maxrss_bytes": 297484288
+        },
+        {
+          "phase": "candidate_created",
+          "rss_bytes": 298033152,
+          "peak_rss_bytes": 298033152,
+          "resource_maxrss_bytes": 297484288
+        },
+        {
+          "phase": "before_compatibility",
+          "rss_bytes": 298033152,
+          "peak_rss_bytes": 298033152,
+          "resource_maxrss_bytes": 297484288
+        },
+        {
+          "phase": "after_compatibility",
+          "rss_bytes": 298033152,
+          "peak_rss_bytes": 298033152,
+          "resource_maxrss_bytes": 297484288
+        },
+        {
+          "phase": "before_ranking",
+          "rss_bytes": 298033152,
+          "peak_rss_bytes": 298033152,
+          "resource_maxrss_bytes": 297484288
+        },
+        {
+          "phase": "after_ranking",
+          "rss_bytes": 298033152,
+          "peak_rss_bytes": 298033152,
+          "resource_maxrss_bytes": 297484288
+        }
+      ],
+      "python_allocation_current_bytes": 1080758,
+      "python_allocation_peak_bytes": 5290344
+    },
+    {
+      "candidate_count": 2000,
+      "snapshots": [
+        {
+          "phase": "baseline",
+          "rss_bytes": 322277376,
+          "peak_rss_bytes": 322277376,
+          "resource_maxrss_bytes": 321601536
+        },
+        {
+          "phase": "candidate_created",
+          "rss_bytes": 322277376,
+          "peak_rss_bytes": 322277376,
+          "resource_maxrss_bytes": 321601536
+        },
+        {
+          "phase": "before_compatibility",
+          "rss_bytes": 322277376,
+          "peak_rss_bytes": 322277376,
+          "resource_maxrss_bytes": 321601536
+        },
+        {
+          "phase": "after_compatibility",
+          "rss_bytes": 322277376,
+          "peak_rss_bytes": 322277376,
+          "resource_maxrss_bytes": 321601536
+        },
+        {
+          "phase": "before_ranking",
+          "rss_bytes": 322277376,
+          "peak_rss_bytes": 322277376,
+          "resource_maxrss_bytes": 321601536
+        },
+        {
+          "phase": "after_ranking",
+          "rss_bytes": 322277376,
+          "peak_rss_bytes": 322277376,
+          "resource_maxrss_bytes": 321601536
+        }
+      ],
+      "python_allocation_current_bytes": 1611326,
+      "python_allocation_peak_bytes": 10260773
+    },
+    {
+      "candidate_count": 5000,
+      "snapshots": [
+        {
+          "phase": "baseline",
+          "rss_bytes": 345690112,
+          "peak_rss_bytes": 385814528,
+          "resource_maxrss_bytes": 385814528
+        },
+        {
+          "phase": "candidate_created",
+          "rss_bytes": 345690112,
+          "peak_rss_bytes": 385814528,
+          "resource_maxrss_bytes": 385814528
+        },
+        {
+          "phase": "before_compatibility",
+          "rss_bytes": 345690112,
+          "peak_rss_bytes": 385814528,
+          "resource_maxrss_bytes": 385814528
+        },
+        {
+          "phase": "after_compatibility",
+          "rss_bytes": 359018496,
+          "peak_rss_bytes": 385814528,
+          "resource_maxrss_bytes": 385814528
+        },
+        {
+          "phase": "before_ranking",
+          "rss_bytes": 359018496,
+          "peak_rss_bytes": 385814528,
+          "resource_maxrss_bytes": 385814528
+        },
+        {
+          "phase": "after_ranking",
+          "rss_bytes": 359018496,
+          "peak_rss_bytes": 385814528,
+          "resource_maxrss_bytes": 385814528
+        }
+      ],
+      "python_allocation_current_bytes": 4478665,
+      "python_allocation_peak_bytes": 26968260
+    }
+  ],
+  "concurrency": [
+    {
+      "concurrency": 1,
+      "candidate_count": 1000,
+      "profile_count": 1,
+      "successful_requests": 10,
+      "failed_requests": 0,
+      "timeout_count": 0,
+      "throughput_per_second": 13.293259049219268,
+      "latency": {
+        "count": 10,
+        "mean_ns": 71616319,
+        "min_ns": 52179748,
+        "max_ns": 111690844,
+        "p50_ns": 60726888.0,
+        "p95_ns": 107445381.99999999,
+        "p99_ns": 110841751.6,
+        "p99_exploratory": true
+      },
+      "connection_time": {
+        "count": 1,
+        "mean_ns": 6196597,
+        "min_ns": 6196597,
+        "max_ns": 6196597,
+        "p50_ns": 6196597.0,
+        "p95_ns": 6196597.0,
+        "p99_ns": 6196597.0,
+        "p99_exploratory": true
+      },
+      "process_memory": {
+        "rss_bytes": 362233856,
+        "peak_rss_bytes": 385814528,
+        "resource_maxrss_bytes": 385814528
+      },
+      "observed_lock_wait_samples": 0,
+      "wait_sampling": [
+        {
+          "elapsed_ns": 9419414,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 56784867,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 92764305,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 119833573,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 155569154,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 185215783,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 221054890,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 248464887,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 284373832,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 310234572,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 357359041,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 393317584,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 421627226,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 458529328,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 485633136,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 523566099,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 549128865,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 581500546,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 607071500,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 666756920,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 692400565,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 728349032,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        }
+      ],
+      "wait_monitor_errors": [],
+      "deadlock_counter_delta": 0,
+      "correctness": true,
+      "mode": "independent connection per worker, reused within worker",
+      "limitations": "25ms sampling 사이의 짧은 wait는 미관측 가능. throughput은 접속/commit/검사 비용도 포함한다."
+    },
+    {
+      "concurrency": 2,
+      "candidate_count": 1000,
+      "profile_count": 1,
+      "successful_requests": 20,
+      "failed_requests": 0,
+      "timeout_count": 0,
+      "throughput_per_second": 15.785777539945045,
+      "latency": {
+        "count": 20,
+        "mean_ns": 115039216.3,
+        "min_ns": 67335526,
+        "max_ns": 160877820,
+        "p50_ns": 113193550.5,
+        "p95_ns": 159835968.3,
+        "p99_ns": 160669449.66,
+        "p99_exploratory": true
+      },
+      "connection_time": {
+        "count": 2,
+        "mean_ns": 7689952,
+        "min_ns": 7418968,
+        "max_ns": 7960936,
+        "p50_ns": 7689952.0,
+        "p95_ns": 7933837.6,
+        "p99_ns": 7955516.32,
+        "p99_exploratory": true
+      },
+      "process_memory": {
+        "rss_bytes": 365395968,
+        "peak_rss_bytes": 385814528,
+        "resource_maxrss_bytes": 385814528
+      },
+      "observed_lock_wait_samples": 0,
+      "wait_sampling": [
+        {
+          "elapsed_ns": 10744753,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 56585624,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 91680935,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 118229105,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 188930744,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 215552394,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 248113895,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 288249225,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 335880916,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 361595468,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 436893798,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 476574680,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 504795812,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 544108140,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 589062989,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 617263080,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 648568781,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 697622567,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 728608600,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 772790897,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 798616434,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 834803319,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 865086345,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 923069380,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 953944357,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 989952371,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1021001657,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1048820565,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1090120070,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1135821498,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1199846709,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1235567113,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1263194385,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        }
+      ],
+      "wait_monitor_errors": [],
+      "deadlock_counter_delta": 0,
+      "correctness": true,
+      "mode": "independent connection per worker, reused within worker",
+      "limitations": "25ms sampling 사이의 짧은 wait는 미관측 가능. throughput은 접속/commit/검사 비용도 포함한다."
+    },
+    {
+      "concurrency": 5,
+      "candidate_count": 1000,
+      "profile_count": 1,
+      "successful_requests": 50,
+      "failed_requests": 0,
+      "timeout_count": 0,
+      "throughput_per_second": 15.512156521682536,
+      "latency": {
+        "count": 50,
+        "mean_ns": 293254235.14,
+        "min_ns": 55112701,
+        "max_ns": 459275873,
+        "p50_ns": 298729180.0,
+        "p95_ns": 373137820.8999999,
+        "p99_ns": 428852013.0999999,
+        "p99_exploratory": true
+      },
+      "connection_time": {
+        "count": 5,
+        "mean_ns": 15572119.8,
+        "min_ns": 12472292,
+        "max_ns": 18012658,
+        "p50_ns": 14780848.0,
+        "p95_ns": 17977959.8,
+        "p99_ns": 18005718.36,
+        "p99_exploratory": true
+      },
+      "process_memory": {
+        "rss_bytes": 374853632,
+        "peak_rss_bytes": 385814528,
+        "resource_maxrss_bytes": 385814528
+      },
+      "observed_lock_wait_samples": 0,
+      "wait_sampling": [
+        {
+          "elapsed_ns": 20611958,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 55802828,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 4
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 99606056,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": "Client",
+              "event": "ClientWrite",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 145349972,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 246939971,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 305930896,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 338742145,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 377030475,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 415424476,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 494491994,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 538547831,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 578092234,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 617505233,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 664226203,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 692522014,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 778734695,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 819344014,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 868328675,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 912309427,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 938885114,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1027917098,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1073121593,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1128074445,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1159676076,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1269116380,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1324435957,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1366693192,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1406979395,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1463282751,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1528721157,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1564694178,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1623468370,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1657571043,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1696741775,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1792713749,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1823459926,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1896358640,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1977401620,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2016267225,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2126957677,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2155534299,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2185863469,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2212381865,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2248775518,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2294739177,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2384630809,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2476846127,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2508542653,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2540123268,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2573876761,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2637313804,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2693653292,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2726633996,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2783396540,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2814613205,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2876866427,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2918133928,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2958121699,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2992165459,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3053772983,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3098054412,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3152184296,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3178074351,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3203898884,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        }
+      ],
+      "wait_monitor_errors": [],
+      "deadlock_counter_delta": 0,
+      "correctness": true,
+      "mode": "independent connection per worker, reused within worker",
+      "limitations": "25ms sampling 사이의 짧은 wait는 미관측 가능. throughput은 접속/commit/검사 비용도 포함한다."
+    },
+    {
+      "concurrency": 10,
+      "candidate_count": 1000,
+      "profile_count": 1,
+      "successful_requests": 100,
+      "failed_requests": 0,
+      "timeout_count": 0,
+      "throughput_per_second": 14.361530699949725,
+      "latency": {
+        "count": 100,
+        "mean_ns": 647671794.27,
+        "min_ns": 223270470,
+        "max_ns": 818750376,
+        "p50_ns": 654038147.0,
+        "p95_ns": 772358240.65,
+        "p99_ns": 810727774.38,
+        "p99_exploratory": true
+      },
+      "connection_time": {
+        "count": 10,
+        "mean_ns": 17124383,
+        "min_ns": 13305851,
+        "max_ns": 22931596,
+        "p50_ns": 16902767.5,
+        "p95_ns": 21715123.599999998,
+        "p99_ns": 22688301.52,
+        "p99_exploratory": true
+      },
+      "process_memory": {
+        "rss_bytes": 390586368,
+        "peak_rss_bytes": 390586368,
+        "resource_maxrss_bytes": 390008832
+      },
+      "observed_lock_wait_samples": 0,
+      "wait_sampling": [
+        {
+          "elapsed_ns": 21301335,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 54351480,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 83663087,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": "Client",
+              "event": "ClientWrite",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 3
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 176703425,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 7
+            },
+            {
+              "type": "Client",
+              "event": "ClientWrite",
+              "sessions": 3
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 231857617,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 322846024,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 392447364,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 488315823,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 536523570,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 579646572,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 620235641,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 659207918,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 736670101,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 769453652,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 813485982,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 886958206,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 949146224,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1087148750,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1127587802,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1285320093,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1351988320,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1381207579,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1421629960,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 7
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 3
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1475153008,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1586761028,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1644403961,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1698477320,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1754714935,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1833274928,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1913358516,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1946873772,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2043055220,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2085107926,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2140784645,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2189402968,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2230660733,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2278310422,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2360553056,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2414251683,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2461540877,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2501133702,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2600931543,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2645410603,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2672282065,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2720672916,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2777579677,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2893766227,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2946118291,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2983477836,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3021275150,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3074166770,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3215862476,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3312612694,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3350865408,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3478695759,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3551065506,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3583812249,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3627246957,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3689157121,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3774526481,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3818527297,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3861369750,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3953626423,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4045545713,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4160262601,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4194029699,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4325106907,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4375018743,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4447218888,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4481827177,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4589033728,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4632262710,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4672314281,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4739046973,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4805361669,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4841467349,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4971512152,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5026147355,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5068256924,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5097720958,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5253106184,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5284412621,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5368649355,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5418766663,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5540322672,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5580896269,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5626816683,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5663823348,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 7
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 3
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5732449993,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5800313287,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5840407529,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5877856006,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5907954205,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5943943360,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5988701033,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6092699198,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6176013972,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6235406561,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6307832762,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6339368397,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6422107297,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6470695389,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6567214728,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6601079232,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 7
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6718790249,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6761204311,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6806141193,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6837242068,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6880343258,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6933743998,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6961852315,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        }
+      ],
+      "wait_monitor_errors": [],
+      "deadlock_counter_delta": 0,
+      "correctness": true,
+      "mode": "independent connection per worker, reused within worker",
+      "limitations": "25ms sampling 사이의 짧은 wait는 미관측 가능. throughput은 접속/commit/검사 비용도 포함한다."
+    }
+  ],
+  "correctness": {
+    "invalid_cases": {
+      "MISSING_SOURCE": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "MISSING_EMBEDDING": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "INCOMPATIBLE_PROFILE": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "INVALID_DIMENSION": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "AMBIGUOUS_PROFILE": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "DUPLICATE": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "missing_revision_no_fallback": true,
+      "other_profile_excluded": true,
+      "duplicate_ranking_not_multiplied": true
+    },
+    "cosine_abs_tolerance": 1e-06,
+    "exact_subset_top100_ties_no_fallback": true,
+    "orphan_embeddings": 0,
+    "sources_without_embedding": 0
+  },
+  "errors": [],
+  "limitations": [
+    "운영 SLA/입력 최대치 미확정; 측정 완료와 운영 성능 합격은 다르다.",
+    "Text inference, HTTP latency, 모델 inference concurrency, 음악 품질 평가 미포함.",
+    "Python remainder는 validation/serialization/object 생성 등을 포함하며 순수 profile 처리 시간이 아니다.",
+    "p99는 표본 수에 민감하며 100회 이하는 탐색값이다.",
+    "현재 RSS sampling은 순간 native allocation을 모두 포착하지 않는다.",
+    "검증 이후 identity 소실의 운영 처리는 NSUAI-48/49 후속 범위다."
+  ],
+  "parameter_boundary": {
+    "postgresql": 65535,
+    "compatibility_unique_pairs": 32767,
+    "ranking_identities": 16383,
+    "operational_limit": null
+  },
+  "database": {
+    "isolated_name": "nsuai32_b7953fbfc6f54a96bfa2dbe3850baa30",
+    "migrations": [
+      "0001_audio_embeddings.sql",
+      "0002_text_embeddings.sql",
+      "0003_audio_embedding_identity.sql"
+    ],
+    "constraints": [
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((audio_revision >= 1))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL audio_revision"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((vector_dims(embedding) = dimension))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL created_at"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK (((dimension >= 1) AND (dimension <= 16000)))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL dimension"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((vector_norm(embedding) > (0)::double precision))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL embedding"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((jsonb_typeof(generation_profile) = 'object'::text))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL generation_profile"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((generation_profile_sha256 ~ '^[0-9a-f]{64}$'::text))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL generation_profile_sha256"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL id"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "UNIQUE (music_id, audio_revision, generation_profile_sha256)"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((jsonb_typeof(metadata) = 'object'::text))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL metadata"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((length(model) > 0))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL model"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((length(model_version) > 0))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL model_version"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK (((length(btrim(music_id)) >= 1) AND (length(btrim(music_id)) <= 200)))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL music_id"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "PRIMARY KEY (id)"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((length(preprocessing_version) > 0))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL preprocessing_version"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "FOREIGN KEY (music_id, audio_revision, source_sha256) REFERENCES ai_embeddings.audio_sources(music_id, audio_revision, source_sha256)"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((source_sha256 ~ '^[0-9a-f]{64}$'::text))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL source_sha256"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((NOT (uuid_extract_version(id) IS DISTINCT FROM 7)))"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "CHECK ((audio_revision >= 1))"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "NOT NULL audio_revision"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "UNIQUE (music_id, audio_revision, source_sha256)"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "CHECK (((length(btrim(music_id)) >= 1) AND (length(btrim(music_id)) <= 200)))"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "NOT NULL music_id"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "PRIMARY KEY (music_id, audio_revision)"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "CHECK ((source_sha256 ~ '^[0-9a-f]{64}$'::text))"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "NOT NULL source_sha256"
+      ],
+      [
+        "ai_embeddings.schema_migrations",
+        "NOT NULL applied_at"
+      ],
+      [
+        "ai_embeddings.schema_migrations",
+        "NOT NULL name"
+      ],
+      [
+        "ai_embeddings.schema_migrations",
+        "PRIMARY KEY (name)"
+      ],
+      [
+        "ai_embeddings.schema_migrations",
+        "NOT NULL sha256"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((vector_dims(embedding) = dimension))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL created_at"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK (((dimension >= 1) AND (dimension <= 16000)))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL dimension"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((vector_norm(embedding) > (0)::double precision))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL embedding"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((jsonb_typeof(generation_profile) = 'object'::text))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL generation_profile"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((generation_profile_sha256 ~ '^[0-9a-f]{64}$'::text))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL generation_profile_sha256"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((length(btrim(generation_version)) > 0))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL generation_version"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((jsonb_typeof(metadata) = 'object'::text))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL metadata"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "PRIMARY KEY (query_text_sha256, generation_profile_sha256)"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((query_text_sha256 ~ '^[0-9a-f]{64}$'::text))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL query_text_sha256"
+      ]
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX audio_embeddings_identity_key ON ai_embeddings.audio_embeddings USING btree (music_id, audio_revision, generation_profile_sha256)",
+      "CREATE UNIQUE INDEX audio_embeddings_pkey ON ai_embeddings.audio_embeddings USING btree (id)",
+      "CREATE INDEX audio_embeddings_source_sha256_idx ON ai_embeddings.audio_embeddings USING btree (source_sha256)",
+      "CREATE UNIQUE INDEX audio_sources_music_id_audio_revision_source_sha256_key ON ai_embeddings.audio_sources USING btree (music_id, audio_revision, source_sha256)",
+      "CREATE UNIQUE INDEX audio_sources_pkey ON ai_embeddings.audio_sources USING btree (music_id, audio_revision)",
+      "CREATE UNIQUE INDEX schema_migrations_pkey ON ai_embeddings.schema_migrations USING btree (name)",
+      "CREATE INDEX text_embeddings_generation_profile_idx ON ai_embeddings.text_embeddings USING btree (generation_version, dimension)",
+      "CREATE UNIQUE INDEX text_embeddings_pkey ON ai_embeddings.text_embeddings USING btree (query_text_sha256, generation_profile_sha256)"
+    ],
+    "cleanup_verified": true
+  },
+  "environment": {
+    "os": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+    "python": "3.11.18 (main, Nov  5 2026, 07:57:53) [GCC 14.2.0]",
+    "cpu_count": 8,
+    "cpu_model": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+    "meminfo": {
+      "MemTotal": "7976604 kB",
+      "MemAvailable": "6983152 kB"
+    },
+    "cgroup_memory_max": "4294967296",
+    "cgroup_cpu_max": "200000 100000",
+    "psycopg": "3.3.8",
+    "libpq": 180006,
+    "torch": "2.1.2+cpu",
+    "numpy": "1.26.4",
+    "postgresql": "PostgreSQL 18.6 (Debian 18.6-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+    "pgvector": "0.8.6",
+    "database_settings": {
+      "max_connections": "100",
+      "work_mem": "4MB",
+      "shared_buffers": "128MB",
+      "statement_timeout": "30s",
+      "lock_timeout": "5s",
+      "effective_cache_size": "4GB",
+      "max_parallel_workers_per_gather": "2"
+    },
+    "prepare_threshold": 5
+  },
+  "explain": [
+    {
+      "candidate_count": 100,
+      "phase": "compatibility",
+      "file": "docs/experiments/candidate-ranking-performance/explain/100-compatibility.json",
+      "planning_ms": 0.294,
+      "execution_ms": 1.071
+    },
+    {
+      "candidate_count": 100,
+      "phase": "ranking",
+      "file": "docs/experiments/candidate-ranking-performance/explain/100-ranking.json",
+      "planning_ms": 0.443,
+      "execution_ms": 0.728
+    },
+    {
+      "candidate_count": 1000,
+      "phase": "compatibility",
+      "file": "docs/experiments/candidate-ranking-performance/explain/1000-compatibility.json",
+      "planning_ms": 1.162,
+      "execution_ms": 4.935
+    },
+    {
+      "candidate_count": 1000,
+      "phase": "ranking",
+      "file": "docs/experiments/candidate-ranking-performance/explain/1000-ranking.json",
+      "planning_ms": 1.901,
+      "execution_ms": 6.46
+    },
+    {
+      "candidate_count": 5000,
+      "phase": "compatibility",
+      "file": "docs/experiments/candidate-ranking-performance/explain/5000-compatibility.json",
+      "planning_ms": 12.73,
+      "execution_ms": 20.752
+    },
+    {
+      "candidate_count": 5000,
+      "phase": "ranking",
+      "file": "docs/experiments/candidate-ranking-performance/explain/5000-ranking.json",
+      "planning_ms": 11.932,
+      "execution_ms": 26.092
+    }
+  ],
+  "profile_load": [
+    {
+      "candidate_count": 1000,
+      "profile_count": 3,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 332164.56666666665,
+          "min_ns": 213459,
+          "max_ns": 621350,
+          "p50_ns": 307978.5,
+          "p95_ns": 473388.69999999995,
+          "p99_ns": 580029.9300000002,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 104825149.3,
+          "min_ns": 83505373,
+          "max_ns": 150216114,
+          "p50_ns": 100476847.5,
+          "p95_ns": 146911654.5,
+          "p99_ns": 149784232.95,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 25130937.7,
+          "min_ns": 19981120,
+          "max_ns": 78856583,
+          "p50_ns": 23466328.0,
+          "p95_ns": 27911647.749999993,
+          "p99_ns": 64367747.13000004,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 29827915.433333334,
+          "min_ns": 19592461,
+          "max_ns": 74933240,
+          "p50_ns": 24333069.0,
+          "p95_ns": 71785919.19999999,
+          "p99_ns": 74319104.10000001,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 49866296.166666664,
+          "min_ns": 41949831,
+          "max_ns": 94700680,
+          "p50_ns": 49984398.0,
+          "p95_ns": 59370253.59999997,
+          "p99_ns": 85877007.76000002,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 28326390.3,
+          "min_ns": 17292391,
+          "max_ns": 71445515,
+          "p50_ns": 20603434.5,
+          "p95_ns": 68881809.64999999,
+          "p99_ns": 70818527.75,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 24424090.933333334,
+          "min_ns": 13868010,
+          "max_ns": 67430785,
+          "p50_ns": 16557316.5,
+          "p95_ns": 64811918.25,
+          "p99_ns": 66789021.38,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 80151.86666666667,
+          "min_ns": 63319,
+          "max_ns": 164070,
+          "p50_ns": 74828.0,
+          "p95_ns": 127397.34999999992,
+          "p99_ns": 156853.64,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 3822147.5,
+          "min_ns": 3217886,
+          "max_ns": 4671995,
+          "p50_ns": 3936010.0,
+          "p95_ns": 4298830.25,
+          "p99_ns": 4575357.140000001,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 133151539.6,
+          "min_ns": 101357958,
+          "max_ns": 188722223,
+          "p50_ns": 121851377.5,
+          "p95_ns": 174313999.35,
+          "p99_ns": 185105196.55,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 133483704.16666667,
+          "min_ns": 101592885,
+          "max_ns": 189023138,
+          "p50_ns": 122168434.5,
+          "p95_ns": 174589206.04999998,
+          "p99_ns": 185398963.34,
+          "p99_exploratory": true
+        }
+      }
+    },
+    {
+      "candidate_count": 1000,
+      "profile_count": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 334575.4,
+          "min_ns": 227646,
+          "max_ns": 415869,
+          "p50_ns": 330825.0,
+          "p95_ns": 397338.39999999997,
+          "p99_ns": 412753.82,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 188256844.4,
+          "min_ns": 158569225,
+          "max_ns": 239150665,
+          "p50_ns": 174895798.5,
+          "p95_ns": 219175879.15,
+          "p99_ns": 233554133.35000002,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 43002326.666666664,
+          "min_ns": 39297814,
+          "max_ns": 48346709,
+          "p50_ns": 42792803.5,
+          "p95_ns": 46871305.2,
+          "p99_ns": 47941588.57,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 59034027.4,
+          "min_ns": 37797545,
+          "max_ns": 114906328,
+          "p50_ns": 41504899.5,
+          "p95_ns": 92389272.25,
+          "p99_ns": 108398634.04000002,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 86220490.33333333,
+          "min_ns": 77948759,
+          "max_ns": 136193546,
+          "p50_ns": 81456846.0,
+          "p95_ns": 126433639.54999995,
+          "p99_ns": 135738970.13,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 28949645,
+          "min_ns": 20796138,
+          "max_ns": 75238785,
+          "p50_ns": 23866764.5,
+          "p95_ns": 70911496.5,
+          "p99_ns": 73995792.51,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 24683060.4,
+          "min_ns": 16848474,
+          "max_ns": 69791191,
+          "p50_ns": 19704919.5,
+          "p95_ns": 66519999.85,
+          "p99_ns": 68906728.99000001,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 81359.3,
+          "min_ns": 74149,
+          "max_ns": 122203,
+          "p50_ns": 77308.5,
+          "p95_ns": 98385.29999999999,
+          "p99_ns": 115602.02000000002,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 4185225.3,
+          "min_ns": 3841108,
+          "max_ns": 5367472,
+          "p50_ns": 4109267.5,
+          "p95_ns": 4590693.25,
+          "p99_ns": 5153068.330000001,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 217206489.4,
+          "min_ns": 179365363,
+          "max_ns": 261794916,
+          "p50_ns": 227717890.0,
+          "p95_ns": 249568042.24999997,
+          "p99_ns": 259396376.17000002,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 217541064.8,
+          "min_ns": 179703584,
+          "max_ns": 262210785,
+          "p50_ns": 228058428.5,
+          "p95_ns": 249852131.79999998,
+          "p99_ns": 259772186.6,
+          "p99_exploratory": true
+        }
+      }
+    }
+  ],
+  "concurrency_20": {
+    "executed": false,
+    "reason": "CPU quota 2개 환경에서 10단계까지 측정; 20은 운영 동시성 확정이 아니므로 확대하지 않음"
+  },
+  "memory_after_repetitions": {
+    "rss_bytes": 390586368,
+    "peak_rss_bytes": 390586368,
+    "resource_maxrss_bytes": 390008832
+  },
+  "completed": true
+}

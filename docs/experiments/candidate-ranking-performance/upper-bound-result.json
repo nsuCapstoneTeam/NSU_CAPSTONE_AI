@@ -1,0 +1,3973 @@
+{
+  "metadata": {
+    "synthetic": true,
+    "model_inference": false,
+    "http_orchestration": false,
+    "harness_sha256": "4cb99b1acf2bf2e8ce3d6a7814c4e9bb984d38931eccd78149cb21b5468b659b",
+    "source_state": "uncommitted benchmark source over repository_commit"
+  },
+  "repository_commit": "39ee7efab045a06d785bd6e1f0db3a9656a9b085",
+  "dataset": {
+    "seed": 320,
+    "dimension": 1024,
+    "dtype": "float32",
+    "l2_normalized_audio": true,
+    "row_counts": [
+      10002,
+      14002
+    ],
+    "profile": {
+      "model": "MSCLAP",
+      "model_version": "2023",
+      "checkpoint_revision": "c47d441165daa21986ead0850660917636a81775",
+      "checkpoint_sha256": "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6",
+      "msclap_implementation": {
+        "package_version": "1.3.3",
+        "source_file_count": 13,
+        "source_sha256": "e867cdbb71f7bcee529afb92a096578faab46c69feb35d8192d4f220de56c181",
+        "config_file": "configs/config_2023.yml",
+        "config_sha256": "41fbc893997f75fe144d93bf2ec44d5ca27fe61beb8870dd815a53c064cb030f"
+      },
+      "packages": {
+        "msclap": "1.3.3",
+        "torch": "2.1.2+cpu"
+      },
+      "preprocessing_version": "msclap2023-audio-first56s-8x7s-nonoverlap-chunk-l2-mean-final-l2-v2",
+      "preprocessing": {
+        "analysis_duration_seconds": 56,
+        "chunk_duration_seconds": 7,
+        "chunk_count": 8,
+        "chunk_overlap_seconds": 0,
+        "chunk_normalization": "l2",
+        "aggregation": "mean",
+        "final_normalization": "l2",
+        "channel_policy": "arithmetic_mean_downmix_to_mono"
+      },
+      "dimension": 1024,
+      "dtype": "torch.float32",
+      "device": "cpu"
+    }
+  },
+  "scenarios": [
+    {
+      "candidate_count": 5000,
+      "mode": "reuse",
+      "parameters": [
+        10000,
+        20002
+      ],
+      "sql_bytes": [
+        120718,
+        220972
+      ]
+    },
+    {
+      "candidate_count": 5000,
+      "mode": "included",
+      "parameters": [
+        10000,
+        20002
+      ],
+      "sql_bytes": [
+        120718,
+        220972
+      ]
+    }
+  ],
+  "latency": [
+    {
+      "candidate_count": 5000,
+      "profile_count": 1,
+      "mode": "reuse",
+      "iterations": 10,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 10,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 10,
+          "mean_ns": 482258.1,
+          "min_ns": 383796,
+          "max_ns": 813435,
+          "p50_ns": 422373.0,
+          "p95_ns": 751835.8499999999,
+          "p99_ns": 801115.17,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 10,
+          "mean_ns": 216621148.3,
+          "min_ns": 169642675,
+          "max_ns": 247384179,
+          "p50_ns": 216851563.5,
+          "p95_ns": 245896165.35,
+          "p99_ns": 247086576.27,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 10,
+          "mean_ns": 65566480,
+          "min_ns": 49574090,
+          "max_ns": 97673853,
+          "p50_ns": 55237421.0,
+          "p95_ns": 95542533.3,
+          "p99_ns": 97247589.06,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 10,
+          "mean_ns": 46845678.7,
+          "min_ns": 31709530,
+          "max_ns": 82145408,
+          "p50_ns": 33745925.0,
+          "p95_ns": 80607022.7,
+          "p99_ns": 81837730.94,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 10,
+          "mean_ns": 104208989.6,
+          "min_ns": 77776855,
+          "max_ns": 156868980,
+          "p50_ns": 87746218.0,
+          "p95_ns": 147515320.95,
+          "p99_ns": 154998248.19,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 10,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 10,
+          "mean_ns": 112161847.6,
+          "min_ns": 74291786,
+          "max_ns": 135208181,
+          "p50_ns": 122898512.5,
+          "p95_ns": 133460709.95,
+          "p99_ns": 134858686.79,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 10,
+          "mean_ns": 97845545,
+          "min_ns": 60290115,
+          "max_ns": 120474927,
+          "p50_ns": 108918179.5,
+          "p95_ns": 118977291.0,
+          "p99_ns": 120175399.8,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 10,
+          "mean_ns": 71147.2,
+          "min_ns": 66559,
+          "max_ns": 81480,
+          "p50_ns": 68155.0,
+          "p95_ns": 80095.8,
+          "p99_ns": 81203.16,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 10,
+          "mean_ns": 14245155.4,
+          "min_ns": 13163398,
+          "max_ns": 15886793,
+          "p50_ns": 14161503.5,
+          "p95_ns": 15391182.35,
+          "p99_ns": 15787670.870000001,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 10,
+          "mean_ns": 328782995.9,
+          "min_ns": 292262432,
+          "max_ns": 370697860,
+          "p50_ns": 331888929.5,
+          "p95_ns": 361146299.5,
+          "p99_ns": 368787547.9,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 10,
+          "mean_ns": 329265254,
+          "min_ns": 292699878,
+          "max_ns": 371081656,
+          "p50_ns": 332310725.0,
+          "p95_ns": 361661833.9,
+          "p99_ns": 369197691.58,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 333152256,
+        "peak_rss_bytes": 339611648,
+        "resource_maxrss_bytes": 339611648
+      }
+    },
+    {
+      "candidate_count": 5000,
+      "profile_count": 1,
+      "mode": "included",
+      "iterations": 10,
+      "warmup": 5,
+      "phases": {
+        "close": {
+          "count": 10,
+          "mean_ns": 86403.1,
+          "min_ns": 73339,
+          "max_ns": 120403,
+          "p50_ns": 80593.0,
+          "p95_ns": 117987.4,
+          "p99_ns": 119919.88,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 10,
+          "mean_ns": 1377390.4,
+          "min_ns": 1276097,
+          "max_ns": 1494583,
+          "p50_ns": 1379636.5,
+          "p95_ns": 1479867.0999999999,
+          "p99_ns": 1491639.82,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 10,
+          "mean_ns": 248815238.2,
+          "min_ns": 235001968,
+          "max_ns": 274864088,
+          "p50_ns": 246700838.5,
+          "p95_ns": 268601667.05,
+          "p99_ns": 273611603.81,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 10,
+          "mean_ns": 96905208.5,
+          "min_ns": 74981075,
+          "max_ns": 123178095,
+          "p50_ns": 90341415.5,
+          "p95_ns": 122733685.8,
+          "p99_ns": 123089213.16,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 10,
+          "mean_ns": 49175892,
+          "min_ns": 32793120,
+          "max_ns": 87135621,
+          "p50_ns": 35231962.0,
+          "p95_ns": 84277801.05,
+          "p99_ns": 86564057.01,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 10,
+          "mean_ns": 102734137.7,
+          "min_ns": 81986693,
+          "max_ns": 152428102,
+          "p50_ns": 85986569.0,
+          "p95_ns": 147332151.25,
+          "p99_ns": 151408911.85,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 10,
+          "mean_ns": 6017247.5,
+          "min_ns": 5456500,
+          "max_ns": 7565165,
+          "p50_ns": 5934704.0,
+          "p95_ns": 6901639.099999999,
+          "p99_ns": 7432459.82,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 10,
+          "mean_ns": 140896024.9,
+          "min_ns": 101775554,
+          "max_ns": 185678910,
+          "p50_ns": 155445342.0,
+          "p95_ns": 177612369.29999998,
+          "p99_ns": 184065601.86,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 10,
+          "mean_ns": 125237347.1,
+          "min_ns": 87470499,
+          "max_ns": 170359550,
+          "p50_ns": 140175114.0,
+          "p95_ns": 162099147.04999998,
+          "p99_ns": 168707469.41,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 10,
+          "mean_ns": 70334.1,
+          "min_ns": 59316,
+          "max_ns": 110997,
+          "p50_ns": 62999.5,
+          "p95_ns": 99289.34999999998,
+          "p99_ns": 108655.47,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 10,
+          "mean_ns": 15588343.7,
+          "min_ns": 14243064,
+          "max_ns": 16668662,
+          "p50_ns": 15656956.5,
+          "p95_ns": 16581852.5,
+          "p99_ns": 16651300.1,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 10,
+          "mean_ns": 389711263.1,
+          "min_ns": 354818805,
+          "max_ns": 425939638,
+          "p50_ns": 396058680.0,
+          "p95_ns": 418157436.09999996,
+          "p99_ns": 424383197.62,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 10,
+          "mean_ns": 397192304.1,
+          "min_ns": 362259911,
+          "max_ns": 433326261,
+          "p50_ns": 404272433.5,
+          "p95_ns": 425467041.59999996,
+          "p99_ns": 431754417.12,
+          "p99_exploratory": true
+        }
+      },
+      "errors": 0,
+      "rss_after_repetitions": {
+        "rss_bytes": 342503424,
+        "peak_rss_bytes": 342503424,
+        "resource_maxrss_bytes": 341680128
+      }
+    }
+  ],
+  "memory": [
+    {
+      "candidate_count": 5000,
+      "snapshots": [
+        {
+          "phase": "baseline",
+          "rss_bytes": 344162304,
+          "peak_rss_bytes": 404799488,
+          "resource_maxrss_bytes": 404799488
+        },
+        {
+          "phase": "candidate_created",
+          "rss_bytes": 344162304,
+          "peak_rss_bytes": 404799488,
+          "resource_maxrss_bytes": 404799488
+        },
+        {
+          "phase": "before_compatibility",
+          "rss_bytes": 344162304,
+          "peak_rss_bytes": 404799488,
+          "resource_maxrss_bytes": 404799488
+        },
+        {
+          "phase": "after_compatibility",
+          "rss_bytes": 380284928,
+          "peak_rss_bytes": 404799488,
+          "resource_maxrss_bytes": 404799488
+        },
+        {
+          "phase": "before_ranking",
+          "rss_bytes": 380284928,
+          "peak_rss_bytes": 404799488,
+          "resource_maxrss_bytes": 404799488
+        },
+        {
+          "phase": "after_ranking",
+          "rss_bytes": 380284928,
+          "peak_rss_bytes": 404799488,
+          "resource_maxrss_bytes": 404799488
+        }
+      ],
+      "python_allocation_current_bytes": 3975103,
+      "python_allocation_peak_bytes": 27083705
+    }
+  ],
+  "concurrency": [
+    {
+      "concurrency": 1,
+      "candidate_count": 1000,
+      "profile_count": 1,
+      "successful_requests": 10,
+      "failed_requests": 0,
+      "timeout_count": 0,
+      "throughput_per_second": 12.666473818758345,
+      "latency": {
+        "count": 10,
+        "mean_ns": 75390821.9,
+        "min_ns": 58465368,
+        "max_ns": 138073558,
+        "p50_ns": 64761128.0,
+        "p95_ns": 125879998.89999998,
+        "p99_ns": 135634846.18,
+        "p99_exploratory": true
+      },
+      "connection_time": {
+        "count": 1,
+        "mean_ns": 6737096,
+        "min_ns": 6737096,
+        "max_ns": 6737096,
+        "p50_ns": 6737096.0,
+        "p95_ns": 6737096.0,
+        "p99_ns": 6737096.0,
+        "p99_exploratory": true
+      },
+      "process_memory": {
+        "rss_bytes": 383496192,
+        "peak_rss_bytes": 404799488,
+        "resource_maxrss_bytes": 404799488
+      },
+      "observed_lock_wait_samples": 0,
+      "wait_sampling": [
+        {
+          "elapsed_ns": 9790414,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 46391490,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 73167663,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 109787334,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 178032805,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 204169490,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 238381111,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 266801594,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 302635375,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 329446525,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 365413550,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 391122437,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 422065542,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 520381603,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 545919455,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 580532631,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 607088332,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 645333631,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 670926273,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 706729489,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 732285453,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 767574014,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        }
+      ],
+      "wait_monitor_errors": [],
+      "deadlock_counter_delta": 0,
+      "correctness": true,
+      "mode": "independent connection per worker, reused within worker",
+      "limitations": "25ms sampling 사이의 짧은 wait는 미관측 가능. throughput은 접속/commit/검사 비용도 포함한다."
+    },
+    {
+      "concurrency": 2,
+      "candidate_count": 1000,
+      "profile_count": 1,
+      "successful_requests": 20,
+      "failed_requests": 0,
+      "timeout_count": 0,
+      "throughput_per_second": 15.91835752043922,
+      "latency": {
+        "count": 20,
+        "mean_ns": 116681347.85,
+        "min_ns": 76448872,
+        "max_ns": 162340416,
+        "p50_ns": 116500289.5,
+        "p95_ns": 158179889.1,
+        "p99_ns": 161508310.62,
+        "p99_exploratory": true
+      },
+      "connection_time": {
+        "count": 2,
+        "mean_ns": 7785186.5,
+        "min_ns": 7413291,
+        "max_ns": 8157082,
+        "p50_ns": 7785186.5,
+        "p95_ns": 8119892.45,
+        "p99_ns": 8149644.09,
+        "p99_exploratory": true
+      },
+      "process_memory": {
+        "rss_bytes": 386658304,
+        "peak_rss_bytes": 404799488,
+        "resource_maxrss_bytes": 404799488
+      },
+      "observed_lock_wait_samples": 0,
+      "wait_sampling": [
+        {
+          "elapsed_ns": 57732795,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 92030720,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 127431075,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 155909126,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 192754141,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 244997502,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 307363087,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 345509227,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 385668452,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 430922971,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 456635246,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 494427063,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 559021465,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 594127844,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 629799560,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 655427382,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 693504659,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 729918604,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 788124606,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 821200576,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 846984736,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 886886252,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 922916398,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 962460796,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1056970924,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1082794252,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1111786412,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1144314881,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1176462789,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1202111759,
+          "events": [
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1234977721,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            }
+          ]
+        }
+      ],
+      "wait_monitor_errors": [],
+      "deadlock_counter_delta": 0,
+      "correctness": true,
+      "mode": "independent connection per worker, reused within worker",
+      "limitations": "25ms sampling 사이의 짧은 wait는 미관측 가능. throughput은 접속/commit/검사 비용도 포함한다."
+    },
+    {
+      "concurrency": 5,
+      "candidate_count": 1000,
+      "profile_count": 1,
+      "successful_requests": 50,
+      "failed_requests": 0,
+      "timeout_count": 0,
+      "throughput_per_second": 15.928924760521614,
+      "latency": {
+        "count": 50,
+        "mean_ns": 290825356.78,
+        "min_ns": 149655329,
+        "max_ns": 388414716,
+        "p50_ns": 295046278.5,
+        "p95_ns": 370901954.2,
+        "p99_ns": 380310056.71,
+        "p99_exploratory": true
+      },
+      "connection_time": {
+        "count": 5,
+        "mean_ns": 11954566.2,
+        "min_ns": 9206175,
+        "max_ns": 14659384,
+        "p50_ns": 11719333.0,
+        "p95_ns": 14340357.4,
+        "p99_ns": 14595578.68,
+        "p99_exploratory": true
+      },
+      "process_memory": {
+        "rss_bytes": 396115968,
+        "peak_rss_bytes": 404799488,
+        "resource_maxrss_bytes": 404799488
+      },
+      "observed_lock_wait_samples": 0,
+      "wait_sampling": [
+        {
+          "elapsed_ns": 20661679,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 75069074,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 127154406,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            },
+            {
+              "type": "Client",
+              "event": "ClientWrite",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 158646370,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 197033159,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 248471819,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 349702006,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 394103048,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 440906144,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 466795866,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 3
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 507412128,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 596464395,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 641067290,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 682030419,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 711716804,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 748476819,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 823648512,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 871556435,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 900064918,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 944632701,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 980926937,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1012496681,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1091306252,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1124768245,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1161657316,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1188628726,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1232699490,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1264279375,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1369909187,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1413604567,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1443359297,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1474263665,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1522947856,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1557896497,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1631727774,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1666613400,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1712773679,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1754713770,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1802821533,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1872751325,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1941091542,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1974466769,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2021421656,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2076068446,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2167461627,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2197549088,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2224223086,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2270622096,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2322785434,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2384426047,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2435973206,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2467688478,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2513738028,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2548054408,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2574813296,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2668244342,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2724733737,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2766650356,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2805375402,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2841398258,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2882101798,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2945529258,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2987786741,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3033419919,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3072949360,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 3
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3117111006,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 2
+            }
+          ]
+        }
+      ],
+      "wait_monitor_errors": [],
+      "deadlock_counter_delta": 0,
+      "correctness": true,
+      "mode": "independent connection per worker, reused within worker",
+      "limitations": "25ms sampling 사이의 짧은 wait는 미관측 가능. throughput은 접속/commit/검사 비용도 포함한다."
+    },
+    {
+      "concurrency": 10,
+      "candidate_count": 1000,
+      "profile_count": 1,
+      "successful_requests": 100,
+      "failed_requests": 0,
+      "timeout_count": 0,
+      "throughput_per_second": 14.539630990754816,
+      "latency": {
+        "count": 100,
+        "mean_ns": 642607292.44,
+        "min_ns": 295093663,
+        "max_ns": 823493514,
+        "p50_ns": 654401453.5,
+        "p95_ns": 745420012.35,
+        "p99_ns": 801775149.4200001,
+        "p99_exploratory": true
+      },
+      "connection_time": {
+        "count": 10,
+        "mean_ns": 31783704,
+        "min_ns": 13179831,
+        "max_ns": 67936626,
+        "p50_ns": 19339021.0,
+        "p95_ns": 66341560.05,
+        "p99_ns": 67617612.81,
+        "p99_exploratory": true
+      },
+      "process_memory": {
+        "rss_bytes": 411873280,
+        "peak_rss_bytes": 411873280,
+        "resource_maxrss_bytes": 411365376
+      },
+      "observed_lock_wait_samples": 0,
+      "wait_sampling": [
+        {
+          "elapsed_ns": 13261203,
+          "events": []
+        },
+        {
+          "elapsed_ns": 79297043,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 6
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 127149334,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 7
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 3
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 199041329,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 6
+            },
+            {
+              "type": "Client",
+              "event": "ClientWrite",
+              "sessions": 2
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 234441954,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 327485792,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 365417554,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 422759822,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 492200422,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 552509338,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 648378308,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 679505674,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 713331705,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 743499661,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 836408949,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 888838519,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 932069965,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 964076127,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1006765304,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1075271437,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1172315402,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1222607225,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1268093984,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1309363120,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1363678040,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1448375676,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1478655044,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1520332401,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 7
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 3
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1568522077,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1599905380,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1672241367,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1757335298,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1801160100,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1872099418,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 1930528378,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2052914835,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2097136893,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2139346736,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2210568953,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2277037226,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2310062028,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2366436656,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2409947464,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2486250167,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2607022388,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2645663130,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2695329964,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2737973756,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2850254805,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2891130632,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2940369988,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 2983007151,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3030629132,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3097386218,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3195140337,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3257064467,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3395730324,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3455860872,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3483262817,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3509590248,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 7
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 3
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3564786318,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3702841091,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3768782153,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3803851990,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3857507460,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 3976500188,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4016122463,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4044796470,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4100452686,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4130544305,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4228950631,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4266909221,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4297959902,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4339424908,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4384187399,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4427691696,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4588791677,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4645521243,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4676142848,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4763047672,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4801629473,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4840792046,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4906977479,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 4950653967,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5063610885,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5117080801,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5184963779,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5251624259,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5351605499,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5409982174,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5471856199,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5540190203,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5593608648,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5662231223,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5701235471,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5753102826,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5793154162,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5843967986,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5940172872,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 5975582296,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6009333314,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 2
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6061196760,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6100698220,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6142693412,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 10
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6267571305,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6324694648,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6352257901,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6404093297,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 9
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6514650386,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6563597013,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 8
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6634023700,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 7
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6680908327,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 7
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6723308108,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 5
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6825030244,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 4
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        },
+        {
+          "elapsed_ns": 6860047024,
+          "events": [
+            {
+              "type": "Client",
+              "event": "ClientRead",
+              "sessions": 1
+            },
+            {
+              "type": null,
+              "event": null,
+              "sessions": 1
+            }
+          ]
+        }
+      ],
+      "wait_monitor_errors": [],
+      "deadlock_counter_delta": 0,
+      "correctness": true,
+      "mode": "independent connection per worker, reused within worker",
+      "limitations": "25ms sampling 사이의 짧은 wait는 미관측 가능. throughput은 접속/commit/검사 비용도 포함한다."
+    }
+  ],
+  "correctness": {
+    "invalid_cases": {
+      "MISSING_SOURCE": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "MISSING_EMBEDDING": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "INCOMPATIBLE_PROFILE": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "INVALID_DIMENSION": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "AMBIGUOUS_PROFILE": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "DUPLICATE": {
+        "diagnosis": true,
+        "ranking_not_called": true
+      },
+      "missing_revision_no_fallback": true,
+      "other_profile_excluded": true,
+      "duplicate_ranking_not_multiplied": true
+    },
+    "cosine_abs_tolerance": 1e-06,
+    "exact_subset_top100_ties_no_fallback": true,
+    "orphan_embeddings": 0,
+    "sources_without_embedding": 0
+  },
+  "errors": [],
+  "limitations": [
+    "운영 SLA/입력 최대치 미확정; 측정 완료와 운영 성능 합격은 다르다.",
+    "Text inference, HTTP latency, 모델 inference concurrency, 음악 품질 평가 미포함.",
+    "Python remainder는 validation/serialization/object 생성 등을 포함하며 순수 profile 처리 시간이 아니다.",
+    "p99는 표본 수에 민감하며 100회 이하는 탐색값이다.",
+    "현재 RSS sampling은 순간 native allocation을 모두 포착하지 않는다.",
+    "검증 이후 identity 소실의 운영 처리는 NSUAI-48/49 후속 범위다."
+  ],
+  "parameter_boundary": {
+    "postgresql": 65535,
+    "compatibility_unique_pairs": 32767,
+    "ranking_identities": 16383,
+    "operational_limit": null
+  },
+  "database": {
+    "isolated_name": "nsuai32_59c33f879ce74cc6b04c7f6770446b9e",
+    "migrations": [
+      "0001_audio_embeddings.sql",
+      "0002_text_embeddings.sql",
+      "0003_audio_embedding_identity.sql"
+    ],
+    "constraints": [
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((audio_revision >= 1))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL audio_revision"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((vector_dims(embedding) = dimension))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL created_at"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK (((dimension >= 1) AND (dimension <= 16000)))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL dimension"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((vector_norm(embedding) > (0)::double precision))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL embedding"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((jsonb_typeof(generation_profile) = 'object'::text))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL generation_profile"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((generation_profile_sha256 ~ '^[0-9a-f]{64}$'::text))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL generation_profile_sha256"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL id"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "UNIQUE (music_id, audio_revision, generation_profile_sha256)"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((jsonb_typeof(metadata) = 'object'::text))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL metadata"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((length(model) > 0))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL model"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((length(model_version) > 0))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL model_version"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK (((length(btrim(music_id)) >= 1) AND (length(btrim(music_id)) <= 200)))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL music_id"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "PRIMARY KEY (id)"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((length(preprocessing_version) > 0))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL preprocessing_version"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "FOREIGN KEY (music_id, audio_revision, source_sha256) REFERENCES ai_embeddings.audio_sources(music_id, audio_revision, source_sha256)"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((source_sha256 ~ '^[0-9a-f]{64}$'::text))"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "NOT NULL source_sha256"
+      ],
+      [
+        "ai_embeddings.audio_embeddings",
+        "CHECK ((NOT (uuid_extract_version(id) IS DISTINCT FROM 7)))"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "CHECK ((audio_revision >= 1))"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "NOT NULL audio_revision"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "UNIQUE (music_id, audio_revision, source_sha256)"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "CHECK (((length(btrim(music_id)) >= 1) AND (length(btrim(music_id)) <= 200)))"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "NOT NULL music_id"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "PRIMARY KEY (music_id, audio_revision)"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "CHECK ((source_sha256 ~ '^[0-9a-f]{64}$'::text))"
+      ],
+      [
+        "ai_embeddings.audio_sources",
+        "NOT NULL source_sha256"
+      ],
+      [
+        "ai_embeddings.schema_migrations",
+        "NOT NULL applied_at"
+      ],
+      [
+        "ai_embeddings.schema_migrations",
+        "NOT NULL name"
+      ],
+      [
+        "ai_embeddings.schema_migrations",
+        "PRIMARY KEY (name)"
+      ],
+      [
+        "ai_embeddings.schema_migrations",
+        "NOT NULL sha256"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((vector_dims(embedding) = dimension))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL created_at"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK (((dimension >= 1) AND (dimension <= 16000)))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL dimension"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((vector_norm(embedding) > (0)::double precision))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL embedding"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((jsonb_typeof(generation_profile) = 'object'::text))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL generation_profile"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((generation_profile_sha256 ~ '^[0-9a-f]{64}$'::text))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL generation_profile_sha256"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((length(btrim(generation_version)) > 0))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL generation_version"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((jsonb_typeof(metadata) = 'object'::text))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL metadata"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "PRIMARY KEY (query_text_sha256, generation_profile_sha256)"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "CHECK ((query_text_sha256 ~ '^[0-9a-f]{64}$'::text))"
+      ],
+      [
+        "ai_embeddings.text_embeddings",
+        "NOT NULL query_text_sha256"
+      ]
+    ],
+    "indexes": [
+      "CREATE UNIQUE INDEX audio_embeddings_identity_key ON ai_embeddings.audio_embeddings USING btree (music_id, audio_revision, generation_profile_sha256)",
+      "CREATE UNIQUE INDEX audio_embeddings_pkey ON ai_embeddings.audio_embeddings USING btree (id)",
+      "CREATE INDEX audio_embeddings_source_sha256_idx ON ai_embeddings.audio_embeddings USING btree (source_sha256)",
+      "CREATE UNIQUE INDEX audio_sources_music_id_audio_revision_source_sha256_key ON ai_embeddings.audio_sources USING btree (music_id, audio_revision, source_sha256)",
+      "CREATE UNIQUE INDEX audio_sources_pkey ON ai_embeddings.audio_sources USING btree (music_id, audio_revision)",
+      "CREATE UNIQUE INDEX schema_migrations_pkey ON ai_embeddings.schema_migrations USING btree (name)",
+      "CREATE INDEX text_embeddings_generation_profile_idx ON ai_embeddings.text_embeddings USING btree (generation_version, dimension)",
+      "CREATE UNIQUE INDEX text_embeddings_pkey ON ai_embeddings.text_embeddings USING btree (query_text_sha256, generation_profile_sha256)"
+    ],
+    "cleanup_verified": true
+  },
+  "environment": {
+    "os": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+    "python": "3.11.18 (main, Nov  5 2026, 07:57:53) [GCC 14.2.0]",
+    "cpu_count": 8,
+    "cpu_model": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+    "meminfo": {
+      "MemTotal": "7976604 kB",
+      "MemAvailable": "6959936 kB"
+    },
+    "cgroup_memory_max": "4294967296",
+    "cgroup_cpu_max": "200000 100000",
+    "psycopg": "3.3.8",
+    "libpq": 180006,
+    "torch": "2.1.2+cpu",
+    "numpy": "1.26.4",
+    "postgresql": "PostgreSQL 18.6 (Debian 18.6-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+    "pgvector": "0.8.6",
+    "database_settings": {
+      "max_connections": "100",
+      "work_mem": "4MB",
+      "shared_buffers": "128MB",
+      "statement_timeout": "30s",
+      "lock_timeout": "5s",
+      "effective_cache_size": "4GB",
+      "max_parallel_workers_per_gather": "2"
+    },
+    "prepare_threshold": 5
+  },
+  "explain": [
+    {
+      "candidate_count": 5000,
+      "phase": "compatibility",
+      "file": "/tmp/nsuai32-upper-bound/explain/5000-compatibility.json",
+      "planning_ms": 7.269,
+      "execution_ms": 20.19
+    },
+    {
+      "candidate_count": 5000,
+      "phase": "ranking",
+      "file": "/tmp/nsuai32-upper-bound/explain/5000-ranking.json",
+      "planning_ms": 11.005,
+      "execution_ms": 29.714
+    }
+  ],
+  "scale_10000_gate": {
+    "prior_5000_errors": 0,
+    "prior_5000_plans": 2,
+    "temp_spill_detected": true,
+    "cgroup_current_bytes": 292290560,
+    "cgroup_limit_bytes": 4294967296,
+    "executed": false,
+    "note": "resource safety guard, not an operating SLA"
+  },
+  "profile_load": [
+    {
+      "candidate_count": 1000,
+      "profile_count": 3,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 340927.36666666664,
+          "min_ns": 262535,
+          "max_ns": 496009,
+          "p50_ns": 326768.0,
+          "p95_ns": 453849.1499999999,
+          "p99_ns": 488096.06,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 113756452.5,
+          "min_ns": 91248387,
+          "max_ns": 169086186,
+          "p50_ns": 107224070.5,
+          "p95_ns": 145142248.9,
+          "p99_ns": 162269744.12,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 28685496.2,
+          "min_ns": 22899314,
+          "max_ns": 68119724,
+          "p50_ns": 25528977.5,
+          "p95_ns": 45630255.149999954,
+          "p99_ns": 63723885.73000001,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 30350189.133333333,
+          "min_ns": 21176964,
+          "max_ns": 72330375,
+          "p50_ns": 23494999.0,
+          "p95_ns": 71262452.95,
+          "p99_ns": 72136500.14,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 54720767.166666664,
+          "min_ns": 44006751,
+          "max_ns": 99497986,
+          "p50_ns": 47777779.5,
+          "p95_ns": 86296471.54999992,
+          "p99_ns": 98968414.68,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 28803515.7,
+          "min_ns": 20026560,
+          "max_ns": 76160889,
+          "p50_ns": 22290491.0,
+          "p95_ns": 69312703.24999999,
+          "p99_ns": 74736672.61,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 24797484.166666668,
+          "min_ns": 16296352,
+          "max_ns": 71960858,
+          "p50_ns": 18265465.5,
+          "p95_ns": 65287651.24999999,
+          "p99_ns": 70487521.7,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 75544.1,
+          "min_ns": 66724,
+          "max_ns": 115800,
+          "p50_ns": 73885.5,
+          "p95_ns": 88370.14999999998,
+          "p99_ns": 108731.83000000002,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 3930487.433333333,
+          "min_ns": 3488370,
+          "max_ns": 5516844,
+          "p50_ns": 3801205.0,
+          "p95_ns": 4678963.75,
+          "p99_ns": 5283023.090000001,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 142559968.2,
+          "min_ns": 111737562,
+          "max_ns": 203365590,
+          "p50_ns": 141694135.5,
+          "p95_ns": 188225214.74999997,
+          "p99_ns": 199848072.99,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 142900895.56666666,
+          "min_ns": 112061614,
+          "max_ns": 203668680,
+          "p50_ns": 142021645.5,
+          "p95_ns": 188547827.6,
+          "p99_ns": 200170407.97,
+          "p99_exploratory": true
+        }
+      }
+    },
+    {
+      "candidate_count": 1000,
+      "profile_count": 5,
+      "phases": {
+        "close": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "commit": {
+          "count": 30,
+          "mean_ns": 335802.73333333334,
+          "min_ns": 226618,
+          "max_ns": 515311,
+          "p50_ns": 317913.5,
+          "p95_ns": 463548.4499999999,
+          "p99_ns": 505128.23000000004,
+          "p99_exploratory": true
+        },
+        "compatibility": {
+          "count": 30,
+          "mean_ns": 173619717.73333332,
+          "min_ns": 143329217,
+          "max_ns": 228079513,
+          "p50_ns": 157421272.0,
+          "p95_ns": 217880376.29999995,
+          "p99_ns": 227573261.45,
+          "p99_exploratory": true
+        },
+        "compatibility_execute": {
+          "count": 30,
+          "mean_ns": 40828251.2,
+          "min_ns": 35388293,
+          "max_ns": 88790344,
+          "p50_ns": 38989014.5,
+          "p95_ns": 44019127.25,
+          "p99_ns": 75835040.31000003,
+          "p99_exploratory": true
+        },
+        "compatibility_fetch": {
+          "count": 30,
+          "mean_ns": 51562731.9,
+          "min_ns": 33640791,
+          "max_ns": 98071438,
+          "p50_ns": 37667625.5,
+          "p95_ns": 92030681.24999999,
+          "p99_ns": 96951305.75,
+          "p99_exploratory": true
+        },
+        "compatibility_python_remainder": {
+          "count": 30,
+          "mean_ns": 81228734.63333334,
+          "min_ns": 68495004,
+          "max_ns": 130947345,
+          "p50_ns": 74869072.5,
+          "p95_ns": 125799375.89999999,
+          "p99_ns": 129795004.77000001,
+          "p99_exploratory": true
+        },
+        "connection": {
+          "count": 30,
+          "mean_ns": 0,
+          "min_ns": 0,
+          "max_ns": 0,
+          "p50_ns": 0.0,
+          "p95_ns": 0.0,
+          "p99_ns": 0.0,
+          "p99_exploratory": true
+        },
+        "ranking": {
+          "count": 30,
+          "mean_ns": 28800298.8,
+          "min_ns": 20655088,
+          "max_ns": 70528616,
+          "p50_ns": 22539752.0,
+          "p95_ns": 68834660.35,
+          "p99_ns": 70279860.96,
+          "p99_exploratory": true
+        },
+        "ranking_execute": {
+          "count": 30,
+          "mean_ns": 24933229.733333334,
+          "min_ns": 17035766,
+          "max_ns": 66089788,
+          "p50_ns": 18720815.5,
+          "p95_ns": 65278982.74999999,
+          "p99_ns": 66066527.1,
+          "p99_exploratory": true
+        },
+        "ranking_fetch": {
+          "count": 30,
+          "mean_ns": 73655.6,
+          "min_ns": 63630,
+          "max_ns": 136563,
+          "p50_ns": 69649.0,
+          "p95_ns": 100655.89999999992,
+          "p99_ns": 129626.20000000001,
+          "p99_exploratory": true
+        },
+        "ranking_python_remainder": {
+          "count": 30,
+          "mean_ns": 3793413.466666667,
+          "min_ns": 3362426,
+          "max_ns": 4547284,
+          "p50_ns": 3704637.5,
+          "p95_ns": 4392539.6,
+          "p99_ns": 4506791.88,
+          "p99_exploratory": true
+        },
+        "total": {
+          "count": 30,
+          "mean_ns": 202420016.53333333,
+          "min_ns": 166116619,
+          "max_ns": 250616346,
+          "p50_ns": 213825993.5,
+          "p95_ns": 241531670.04999995,
+          "p99_ns": 250086226.58,
+          "p99_exploratory": true
+        },
+        "total_including_connection": {
+          "count": 30,
+          "mean_ns": 202755819.26666668,
+          "min_ns": 166430123,
+          "max_ns": 250979237,
+          "p50_ns": 214237538.0,
+          "p95_ns": 241848824.54999995,
+          "p99_ns": 250420294.48,
+          "p99_exploratory": true
+        }
+      }
+    }
+  ],
+  "concurrency_20": {
+    "executed": false,
+    "reason": "CPU quota 2개 환경에서 10단계까지 측정; 20은 운영 동시성 확정이 아니므로 확대하지 않음"
+  },
+  "memory_after_repetitions": {
+    "rss_bytes": 411873280,
+    "peak_rss_bytes": 411873280,
+    "resource_maxrss_bytes": 411365376
+  },
+  "completed": true
+}
