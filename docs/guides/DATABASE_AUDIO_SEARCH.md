@@ -188,3 +188,8 @@ FMA Historical 집계는 과거 의사결정 설명용이며 향후 calibration 
 ## NSUAI-43 저장 구조와 검색 경계
 
 현재 저장소는 같은 music_id의 여러 audio_revision과 generation profile을 보존한다. 기존 개발용 Audio/Text 검색은 호환 profile의 저장 행을 조회하므로 같은 music_id가 여러 번 나타날 수 있다. 이를 운영 후보 정책으로 사용하지 않는다. 정확한 쌍·profile 조회는 repository의 get()으로 제공한다. NSUAI-30의 후보/profile 진단과 NSUAI-31의 정확한 embedding identity 제한 순위는 구현됐으며, 전체 후보 검증 성공을 전제로 연결하는 NSUAI-48 orchestration은 후속 범위다. 최신 revision 자동 선택·ACTIVE filtering·profile fallback은 하지 않는다.
+
+
+## NSUAI-32 성능 측정 기록
+
+기존 후보 진단·ranking 함수를 호출하는 synthetic 1024차원 격리 DB 측정은 [성능 evidence](../experiments/candidate-ranking-performance/README.md)를 따른다. 후보 10~5,000개, profile 수 및 동시성 1/2/5/10을 측정했다. 5,000 후보 compatibility의 disk sort 관찰로 상한 탐색에서 10,000 후보 검색은 실행하지 않았다. 이는 운영 성능 불합격이나 입력 한도 확정이 아니다. 모델 inference·HTTP·음악 품질 및 NSUAI-48 orchestration 검증은 포함하지 않는다. production 검색 알고리즘·schema·index는 변경하지 않았다.

@@ -1,0 +1,121 @@
+{
+  "host_os": "Microsoft Windows 11 Home",
+  "host_cpu": [
+    {
+      "Name": "11th Gen Intel(R) Core(TM) i7-1165G7 @ 2.80GHz",
+      "NumberOfCores": 4,
+      "NumberOfLogicalProcessors": 8
+    }
+  ],
+  "host_ram_bytes": 16856498176,
+  "docker_info": {
+    "ServerVersion": "29.8.1",
+    "OSType": "linux",
+    "Architecture": "x86_64",
+    "NCPU": 8,
+    "MemTotal": 8168042496,
+    "KernelVersion": "6.18.58.1-microsoft-standard-WSL2"
+  },
+  "pg_limits": {
+    "Memory": 2147483648,
+    "NanoCpus": 2000000000,
+    "ShmSize": 268435456
+  },
+  "client_limits": {
+    "Memory": 4294967296,
+    "NanoCpus": 2000000000
+  },
+  "samples": [
+    {
+      "utc": "2026-11-18T03:41:39.5000072Z",
+      "containers": [
+        {
+          "BlockIO": "138MB / 145MB",
+          "CPUPerc": "23.34%",
+          "Container": "nsuai32-benchmark-pg",
+          "ID": "fd566cd20799",
+          "MemPerc": "7.92%",
+          "MemUsage": "162.2MiB / 2GiB",
+          "Name": "nsuai32-benchmark-pg",
+          "NetIO": "203MB / 386MB",
+          "PIDs": "11"
+        },
+        {
+          "BlockIO": "0B / 0B",
+          "CPUPerc": "79.40%",
+          "Container": "nsuai32-benchmark-client",
+          "ID": "68825ed7a9be",
+          "MemPerc": "5.89%",
+          "MemUsage": "241.3MiB / 4GiB",
+          "Name": "nsuai32-benchmark-client",
+          "NetIO": "366MB / 197MB",
+          "PIDs": "8"
+        }
+      ]
+    },
+    {
+      "utc": "2026-11-18T03:41:41.4505901Z",
+      "containers": [
+        {
+          "BlockIO": "138MB / 145MB",
+          "CPUPerc": "16.96%",
+          "Container": "nsuai32-benchmark-pg",
+          "ID": "fd566cd20799",
+          "MemPerc": "7.94%",
+          "MemUsage": "162.7MiB / 2GiB",
+          "Name": "nsuai32-benchmark-pg",
+          "NetIO": "208MB / 415MB",
+          "PIDs": "11"
+        },
+        {
+          "BlockIO": "0B / 0B",
+          "CPUPerc": "85.12%",
+          "Container": "nsuai32-benchmark-client",
+          "ID": "68825ed7a9be",
+          "MemPerc": "5.87%",
+          "MemUsage": "240.3MiB / 4GiB",
+          "Name": "nsuai32-benchmark-client",
+          "NetIO": "394MB / 202MB",
+          "PIDs": "8"
+        }
+      ]
+    },
+    {
+      "utc": "2026-11-18T03:41:43.4592689Z",
+      "containers": [
+        {
+          "BlockIO": "138MB / 145MB",
+          "CPUPerc": "34.57%",
+          "Container": "nsuai32-benchmark-pg",
+          "ID": "fd566cd20799",
+          "MemPerc": "8.80%",
+          "MemUsage": "180.2MiB / 2GiB",
+          "Name": "nsuai32-benchmark-pg",
+          "NetIO": "214MB / 446MB",
+          "PIDs": "12"
+        },
+        {
+          "BlockIO": "0B / 0B",
+          "CPUPerc": "67.85%",
+          "Container": "nsuai32-benchmark-client",
+          "ID": "68825ed7a9be",
+          "MemPerc": "5.94%",
+          "MemUsage": "243.4MiB / 4GiB",
+          "Name": "nsuai32-benchmark-client",
+          "NetIO": "426MB / 208MB",
+          "PIDs": "8"
+        }
+      ]
+    }
+  ],
+  "runtime_msclap_package_version": "1.3.3",
+  "cleanup": {
+    "validation_source_rows": 0,
+    "validation_embedding_rows": 0,
+    "identity_migration_databases": 0,
+    "benchmark_temporary_databases": 0,
+    "owned_containers_remaining": 0,
+    "owned_network_remaining": false,
+    "note": "기존 --rm 컨테이너는 정상 stop 시 자동 제거됨; 기존 이미지와 공용 자원은 보존"
+  }
+}

@@ -16,6 +16,7 @@
 | embedding/ | demo_classification.py | 모델·음원이 필요한 수동 장르 분류 예제 |
 | matching/ | search_audio.py | 로컬 후보 목록의 Top5 음악 검색 |
 | matching/ | search_database_audio.py | DB 저장 임베딩으로 Top5 음악 검색 |
+| matching/ | benchmark_candidate_ranking.py | 격리 DB의 synthetic 후보 검색 성능·메모리·동시성 측정; 운영 상한 미확정 |
 | matching/ | validate_audio_similarity.py | 음악 간 쌍별 유사도 측정 |
 | fma/ | download_fma.ps1 | FMA 다운로드·체크섬·압축 해제 |
 | fma/ | validate_fma.py | 표본 선택·음악/텍스트 유사도 측정 |
