@@ -1,0 +1,93 @@
+{
+    "experiment":  "NSUAI-54",
+    "pool":  "canonical-keyphrase-pool-v2",
+    "ai_commit":  "024e240373ec46743e3729cd877ddde200f5ebca",
+    "spring_source_commit":  "3c756ff8920741e816ea155c582e852b408bc8dc",
+    "configuration":  {
+                          "queries":  {
+                                          "G01-0":  "grand music",
+                                          "G01-1":  "epic music",
+                                          "G01-2":  "majestic music",
+                                          "G02-0":  "grand instrumental classical music for a concert",
+                                          "G02-1":  "epic instrumental classical music for a concert",
+                                          "G02-2":  "majestic instrumental classical music for a concert",
+                                          "V01-0":  "music for a small cafe performance",
+                                          "V01-1":  "music for a small venue performance",
+                                          "J01-0":  "calm instrumental jazz music for a wedding",
+                                          "J01-1":  "calm instrumental music for a wedding",
+                                          "O01-0":  "calm slow-tempo instrumental jazz music for a wedding",
+                                          "O01-1":  "slow-tempo calm instrumental jazz music for a wedding"
+                                      },
+                          "hashes":  {
+                                         "evidence/query-evaluation-v1/query-contexts.json":  "fa6525c27fa4472eba1209397754d995722af213fd98db71ac3d224a9cb362e7",
+                                         "evidence/query-evaluation-v1/one-factor-validation.json":  "66376d18db798da8331ed5b0cce1f11aa4f5259c2f62cab581c0b8b72531bd49",
+                                         "evidence/canonical-keyphrase-pool-v2.json":  "b7bd3522762fd83463bcef37fa3f27afa8d40f82267b0629b5b7e00bd7efd67a",
+                                         "docs/experiments/audio-similarity-calibration/artifacts/calibration-v1-audio-embeddings.npz":  "f342f0f355ef7fcd22ec1444f30c54708971cd0530297c2aee81862d3dd87943",
+                                         "evidence/new-audio-embeddings.npz":  "f670bbf25011ffaa13150dc5e3899db11a4d99ef4f08a0ce430225c01e8dc5ee"
+                                     },
+                          "cpu":  true,
+                          "python":  "3.11.18",
+                          "audio_profile":  {
+                                                "model":  "MSCLAP",
+                                                "model_version":  "2023",
+                                                "checkpoint_file":  "CLAP_weights_2023.pth",
+                                                "checkpoint_revision":  "c47d441165daa21986ead0850660917636a81775",
+                                                "checkpoint_sha256":  "2cef4016d47d00eb28d153d522f397222057f95000e9bad6b9583c631284a1e6",
+                                                "preprocessing_version":  "msclap2023-audio-first56s-8x7s-nonoverlap-chunk-l2-mean-final-l2-v2",
+                                                "preprocessing":  {
+                                                                      "resample":  true,
+                                                                      "target_sample_rate":  44100,
+                                                                      "channel_policy":  "arithmetic_mean_downmix_to_mono",
+                                                                      "analysis_duration_seconds":  56,
+                                                                      "chunk_duration_seconds":  7,
+                                                                      "chunk_count":  8,
+                                                                      "chunk_overlap_seconds":  0,
+                                                                      "chunk_normalization":  "l2",
+                                                                      "aggregation":  "mean",
+                                                                      "final_normalization":  "l2",
+                                                                      "chunk_input":  "temporary_pcm_float32_wav"
+                                                                  },
+                                                "packages":  {
+                                                                 "msclap":  "1.3.3",
+                                                                 "torch":  "2.1.2+cpu",
+                                                                 "torchaudio":  "2.1.2+cpu"
+                                                             },
+                                                "device":  "cpu",
+                                                "embedding_dimension":  1024,
+                                                "embedding_dtype":  "torch.float32"
+                                            },
+                          "score":  "float64 raw cosine of stored vectors; descending, exact ties by ascending frozen candidate_order (offline deterministic tie-break)",
+                          "metrics":  "All within-context unordered pairs in listed order. delta cosine = second-first; rank gain = first rank minus second rank. Top10 overlap = intersection/10; Jaccard = intersection/union. Mean absolute rank change, Spearman and Kendall tau-b on all 32 returned positions. Heatmaps include cross-context pairs for description.",
+                          "quality":  "UNVERIFIED",
+                          "spring_runtime":  "BLOCKED",
+                          "top_k":  10
+                      },
+    "text_packages":  {
+                          "msclap":  "1.3.3",
+                          "torch":  "2.1.2+cpu",
+                          "transformers":  "4.35.2",
+                          "tokenizers":  "0.15.2",
+                          "numpy":  "1.26.4"
+                      },
+    "text_generation_version":  "msclap2023-text-query-v2-gpt2-607a30d783df",
+    "text_generation_profile":  "ClapModel.encode_text/msclap-default-v1",
+    "archive":  "expression-sensitivity-v1",
+    "archive_SHA256SUMS_sha256":  "fa90bf001df54b800171ee48a652205d17b251b01ec69d66da95e425b4a9a20d",
+    "archive_files_sha256":  {
+                                 "candidate-deltas.csv":  "fa9d8b93549e674fbfe8b033197d9d86fce58cb56115a58748971e377d79447d",
+                                 "comparison-metrics.csv":  "f0b4e80e0d82d6fd96477e7d199c45247eddfeb6e5dec99fe49ddc81a3b96592",
+                                 "comparison-metrics.json":  "be774dc8b3f27fffb99b98987d9b89c5dbc7289e14f49af86413300b29002c88",
+                                 "experiment-config.json":  "28f941b3f5f8b7ce2c1d60f73e9fb6cab4f13690bfd6570855be6fa3b21a7971",
+                                 "experiment-result.md":  "8e7782c3b780654e3749aec040f41ed81235237c1c539dc49ef65bcf86897df0",
+                                 "graphs/cosine-distribution.svg":  "6f2605690f60a92ead63f45e15f4c264e9b21f99b43e06a8c0301994877f6ca5",
+                                 "graphs/rank-changes.svg":  "bd1cfd409f2874d4e8e93bdd7ee9260512220d4dce7d80c8728b459ec1fc5c5e",
+                                 "graphs/rank-spearman.svg":  "3930ebad8d741f944b1cc1099229ebf3e35f299cbcc251b0cc7775f75db833b8",
+                                 "graphs/text-cosine.svg":  "5dbcd48f8fea77623a558f85a8b3d8bba8a396eee240a20426e2c6ed39a65f9f",
+                                 "graphs/top10-overlap.svg":  "15fb80f5713e95ecc1f07c4c42ff24cf0d089430a13727d42e05bfa5099d8f56",
+                                 "query-embeddings.npz":  "10dd0b5fd64f656c41d3fc793b25d567a001504cc74331886a0af84d88008f8b",
+                                 "render.py":  "7acb7df00ec23369e1137246e5a969eb94f2ad68f8dd2a8fd1a9300f6d59fe12",
+                                 "run.py":  "8519de330f08a16390b0b288d3cbca4557cf4100a29493578a0a0f638bf56d38",
+                                 "search-results.csv":  "a250dcfceb5037bda001b63d0512aca0a760ceec7042d7838e62ad0e4121429e",
+                                 "search-results.json":  "18b3d03bbac3315220f52389442312a19b0d9c7ed8db6217ce07fb2787c2dc68"
+                             }
+}

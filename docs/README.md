@@ -24,6 +24,7 @@
 | 유사도 표시 점수 | [점수 정규화](guides/SEMANTIC_SCORE_NORMALIZATION.md) |
 | FMA Historical PoC 안내 | [FMA 검증](guides/FMA_VALIDATION.md) |
 | 음악·텍스트 검증 근거 | [Phase 2 실험](experiments/fma-phase2/README.md) |
+| Spring 영어 검색 표현별 순위 변화 | [NSUAI-54 MSCLAP 표현 민감도 실험](experiments/canonical-keyphrase-comparison/README.md) |
 | 음악·음악 검증 근거 | [음악 검색 실험](experiments/audio-search-phase2/README.md) |
 | 기술 결정 | [ADR](adr/README.md) |
 | 현행 서버 협의·용어 | [Linear 서버 협의](https://linear.app/nsu-capstone/document/000-server-agreements-목록-7e0bf3793fd3) · [용어집](https://linear.app/nsu-capstone/document/용어집-context-475370673105) |
