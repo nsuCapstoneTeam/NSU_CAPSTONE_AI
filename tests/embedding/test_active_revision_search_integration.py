@@ -1,23 +1,25 @@
-"""ACTIVE 후보 pair가 revision/profile을 정확히 제한하는지 검증한다."""
+"""Backend가 요청한 ACTIVE revision의 저장 및 검색 경계를 실제 DB에서 검증한다."""
 
 import os
 import uuid
 from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
 from unittest.mock import Mock
 
 import pytest
 
-pytest_plugins = ("test_audio_embedding_postgres_validation_integration",)
-
 from app.core.database import connect_database
-from app.embedding.audio_embedding import PREPROCESSING_VERSION
+from app.embedding.audio_embedding import PREPROCESSING_VERSION, AudioEmbeddingError
+from app.embedding.storage import AudioEmbeddingStorage
 from app.repository.embedding_repository import (
     AudioEmbeddingRepository,
-    CandidateCompatibilityStatus,
+    CandidateCompatibilityStatus as Status,
+    EmbeddingConflict,
 )
 from test_embedding_database import result as audio_result, text_result
 
 
+pytest_plugins = ("test_audio_embedding_postgres_validation_integration",)
 pytestmark = pytest.mark.skipif(
     os.environ.get("RUN_AUDIO_POSTGRES_VALIDATION_TESTS") != "1",
     reason="전용 PostgreSQL validation DB 명시적 opt-in 필요",
@@ -30,185 +32,174 @@ def music_id(connection):
     yield value
     with connect_database() as cleanup:
         cleanup.execute(
-            "DELETE FROM ai_embeddings.audio_embeddings WHERE music_id = %s",
-            (value,),
+            "DELETE FROM ai_embeddings.audio_embeddings WHERE music_id = %s", (value,)
         )
         cleanup.execute(
-            "DELETE FROM ai_embeddings.audio_sources WHERE music_id = %s",
-            (value,),
+            "DELETE FROM ai_embeddings.audio_sources WHERE music_id = %s", (value,)
+        )
+    assert connection.execute(
+        """SELECT EXISTS (SELECT FROM ai_embeddings.audio_embeddings WHERE music_id = %s),
+                  EXISTS (SELECT FROM ai_embeddings.audio_sources WHERE music_id = %s)""",
+        (value, value),
+    ).fetchone() == (False, False)
+
+
+def save_revision(writer, music_id, revision, value, profile=PREPROCESSING_VERSION):
+    result = audio_result(value)
+    result.metadata["preprocessing_version"] = profile
+    return AudioEmbeddingRepository().save(writer, music_id, revision, result)
+
+
+@pytest.fixture
+def first(music_id):
+    with connect_database() as writer:
+        return save_revision(writer, music_id, 1, 1.0)
+
+
+def read_exact(saved):
+    with connect_database() as reader:
+        return AudioEmbeddingRepository().get(
+            reader, saved.music_id, saved.audio_revision, saved.generation_profile_sha256
         )
 
 
-def save_revision(connection, music_id, revision, value, *, preprocessing_version=None):
-    result = audio_result(value)
-    result.metadata["preprocessing_version"] = (
-        PREPROCESSING_VERSION if preprocessing_version is None else preprocessing_version
-    )
-    return AudioEmbeddingRepository().save(connection, music_id, revision, result)
-
-
-def rank_requested_pair(music_id, revision):
+def rank_requested_pair(pair):
     repository = AudioEmbeddingRepository()
     query = text_result()
-    with connect_database() as connection:
-        connection.execute("SET TRANSACTION READ ONLY")
-        checked = repository.check_candidate_compatibility(
-            connection, [(music_id, revision)], query
-        )[0]
-        if checked.compatible_candidate is None:
-            return checked.status, []
-        ranked = repository.rank_candidates(
-            connection, [checked.compatible_candidate], query
-        )
-    return checked.status, ranked
-
-
-def test_revision_one_remains_searchable_while_revision_two_is_saved_and_committed(
-    connection, music_id
-):
-    repository = AudioEmbeddingRepository()
-    with connect_database() as writer:
-        first = save_revision(writer, music_id, 1, 1.0)
-
-    backend_active_pair = Mock(return_value=(music_id, 1))
-    writer = connect_database()
-    try:
-        second = save_revision(writer, music_id, 2, -1.0)
-
-        status, ranked = rank_requested_pair(*backend_active_pair())
-        assert status == CandidateCompatibilityStatus.COMPATIBLE
-        assert [(row.music_id, row.audio_revision) for row in ranked] == [(music_id, 1)]
-        assert repository.get(
-            writer, music_id, 1, first.generation_profile_sha256
-        )["id"] == first.id
-
-        writer.commit()
-        status, ranked = rank_requested_pair(*backend_active_pair())
-        assert status == CandidateCompatibilityStatus.COMPATIBLE
-        assert [(row.music_id, row.audio_revision) for row in ranked] == [(music_id, 1)]
-        assert repository.get(
-            writer, music_id, 2, second.generation_profile_sha256
-        )["id"] == second.id
-    finally:
-        writer.rollback()
-        writer.close()
-
-
-def test_mocked_backend_activation_switches_search_to_exact_revision_two(
-    connection, music_id
-):
-    with connect_database() as writer:
-        save_revision(writer, music_id, 1, 1.0)
-        second = save_revision(writer, music_id, 2, -1.0)
-
-    backend = Mock()
-    backend.active_pair = (music_id, 1)
-    status, ranked = rank_requested_pair(*backend.active_pair)
-    assert status == CandidateCompatibilityStatus.COMPATIBLE
-    assert [(row.music_id, row.audio_revision) for row in ranked] == [(music_id, 1)]
-
-    backend.confirm_active_revision.return_value = (music_id, 2)
-    backend.active_pair = backend.confirm_active_revision(music_id, 2)
-
-    status, ranked = rank_requested_pair(*backend.active_pair)
-    assert backend.confirm_active_revision.call_args.args == (music_id, 2)
-    assert status == CandidateCompatibilityStatus.COMPATIBLE
-    assert [(row.music_id, row.audio_revision) for row in ranked] == [(music_id, 2)]
-    assert ranked[0].embedding_id == second.id
-
-
-@pytest.mark.parametrize("failure", ["generation_rollback", "activation_failure"])
-def test_generation_or_activation_failure_preserves_revision_one(
-    connection, music_id, failure
-):
-    with connect_database() as writer:
-        first = save_revision(writer, music_id, 1, 1.0)
-
-    backend = Mock()
-    backend.active_pair = (music_id, 1)
-    if failure == "generation_rollback":
-        writer = connect_database()
-        try:
-            save_revision(writer, music_id, 2, -1.0)
-            writer.rollback()
-        finally:
-            writer.close()
-    else:
-        with connect_database() as writer:
-            save_revision(writer, music_id, 2, -1.0)
-        backend.confirm_active_revision.side_effect = RuntimeError(
-            "backend activation failed"
-        )
-        with pytest.raises(RuntimeError, match="backend activation failed"):
-            backend.confirm_active_revision(music_id, 2)
-
-    status, ranked = rank_requested_pair(*backend.active_pair)
-    assert status == CandidateCompatibilityStatus.COMPATIBLE
-    assert [(row.music_id, row.audio_revision) for row in ranked] == [(music_id, 1)]
     with connect_database() as reader:
-        exact = AudioEmbeddingRepository().get(
-            reader, music_id, 1, first.generation_profile_sha256
-        )
-        assert exact["id"] == first.id
-        if failure == "generation_rollback":
-            assert AudioEmbeddingRepository().get(
-                reader, music_id, 2, first.generation_profile_sha256
-            ) is None
+        reader.execute("SET TRANSACTION READ ONLY")
+        checked, = repository.check_candidate_compatibility(reader, [pair], query)
+        candidates = [checked.compatible_candidate] if checked.compatible_candidate else []
+        return checked.status, repository.rank_candidates(reader, candidates, query)
 
 
-def test_concurrent_reads_use_exact_revision_and_profile_without_fallback(
-    connection, music_id
-):
-    repository = AudioEmbeddingRepository()
+def assert_ranked_row(ranked, saved):
+    row, = ranked
+    assert (row.music_id, row.audio_revision, row.embedding_id, row.generation_profile_sha256) == (
+        saved.music_id, saved.audio_revision, saved.id, saved.generation_profile_sha256
+    )
+
+
+def assert_request_returns(pair, saved):
+    status, ranked = rank_requested_pair(pair)
+    assert status == Status.COMPATIBLE
+    assert_ranked_row(ranked, saved)
+
+
+def test_uncommitted_revision_is_invisible_and_commit_preserves_active_request(music_id, first):
+    active_pair = (music_id, 1)
     with connect_database() as writer:
-        first = save_revision(writer, music_id, 1, 1.0)
         second = save_revision(writer, music_id, 2, -1.0)
-        second_profile = save_revision(
-            writer,
-            music_id,
-            2,
-            -1.0,
-            preprocessing_version=PREPROCESSING_VERSION + "-alternate",
-        )
-        incompatible = save_revision(
-            writer,
-            music_id,
-            3,
-            -1.0,
-            preprocessing_version=PREPROCESSING_VERSION + "-unsupported",
-        )
+        assert read_exact(second) is None
+        assert rank_requested_pair((music_id, 2)) == (Status.MISSING_SOURCE, [])
+        assert_request_returns(active_pair, first)
 
-    identities = [
-        (music_id, 1, first.generation_profile_sha256),
-        (music_id, 2, second.generation_profile_sha256),
-        (music_id, 2, second_profile.generation_profile_sha256),
-    ]
+    assert read_exact(second)["id"] == second.id
+    assert_request_returns(active_pair, first)
 
-    def read_exact(identity):
+
+def test_inflight_search_keeps_revision_one_across_backend_activation(music_id, first):
+    with connect_database() as writer:
+        second = save_revision(writer, music_id, 2, -1.0)
+        save_revision(writer, music_id, 2, -1.0, PREPROCESSING_VERSION + "-other")
+
+    backend = Mock()
+    backend.active_pair.return_value = (music_id, 1)
+    phase = Barrier(2, timeout=30)
+
+    def finish_inflight_search():
+        repository = AudioEmbeddingRepository()
+        query = text_result()
         with connect_database() as reader:
-            row = repository.get(reader, *identity)
-            return (row["id"], row["audio_revision"], row["generation_profile_sha256"])
+            reader.execute("SET TRANSACTION READ ONLY")
+            checked, = repository.check_candidate_compatibility(reader, [backend.active_pair()], query)
+            assert checked.status == Status.COMPATIBLE
+            phase.wait()  # r1의 정확한 검색 identity를 확보했다.
+            phase.wait()  # 새 ACTIVE 요청의 r2 검색이 끝났다.
+            return repository.rank_candidates(reader, [checked.compatible_candidate], query)
 
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        inflight = pool.submit(finish_inflight_search)
+        try:
+            phase.wait()
+            backend.active_pair.return_value = (music_id, 2)
+            assert_request_returns(backend.active_pair(), second)
+            phase.wait()
+            assert_ranked_row(inflight.result(), first)
+        finally:
+            phase.abort()
+
+
+@pytest.mark.parametrize("failure", ["generation", "storage_rollback"])
+def test_generation_and_storage_failures_preserve_active_row_and_vector(music_id, first, failure):
+    active_pair = (music_id, 1)
+    original = read_exact(first)
+    if failure == "generation":
+        generator = Mock()
+
+        def fail_generation(audio_path):
+            assert_request_returns(active_pair, first)
+            raise AudioEmbeddingError("generation failed", audio_path)
+
+        generator.generate.side_effect = fail_generation
+        with pytest.raises(AudioEmbeddingError, match="generation failed"):
+            AudioEmbeddingStorage(generator=generator).store(music_id, "r2.wav", audio_revision=2)
+    else:
+        with pytest.raises(EmbeddingConflict):
+            with connect_database() as writer:
+                save_revision(writer, music_id, 2, -1.0)
+                save_revision(writer, music_id, 2, 1.0)
+        assert writer.closed
+
+    assert rank_requested_pair((music_id, 2)) == (Status.MISSING_SOURCE, [])
+    assert read_exact(first) == original
+    assert_request_returns(active_pair, first)
+
+
+@pytest.mark.parametrize("failure", ["activation", "notification"])
+def test_backend_failure_preserves_committed_revisions(music_id, first, failure):
+    original = read_exact(first)
+    with connect_database() as writer:
+        second = save_revision(writer, music_id, 2, -1.0)
+
+    backend = Mock()
+    backend.active_pair = (music_id, 1)
+    if failure == "activation":
+        backend.commit_active.side_effect = RuntimeError("activation failed")
+        with pytest.raises(RuntimeError, match="activation failed"):
+            backend.active_pair = backend.commit_active(music_id, 2)
+        assert_request_returns(backend.active_pair, first)
+    else:
+        backend.commit_active.return_value = (music_id, 2)
+        backend.active_pair = backend.commit_active(music_id, 2)
+        backend.notify_ai.side_effect = TimeoutError("notification failed")
+        with pytest.raises(TimeoutError, match="notification failed"):
+            backend.notify_ai(backend.active_pair)
+        assert_request_returns(backend.active_pair, second)
+
+    assert read_exact(first) == original
+    assert_request_returns((music_id, 1), first)
+    assert read_exact(second)["id"] == second.id
+
+
+def test_concurrent_reads_use_exact_revision_and_profile_without_fallback(music_id, first):
+    with connect_database() as writer:
+        second = save_revision(writer, music_id, 2, -1.0)
+        alternate = save_revision(writer, music_id, 2, -1.0, PREPROCESSING_VERSION + "-alternate")
+        incompatible = save_revision(writer, music_id, 3, -1.0, PREPROCESSING_VERSION + "-unsupported")
+
+    identities = [first, second, alternate]
     with ThreadPoolExecutor(max_workers=3) as pool:
-        results = list(pool.map(read_exact, identities))
-
-    assert results == [
-        (first.id, 1, first.generation_profile_sha256),
-        (second.id, 2, second.generation_profile_sha256),
-        (second_profile.id, 2, second_profile.generation_profile_sha256),
+        rows = list(pool.map(read_exact, identities))
+    assert [(row["id"], row["audio_revision"], row["generation_profile_sha256"]) for row in rows] == [
+        (saved.id, saved.audio_revision, saved.generation_profile_sha256) for saved in identities
     ]
-    assert len({row[0] for row in results}) == 3
+    assert len({row["id"] for row in rows}) == 3
 
     with connect_database() as reader:
-        missing = repository.get(
-            reader, music_id, 4, first.generation_profile_sha256
-        )
-        exact_incompatible = repository.get(
-            reader, music_id, 3, incompatible.generation_profile_sha256
-        )
-    assert missing is None
-    assert exact_incompatible["id"] == incompatible.id
-    status, ranked = rank_requested_pair(music_id, 3)
-    assert status == CandidateCompatibilityStatus.INCOMPATIBLE_PROFILE
-    assert ranked == []
-    assert incompatible.audio_revision == 3
+        assert AudioEmbeddingRepository().get(
+            reader, music_id, 1, alternate.generation_profile_sha256
+        ) is None
+    assert rank_requested_pair((music_id, 4)) == (Status.MISSING_SOURCE, [])
+    assert read_exact(incompatible)["id"] == incompatible.id
+    assert rank_requested_pair((music_id, 3)) == (Status.INCOMPATIBLE_PROFILE, [])
