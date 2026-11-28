@@ -480,6 +480,8 @@ Main은 Worker Review 중 발견한 문제를 직접 수정하지 않는다.
 
 수정은 해당 Worker에게 다시 전달한다.
 
+구현 코드와 문서의 수정·Commit·Push는 해당 Worker가 전용 Feature Branch와 Worktree에서 수행한다. Main은 직접 수정·Commit·Push하지 않고 실제 diff와 검증 결과를 독립적으로 리뷰한다.
+
 ---
 
 # 15. Human 역할
@@ -856,6 +858,14 @@ Worker가 실패하면 Main은 원인을 확인하고 필요한 경우 재지시
 
 같은 실패를 무한 반복하지 않는다.
 
+## 대기 및 재개
+
+위 상태 예시는 Worker 세션의 실행 상태다. 개발 이슈의 진행 단계와 사용자 승인 시점은 32절의 상태를 따른다. Main은 완료된 설계·환경 설정·구현·검증과 기존 Worker·Worktree를 확인하고, 유효한 결과와 작업 환경을 재사용한다.
+
+Worker 생성, 테스트, Commit, 개별 리뷰, Push 또는 PR 생성은 중간 단계다. Main은 다음 승인 시점까지 승인된 작업을 이어가며, 사용자 판단에 영향을 주는 변경이나 장애가 있을 때 중간 보고한다. CI와 Review가 진행 중이면 지원되는 대기 기능이나 적절한 간격의 상태 조회로 완료 결과까지 확인한다.
+
+권한·사용량·실행 시간·환경·도구 제한 또는 승인 범위 때문에 진행할 수 없을 때는 독립적으로 가능한 작업을 먼저 마친다. 차단 원인, 마지막 완료 작업과 확인한 SHA, 실제 오류와 시스템 권한 요청의 생성 여부, 남은 작업과 재개 지점을 기록한다. 백그라운드 실행이 지원되지 않으면 자동으로 계속 확인한다고 보고하지 않는다.
+
 ---
 
 # 28. Main 독립 리뷰
@@ -992,6 +1002,26 @@ Main 독립 Review가 완료되면 사용자에게 최소 다음을 보고한다
 
 Force push, force merge, branch protection 우회는 별도 명시적 승인 없이는 수행하지 않는다.
 
+## 개발 이슈의 상태와 승인 시점
+
+| 상태 | 판정 기준 |
+| --- | --- |
+| `DESIGN_READY` | Main이 조사·설계와 변경 범위·검증 계획을 마쳐 구현 승인을 요청할 수 있다. |
+| `IMPLEMENTING` | 승인된 범위를 Worker가 독립 Worktree에서 구현·수정·검증한다. |
+| `REVIEWING` | Main이 Worker Commit의 실제 diff와 검증 결과를 독립적으로 검토한다. |
+| `PR_READY` | Worker 구현·테스트·Commit과 해당 SHA의 Main 독립 리뷰가 통과했다. Main이 원격 main 대비 충돌 여부와 변경 범위를 확인하고 PR 제목·본문을 준비했다. |
+| `WAITING_CI` | 최신 PR Head SHA에 대한 필수 CI의 완료 결과를 기다린다. |
+| `WAITING_REVIEW` | 최신 PR Head SHA에 대한 GitHub Codex Code Review의 완료 결과를 기다린다. |
+| `MERGE_READY` | Main이 최신 Head SHA에 대해 34절의 GitHub 검증과 최종 판정 조건을 모두 확인했다. |
+| `BLOCKED` | 실제 제약 또는 승인 범위 때문에 다음 작업을 진행할 수 없다. 27절에 따라 재개에 필요한 정보를 남긴다. |
+| `DONE` | Merge와 원격 main 반영을 확인하고 승인된 후속 정리·상태 반영까지 마쳤다. |
+
+사용자의 개발 승인은 원칙적으로 세 차례 받는다. `DESIGN_READY`에서 구현 승인, `PR_READY`에서 최초 원격 Push와 PR 생성 승인, `MERGE_READY`에서 Merge 승인을 요청한다. 각 시점에 결과를 통합해 한 번 보고한다.
+
+승인 범위 내의 자료·Git 조회, Worker·Worktree 관리, 내부 통신(`send_message_to_thread` 포함), 코드·문서·테스트 수정, 검증, Worker Commit, Main 독립 리뷰와 일반적인 오류 해결은 자율적으로 수행한다. 최초 Push와 PR 생성 승인에는 동일 범위의 리뷰 요청, 수정 후 기존 Feature Branch에 대한 일반 Push와 GitHub 재검증이 포함된다. 이 흐름에서는 Force Push를 금지한다.
+
+범위를 벗어나는 변경, ADR·SSOT 정책이나 서버 API 계약 변경, 데이터 손실 위험, 보안 설정 변경은 별도로 사용자 결정을 받는다. 시스템이 강제하는 권한 승인은 해당 절차를 따르며 업무 승인으로 우회하지 않는다.
+
 ---
 
 # 33. Pull Request
@@ -1038,6 +1068,19 @@ Main이 Worker 대신 직접 기능 코드를 수정하지 않는다.
 Worker 수정 후 Main이 재Review한다.
 
 PR Review가 통과해도 사용자 승인 없이 merge하지 않는다.
+
+## 최신 PR Head SHA 검증과 수정 반복
+
+1. Main은 PR의 base, 최신 Head SHA와 변경 파일을 확인한다. GitHub Actions에서 해당 변경에 연결된 Workflow의 최종 상태와 개별 Job·Step 실행 결과를 읽고, 필수 CI의 성공 및 실패·취소·건너뛴 항목의 영향을 확인한다.
+2. GitHub Codex Code Review가 최신 Head SHA에 대해 완료됐는지 확인한다. 아직 요청되지 않았거나 이전 SHA만 검토했다면 기존 PR에서 필요에 따라 `@codex review`를 요청한다. Main은 리뷰 대상 SHA와 최신 Head SHA를 대조하고 리뷰 본문·댓글·지적사항·미해결 Review Thread를 직접 확인한다.
+3. CI 실패, 유효한 GitHub 리뷰 지적 또는 Main 리뷰 문제가 있으면 원인을 분석해 기존 Worker에 전달한다. Worker가 수정·테스트·회귀 검증 후 추가 Commit을 만들면 Main이 해당 SHA를 독립 재리뷰한다. PASS 후 Worker가 동일 Feature Branch에 추가 Push하고 Main은 최신 SHA로 CI와 GitHub 리뷰를 다시 확인한다. 기존 PR에서 모든 필수 검증이 통과하고 문제가 해결될 때까지 반복한다.
+4. 지적사항을 해결하지 않은 채 임의로 Resolve 또는 Dismiss하지 않는다. CI 통과를 위해 테스트나 보안 기준을 완화하지 않는다.
+
+## MERGE_READY 판정
+
+Main은 최신 Head SHA의 독립 리뷰 PASS, 필수 CI SUCCESS, 같은 SHA에 대한 GitHub Codex Code Review 완료를 확인한다. 유효한 미해결 지적사항과 미해결 필수 Review Thread가 각각 0건이어야 한다. 승인된 변경 범위, 원격 main과의 충돌 부재, 적용되는 Branch Protection 및 필수 Merge 조건 충족, GitHub의 병합 가능 상태를 함께 확인한다.
+
+CI 또는 Review가 실행 중이면 해당 대기 상태를 유지한다. Main은 모든 조건을 확인한 뒤 검증한 SHA, 미검증 사항과 잔여 위험을 명시해 최종 통합 보고와 Merge 승인 요청을 전달한다.
 
 ---
 
@@ -1310,6 +1353,15 @@ ADR
 ---
 
 # 45. 최종 Workflow
+
+## 단계별 적용
+
+1. **조사 및 설계** — Main이 12~13절에 따라 Linear·GitHub·ADR·SSOT·서버 협의, 코드와 요구사항을 조사하고 구현 범위와 테스트 계획을 제시한다. 사용자의 구현 승인 후 다음 단계로 진행한다.
+2. **구현 및 독립 리뷰** — 별도 Worker 세션이 전용 Feature Branch와 독립 Worktree에서 구현·테스트·Commit한다. 28~29절에 따라 Main 리뷰와 Worker 수정을 반복해 `PR_READY`에 도달하면 최초 Push와 PR 생성 승인을 받는다.
+3. **GitHub 검증 및 최종 리뷰** — Worker가 승인된 브랜치를 Push하고 Main이 PR을 생성한다. 34절에 따라 최신 SHA의 CI·Review와 수정 결과를 검증한 뒤 `MERGE_READY`에서 Merge 승인을 받는다.
+4. **Merge 및 종료** — 승인된 PR을 Merge하고 원격 main의 최종 SHA와 변경 반영을 확인한다. 35~36절에 따라 승인 범위 내에서 Worker·Worktree·Feature Branch를 정리한다. Linear와 관련 문서 상태는 명시적으로 승인받은 범위에서만 반영하고 최종 결과를 보고한다.
+
+아래 흐름과 46~47절의 요약에서 PR 승인은 최초 Push와 PR 생성에 적용한다. Merge 승인 전에는 34절의 최종 판정이 필요하다.
 
 사용자 요청
 ↓
