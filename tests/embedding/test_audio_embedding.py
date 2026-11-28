@@ -398,3 +398,18 @@ def test_audio_validators_keep_single_and_batch_responsibilities_separate():
         validate_audio_embedding(torch.ones(8, 2))
     with pytest.raises(ValueError, match='invalid_chunk_embedding_shape'):
         validate_chunk_embeddings(torch.ones(1, 2))
+
+
+def test_preflight_profile_uses_verified_model_config_before_inference(tmp_path):
+    from app.repository.embedding_repository import prepare_embedding
+
+    model, observed = audio_reading_model()
+    model.args.d_proj = 3
+    path = write_audio(tmp_path / 'profile.wav', 56)
+    generator = AudioEmbeddingGenerator(model)
+    profile = generator.generation_profile(path)
+    assert observed['calls'] == [] and profile['dimension'] == 3
+    assert prepare_embedding(generator.generate(path))[1] == profile
+    model.args.d_proj = None
+    with pytest.raises(AudioEmbeddingError, match='audio_projection_dimension_unavailable'):
+        generator.generation_profile(path)

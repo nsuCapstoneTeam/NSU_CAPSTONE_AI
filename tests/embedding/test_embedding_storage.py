@@ -84,29 +84,12 @@ def test_source_facts_do_not_change_shared_generation_profile():
     assert 'source_channels' not in first_profile
 
 
-def test_generation_failure_does_not_open_database(monkeypatch):
+def test_missing_file_does_not_open_database(monkeypatch, tmp_path):
     connect = Mock()
     monkeypatch.setattr('app.embedding.storage.connect_database', connect)
-    generator = Mock()
-    generator.generate.side_effect = AudioEmbeddingError('audio_embedding_failed', 'file')
-    with pytest.raises(AudioEmbeddingError):
-        AudioEmbeddingStorage(generator=generator).store('music-1', 'file', audio_revision=1)
+    with pytest.raises(AudioEmbeddingError, match='audio_file_missing'):
+        AudioEmbeddingStorage().store('music-1', tmp_path / 'missing', audio_revision=1)
     connect.assert_not_called()
-
-
-def test_database_context_receives_save_failure(monkeypatch):
-    connect = Mock()
-    monkeypatch.setattr('app.embedding.storage.connect_database', connect)
-    generator = Mock()
-    generator.generate.return_value = make_result()
-    repository = Mock()
-    repository.save.side_effect = RuntimeError('save failed')
-    context = connect.return_value
-    context.__enter__ = Mock(return_value=Mock())
-    context.__exit__ = Mock(return_value=False)
-    with pytest.raises(RuntimeError, match='save failed'):
-        AudioEmbeddingStorage(generator, repository).store('music-1', 'file', audio_revision=1)
-    assert context.__exit__.call_args.args[0] is RuntimeError
 
 
 @pytest.mark.parametrize('revision', [None, True, False, 1.0, '1', 0, -1, 9223372036854775808])
@@ -138,16 +121,38 @@ def test_revision_bigint_boundaries_and_profile_hash():
         generation_profile_sha256({'invalid': float('nan')})
 
 
-def test_storage_passes_revision_and_saved_identity(monkeypatch):
-    from unittest.mock import MagicMock
-    context = MagicMock()
-    monkeypatch.setattr('app.embedding.storage.connect_database', lambda: context)
-    generator, repository = Mock(), Mock()
-    result = make_result()
-    generator.generate.return_value = result
-    saved = AudioEmbeddingStorage(generator, repository).store('music-1', 'file', audio_revision=7)
-    assert saved is repository.save.return_value
-    repository.save.assert_called_once_with(context.__enter__.return_value, 'music-1', 7, result)
+def test_generation_failure_is_recorded_outside_inference(monkeypatch, tmp_path):
+    from contextlib import contextmanager
+    from app.embedding.audio_embedding import audio_file_sha256
+
+    opened = []
+    @contextmanager
+    def connect():
+        opened.append(object())
+        try:
+            yield opened[0]
+        finally:
+            opened.pop()
+
+    path = tmp_path / 'audio'
+    path.write_bytes(b'fixture')
+    sha = audio_file_sha256(path)
+    monkeypatch.setattr('app.embedding.storage.connect_database', connect)
+    storage = AudioEmbeddingStorage(generator=Mock())
+    storage.attempts = Mock()
+
+    def fail(path, *, expected_sha256):
+        assert not opened and expected_sha256 == sha
+        raise AudioEmbeddingError('audio_duration_below_minimum', path)
+
+    storage.generator.generate.side_effect = fail
+    with pytest.raises(AudioEmbeddingError, match='audio_duration_below_minimum'):
+        storage.store('music-1', path, audio_revision=7)
+    assert storage.attempts.acquire.call_args.args[1:] == (
+        'music-1', 7, sha, storage.generator.generation_profile.return_value)
+    assert storage.attempts.fail.call_args.args[1:] == (
+        storage.attempts.acquire.return_value, 'input', 'audio_duration_below_minimum')
+    storage.attempts.complete.assert_not_called()
 
 
 def test_store_cli_requires_revision_before_creating_storage(monkeypatch):

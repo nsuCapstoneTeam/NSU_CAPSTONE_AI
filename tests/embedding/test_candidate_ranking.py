@@ -99,7 +99,8 @@ def ranking_database(request):
         pytest.skip('Explicit isolated migration database opt-in required')
     request.getfixturevalue('migration_database')
     assert migrations.apply_migrations() == [
-        '0001_audio_embeddings.sql', '0002_text_embeddings.sql', '0003_audio_embedding_identity.sql']
+        '0001_audio_embeddings.sql', '0002_text_embeddings.sql', '0003_audio_embedding_identity.sql',
+        '0004_audio_processing_attempts.sql']
     with connect_database() as connection:
         yield connection
         connection.rollback()

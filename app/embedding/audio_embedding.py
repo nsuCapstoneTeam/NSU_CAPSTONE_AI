@@ -74,6 +74,18 @@ def audio_file_sha256(path):
         return hashlib.file_digest(source, 'sha256').hexdigest()
 
 
+def validated_audio_sha256(path):
+    path = Path(path)
+    if not path.is_file():
+        raise AudioEmbeddingError('audio_file_missing', path)
+    try:
+        if path.stat().st_size == 0:
+            raise AudioEmbeddingError('audio_file_empty', path)
+        return audio_file_sha256(path)
+    except OSError as error:
+        raise AudioEmbeddingError('audio_file_unreadable', path) from error
+
+
 def validate_audio_embedding(vector, *, expected_dimension=None):
     """최종 단일 대표 벡터의 shape·값·차원을 검사한다."""
     import torch
@@ -199,17 +211,70 @@ class AudioEmbeddingGenerator:
             'msclap_implementation': implementation,
         }
 
+    def _ensure_model(self, audio_path):
+        import torch
+
+        if self._model is None:
+            loading_state = random.getstate()
+            try:
+                with torch.random.fork_rng(devices=[]):
+                    self._model = _load_calibration_pinned_msclap_model()
+            except Exception as error:
+                reason = str(error) or 'audio_model_load_failed'
+                raise AudioEmbeddingError(reason, audio_path) from error
+            finally:
+                random.setstate(loading_state)
+
+        if self._model_identity is None:
+            try:
+                self._model_identity = self._initialize_model_identity()
+            except Exception as error:
+                raise AudioEmbeddingError(str(error) or 'audio_model_identity_unverified', audio_path) from error
+
+    @staticmethod
+    def _preprocessing():
+        return {
+            'resample': True,
+            'target_sample_rate': TARGET_SAMPLE_RATE,
+            'channel_policy': 'arithmetic_mean_downmix_to_mono',
+            'analysis_duration_seconds': ANALYSIS_DURATION_SECONDS,
+            'chunk_duration_seconds': CHUNK_DURATION_SECONDS,
+            'chunk_count': CHUNK_COUNT,
+            'chunk_overlap_seconds': 0,
+            'chunk_normalization': 'l2',
+            'aggregation': 'mean',
+            'final_normalization': 'l2',
+            'chunk_input': 'temporary_pcm_float32_wav',
+        }
+
+    def _profile(self, dimension):
+        identity = self._model_identity
+        return {
+            'model': 'MSCLAP', 'model_version': '2023',
+            'checkpoint_revision': identity['checkpoint_revision'],
+            'checkpoint_sha256': identity['checkpoint_sha256'],
+            'msclap_implementation': identity['msclap_implementation'],
+            'packages': {name: importlib.metadata.version(name) for name in ('msclap', 'torch', 'torchaudio')},
+            'device': 'cpu', 'dimension': dimension, 'dtype': 'torch.float32',
+            'preprocessing_version': PREPROCESSING_VERSION, 'preprocessing': self._preprocessing(),
+        }
+
+    def generation_profile(self, audio_path):
+        """검증된 모델 설정의 실제 projection 차원으로 추론 전 identity를 구성한다."""
+        if self._model_identity is None:
+            with _generation_lock:
+                self._ensure_model(audio_path)
+        dimension = getattr(getattr(self._model, 'args', None), 'd_proj', None)
+        if type(dimension) is not int or dimension < 1:
+            raise AudioEmbeddingError('audio_projection_dimension_unavailable', audio_path)
+        if self.dimension is not None and self.dimension != dimension:
+            raise AudioEmbeddingError('embedding_dimension_mismatch', audio_path)
+        return self._profile(dimension)
+
     def generate(self, audio_path, *, expected_sha256=None):
         """56~60초 파일의 처음 56초를 고정 8 Chunk로 변환해 하나의 벡터를 반환한다."""
         path = Path(audio_path).resolve()
-        if not path.is_file():
-            raise AudioEmbeddingError('audio_file_missing', path)
-        try:
-            if path.stat().st_size == 0:
-                raise AudioEmbeddingError('audio_file_empty', path)
-            file_hash = audio_file_sha256(path)
-        except OSError as error:
-            raise AudioEmbeddingError('audio_file_unreadable', path) from error
+        file_hash = validated_audio_sha256(path)
         if expected_sha256 is not None and file_hash != expected_sha256:
             raise AudioEmbeddingError('audio_source_changed', path)
 
@@ -226,22 +291,7 @@ class AudioEmbeddingGenerator:
             import torch
 
             with _generation_lock:
-                if self._model is None:
-                    loading_state = random.getstate()
-                    try:
-                        with torch.random.fork_rng(devices=[]):
-                            self._model = _load_calibration_pinned_msclap_model()
-                    except Exception as error:
-                        reason = str(error) or 'audio_model_load_failed'
-                        raise AudioEmbeddingError(reason, path) from error
-                    finally:
-                        random.setstate(loading_state)
-
-                if self._model_identity is None:
-                    try:
-                        self._model_identity = self._initialize_model_identity()
-                    except Exception as error:
-                        raise AudioEmbeddingError(str(error) or 'audio_model_identity_unverified', path) from error
+                self._ensure_model(path)
 
                 try:
                     with torch.inference_mode():
@@ -276,35 +326,13 @@ class AudioEmbeddingGenerator:
                 raise AudioEmbeddingError('audio_source_changed', path) from error
 
             self.dimension = vector.shape[1]
-            identity = self._model_identity
-            preprocessing = {
-                'resample': True,
-                'target_sample_rate': TARGET_SAMPLE_RATE,
-                'channel_policy': 'arithmetic_mean_downmix_to_mono',
-                'analysis_duration_seconds': ANALYSIS_DURATION_SECONDS,
-                'chunk_duration_seconds': CHUNK_DURATION_SECONDS,
-                'chunk_count': CHUNK_COUNT,
-                'chunk_overlap_seconds': 0,
-                'chunk_normalization': 'l2',
-                'aggregation': 'mean',
-                'final_normalization': 'l2',
-                'chunk_input': 'temporary_pcm_float32_wav',
-            }
             metadata = {
+                **self._profile(self.dimension),
                 'source_path': str(path), 'source_sha256': file_hash,
                 'source_duration_seconds': frame_count / source_sample_rate,
-                'source_sample_rate': source_sample_rate,
-                'source_channels': source_channels,
-                'model': 'MSCLAP', 'model_version': '2023',
-                'checkpoint_path': identity['checkpoint_path'],
-                'checkpoint_revision': identity['checkpoint_revision'],
-                'checkpoint_sha256': identity['checkpoint_sha256'],
-                'msclap_implementation': identity['msclap_implementation'],
-                'packages': {name: importlib.metadata.version(name) for name in ('msclap', 'torch', 'torchaudio')},
-                'device': 'cpu', 'shape': list(vector.shape), 'dimension': self.dimension,
-                'dtype': str(vector.dtype), 'norm': float(vector.norm()),
-                'preprocessing_version': PREPROCESSING_VERSION,
-                'preprocessing': preprocessing,
+                'source_sample_rate': source_sample_rate, 'source_channels': source_channels,
+                'checkpoint_path': self._model_identity['checkpoint_path'],
+                'shape': list(vector.shape), 'norm': float(vector.norm()),
             }
             return AudioEmbeddingResult(vector=vector, metadata=metadata)
         finally:

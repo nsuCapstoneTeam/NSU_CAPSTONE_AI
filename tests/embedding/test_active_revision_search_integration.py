@@ -10,6 +10,8 @@ import pytest
 
 from app.core.database import connect_database
 from app.embedding.audio_embedding import PREPROCESSING_VERSION, AudioEmbeddingError
+from app.embedding.audio_embedding import audio_file_sha256
+from app.repository.embedding_repository import prepare_embedding
 from app.embedding.storage import AudioEmbeddingStorage
 from app.repository.embedding_repository import (
     AudioEmbeddingRepository,
@@ -33,6 +35,9 @@ def music_id(connection):
     with connect_database() as cleanup:
         cleanup.execute(
             "DELETE FROM ai_embeddings.audio_embeddings WHERE music_id = %s", (value,)
+        )
+        cleanup.execute(
+            "DELETE FROM ai_embeddings.audio_processing_attempts WHERE music_id = %s", (value,)
         )
         cleanup.execute(
             "DELETE FROM ai_embeddings.audio_sources WHERE music_id = %s", (value,)
@@ -131,19 +136,24 @@ def test_inflight_search_keeps_revision_one_across_backend_activation(music_id, 
 
 
 @pytest.mark.parametrize("failure", ["generation", "storage_rollback"])
-def test_generation_and_storage_failures_preserve_active_row_and_vector(music_id, first, failure):
+def test_generation_and_storage_failures_preserve_active_row_and_vector(music_id, first, failure, tmp_path):
     active_pair = (music_id, 1)
     original = read_exact(first)
     if failure == "generation":
         generator = Mock()
 
-        def fail_generation(audio_path):
+        path = tmp_path / 'r2.wav'
+        path.write_bytes(b'generation fixture')
+        generator.generation_profile.return_value = prepare_embedding(audio_result(-1.0))[1]
+
+        def fail_generation(audio_path, *, expected_sha256):
+            assert expected_sha256 == audio_file_sha256(path)
             assert_request_returns(active_pair, first)
             raise AudioEmbeddingError("generation failed", audio_path)
 
         generator.generate.side_effect = fail_generation
         with pytest.raises(AudioEmbeddingError, match="generation failed"):
-            AudioEmbeddingStorage(generator=generator).store(music_id, "r2.wav", audio_revision=2)
+            AudioEmbeddingStorage(generator=generator).store(music_id, path, audio_revision=2)
     else:
         with pytest.raises(EmbeddingConflict):
             with connect_database() as writer:
@@ -151,7 +161,8 @@ def test_generation_and_storage_failures_preserve_active_row_and_vector(music_id
                 save_revision(writer, music_id, 2, 1.0)
         assert writer.closed
 
-    assert rank_requested_pair((music_id, 2)) == (Status.MISSING_SOURCE, [])
+    expected = Status.MISSING_EMBEDDING if failure == 'generation' else Status.MISSING_SOURCE
+    assert rank_requested_pair((music_id, 2)) == (expected, [])
     assert read_exact(first) == original
     assert_request_returns(active_pair, first)
 
