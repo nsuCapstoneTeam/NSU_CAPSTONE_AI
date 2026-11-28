@@ -1,11 +1,11 @@
 # Audio 임베딩 테이블과 동기 저장
 
 이 문서는 현재 내부 저장 identity와 동기 저장 경로를 설명한다.
-후속 설계는 revision별 기존·신규 벡터 보관과 Backend ACTIVE 커밋 확인 후 이전 벡터 정리다.
-처리 상태·stale 복구·삭제 기록을 포함한 [연동 계약](../api/AUDIO_SYNC_BACKEND_HANDOFF.md)은 미구현이며
-아래 테이블·CLI가 이미 보장하는 기능과 구분한다.
+같은 revision·원본·생성 profile의 요청은 내부 처리 소유권으로 조정한다.
+Backend가 ACTIVE를 결정하며 상태 조회 API와 삭제 처리는 후속 이슈에서 다룬다.
+서버 간 책임은 [연동 계약](../api/AUDIO_SYNC_BACKEND_HANDOFF.md)을 따른다.
 
-Phase 3의 Audio 테이블과 저장 기능을 구현했습니다. Audio 저장은 백엔드 계약이 미정인
+Audio 저장은 백엔드 계약이 미정인
 상태에서 AI 내부 저장을 검증하기 위한 임시 구조입니다. HTTP 등록 API, 백엔드 음악 FK,
 수정·삭제·상태 동기화는 아직 연결하지 않았습니다. Text query는 음악 ID와 분리된
 query SHA-256 및 generation profile identity로 별도 pgvector 테이블에 저장합니다.
@@ -24,13 +24,13 @@ query SHA-256 및 generation profile identity로 별도 pgvector 테이블에 �
 
 profile은 기존 전체 JSON(device 포함)을 유지한다. Text와 동일한 `json.dumps(sort_keys=True, separators=(',', ':'), allow_nan=False)`의 UTF-8 bytes를 SHA256한다. source SHA·경로·길이 등 입력별 metadata는 profile에 포함하지 않는다. device의 향후 분리 여부는 별도 결정이며 이번 구현에서 의미를 변경하지 않는다.
 
-저장은 source와 embedding을 같은 savepoint에 포함한다. 호출자가 오류를 잡더라도 source만 남는 부분 저장은 취소하며, repository가 외부 트랜잭션을 commit하지 않는다. 같은 identity·같은 vector는 기존 UUID와 `created=false`를 반환한다.
+하위 저장 함수 `AudioEmbeddingRepository.save()`는 source와 embedding을 같은 savepoint에 포함한다. 호출자가 오류를 잡더라도 source만 남는 부분 저장은 취소하며, repository가 외부 트랜잭션을 commit하지 않는다. 같은 identity·같은 vector는 기존 UUID와 `created=false`를 반환한다.
 
 ### migration 안전성
 
 0001·0002는 유지하고 0003을 추가한다. 기존 Audio row가 하나라도 있으면 Backend revision 매핑 없이 진행하지 않고 `audio_revision_mapping_required`로 차단한다. revision=1 추정·데이터 삭제·벡터 재생성은 하지 않는다. 기존 데이터가 있는 환경의 승인된 backfill 절차는 별도 설계가 필요하다. `uuidv7()` 미지원 환경도 차단하며 UUIDv4로 대체하지 않는다.
 
-ACTIVE 전환은 NSUAI-44, 재시도·작업 소유권은 NSUAI-45, 삭제·이전 revision 정리는 NSUAI-46 책임이다. 이번 저장 identity는 검색 가능 상태를 뜻하지 않는다.
+0004는 `audio_processing_attempts` 테이블과 processing 소유자 UNIQUE 부분 인덱스를 추가한다. 기존 source·embedding·migration 0001~0003을 수정하거나 과거 행에 시도 이력을 채우지 않는다. 최초 저장 이전에도 source가 예약될 수 있으므로 source만 존재하는 revision은 검색 시 MISSING_EMBEDDING이다. 다른 revision으로 대체하지 않는다.
 
 ## 내부 저장 계약과 협의 필요 사항
 
@@ -40,7 +40,7 @@ ACTIVE 전환은 NSUAI-44, 재시도·작업 소유권은 NSUAI-45, 삭제·이�
 - 음악·revision·generation profile별로 저장합니다. 동일 identity·해시·벡터이면 기존 UUID를 반환합니다.
 - 같은 음악·revision에 다른 SHA가 오거나 동일 생성 identity에 다른 벡터가 오면 `EmbeddingConflict`를 발생시키고 덮어쓰지 않습니다.
 - 동일 파일을 서로 다른 음악 ID로 등록하는 것은 허용합니다. 전역 해시 중복 제거는 하지 않습니다.
-- 재요청도 현재는 다시 생성한 뒤 비교합니다. 중복 저장은 막지만 중복 추론 비용은 남습니다.
+- 재요청은 파일의 SHA와 검증된 모델 설정으로 전체 profile을 구성하고 기존 행의 source·profile을 대조합니다. 같은 identity의 커밋 결과가 있으면 추론을 생략합니다.
 - 모델·차원이 다른 행도 저장할 수 있습니다. DB 검색에서는 호환되는 생성 조건으로 후보를 제한합니다.
 
 백엔드와 ID 형식·발급 주체, 테이블 관리 주체, 수정·삭제·재등록 규칙을 확정한 뒤
@@ -50,15 +50,10 @@ ACTIVE 전환은 NSUAI-44, 재시도·작업 소유권은 NSUAI-45, 삭제·이�
 
 ```text
 외부 음악 ID + Backend audioRevision + 음악 파일 경로
-  → ID·revision 검사
-  → 공통 AudioEmbeddingGenerator.generate()
-     파일·해시 검사 → MSCLAP 전처리·추론 → 벡터 검증 → 원본 변경 검사
-  → DB 연결·트랜잭션 시작
-  → 저장 직전 벡터·메타데이터 검증
-  → INSERT ... ON CONFLICT DO NOTHING
-     새 identity: source와 생성 결과 저장
-     기존 identity: 해시·생성 조건·벡터 일치 여부 검사
-  → 성공 시 commit / 실패 시 rollback
+  → ID·revision·파일 SHA와 추론 전 profile 확인
+  → 짧은 획득 트랜잭션에서 source 예약·기존 결과 또는 processing 확인
+  → 새 소유자만 트랜잭션 밖에서 파일 검사·디코딩·추론·원본 재검사
+  → 완료 트랜잭션에서 processing 소유권 확인·생성 후 profile 대조·벡터와 ready 반영
   → UUID·음악 ID·revision·profile SHA·생성 여부·원본 SHA·차원 반환
 ```
 
@@ -72,7 +67,7 @@ ACTIVE 전환은 NSUAI-44, 재시도·작업 소유권은 NSUAI-45, 삭제·이�
 ### 2. 공통 생성기에 파일 전달
 
 ```python
-result = self.generator.generate(audio_path)
+result = self.generator.generate(audio_path, expected_sha256=source_sha)
 ```
 
 음악 파일 검색에서도 사용하던 생성기를 그대로 호출합니다. 저장용 전처리를 별도로
@@ -85,17 +80,13 @@ Mean Pooling 후 최종 L2 정규화하여 대표 벡터 하나와 생성 metada
 벡터의 유한값·0벡터·shape·차원도 검사합니다.
 자세한 동작은 [공통 생성기 설명](AUDIO_EMBEDDING.md)을 참고하세요.
 
-### 3. 생성이 끝난 뒤 DB 트랜잭션 시작
+### 3. 처리 소유권과 재시도
 
-```python
-with connect_database() as connection:
-    saved = self.repository.save(connection, music_id, audio_revision, result)
-```
+`AudioEmbeddingStorage.store()`는 파일 SHA와 모델의 검증된 checkpoint·구현·package·전처리·설정 차원으로 generation profile을 정한다. 첫 트랜잭션에서 해당 revision의 source row를 잠그고, 동일 identity에 진행 중인 시도가 있으면 `ProcessingInProgress`로 알린다. 서로 다른 profile은 각각 소유권을 얻을 수 있다. 추론 중에는 DB 연결을 유지하지 않는다.
 
-모델 로딩·디코딩·추론 중에는 DB 연결과 트랜잭션을 잡지 않습니다.
-생성 오류는 DB 변경 전에 발생합니다. 저장 오류는 연결 컨텍스트를 벗어나며 롤백되고,
-저장이 끝나 정상적으로 벗어나면 커밋됩니다. SQL 대기는 30초, 잠금 대기는 5초로 제한합니다.
-DB 실패 후 자동 재시도는 아직 없으며, 같은 ID로 CLI를 다시 실행할 수 있습니다.
+기본값 `stale_before=None`에서는 경과 시간만으로 재처리하지 않는다. 내부 호출자가 명시한 timezone-aware cutoff보다 먼저 또는 그 시각에 시작한 processing만 인수할 수 있다. 인수 시 이전 시도에 `stale_takeover`와 적용한 cutoff를 기록하고 새 시도를 같은 트랜잭션에서 시작한다. 운영 timeout·조회 간격·횟수는 정해지지 않았다.
+
+완료 시 현재 processing 시도의 UUID와 revision·SHA·profile을 다시 검사한다. 같은 트랜잭션에서 벡터 저장과 ready 전이를 커밋한다. 생성·저장 실패는 해당 processing 시도에만 failed, 입력 오류 또는 일시적 오류 분류, 사유를 기록한다. 시작·종료 시각으로 처리시간을 확인할 수 있다. 이미 종료되거나 인수된 시도의 성공·실패는 거부한다. timeout 후 재요청은 정확히 일치하는 커밋된 결과의 기존 UUID를 반환한다. 이 UUID와 내부 attempt ID의 외부 노출은 별도 API 설계 범위다.
 
 ### 4. 저장 직전 정합성 확인
 
@@ -190,7 +181,7 @@ docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps ai python 
 docker compose -f compose.yaml -f compose.dev.yaml run --rm --no-deps -e RUN_EMBEDDING_DB_TESTS=1 ai python -m pytest tests -q -p no:cacheprovider
 ```
 
-벡터·메타데이터 오류, 생성 실패 시 DB 미접속, 저장 실패 전달, 재요청,
+벡터·메타데이터 오류, 생성 실패 시 소유자 상태 기록, 저장 실패 전달, 재요청,
 충돌 시 원본 유지, 차원 제약, 같은 파일의 다른 ID 등록, 트랜잭션 롤백,
 동시 동일 요청의 단일 행 저장을 검사합니다.
 

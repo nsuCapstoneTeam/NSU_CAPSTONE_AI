@@ -58,7 +58,7 @@ def migration_database(monkeypatch):
 
 def test_fresh_migrations_rerun_and_identity_catalog(migration_database):
     expected = ['0001_audio_embeddings.sql', '0002_text_embeddings.sql',
-                '0003_audio_embedding_identity.sql']
+                '0003_audio_embedding_identity.sql', '0004_audio_processing_attempts.sql']
     assert migrations.apply_migrations() == expected
     assert migrations.apply_migrations() == []
     with connect_database() as connection:
@@ -135,7 +135,7 @@ def test_checksum_change_is_rejected(migration_database, monkeypatch, tmp_path):
 def test_failed_ddl_rolls_back_tables_and_history(migration_database, monkeypatch, tmp_path):
     for source in migrations.MIGRATION_DIRECTORY.glob('*.sql'):
         shutil.copyfile(source, tmp_path / source.name)
-    (tmp_path / '0004_failure_fixture.sql').write_text('SELECT missing_fixture_function();', encoding='utf-8')
+    (tmp_path / '0005_failure_fixture.sql').write_text('SELECT missing_fixture_function();', encoding='utf-8')
     monkeypatch.setattr(migrations, 'MIGRATION_DIRECTORY', tmp_path)
     with pytest.raises(psycopg.errors.UndefinedFunction):
         migrations.apply_migrations()
@@ -255,3 +255,23 @@ def test_candidate_compatibility_batch_uses_exact_pairs_and_profile_count(migrat
         assert results[0].compatible_candidate.embedding_id
         assert results[0].compatible_candidate.generation_profile_sha256
         connection.rollback()
+
+
+def test_attempt_migration_preserves_existing_embedding(migration_database, monkeypatch, tmp_path):
+    from test_embedding_storage import make_result
+
+    production = migrations.MIGRATION_DIRECTORY
+    for name in ('0001_audio_embeddings.sql', '0002_text_embeddings.sql', '0003_audio_embedding_identity.sql'):
+        shutil.copyfile(production / name, tmp_path / name)
+    monkeypatch.setattr(migrations, 'MIGRATION_DIRECTORY', tmp_path)
+    migrations.apply_migrations()
+    repository = AudioEmbeddingRepository()
+    with connect_database() as connection:
+        saved = repository.save(connection, 'previous', 7, make_result())
+        key = (saved.music_id, saved.audio_revision, saved.generation_profile_sha256)
+        previous = repository.get(connection, *key)
+    monkeypatch.setattr(migrations, 'MIGRATION_DIRECTORY', production)
+    assert migrations.apply_migrations() == ['0004_audio_processing_attempts.sql']
+    with connect_database() as connection:
+        assert repository.get(connection, *key) == previous
+        assert connection.execute('SELECT count(*) FROM ai_embeddings.audio_processing_attempts').fetchone() == (0,)
